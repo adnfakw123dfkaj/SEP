@@ -23,6 +23,9 @@ jobs:
             tz: America/New_York
     env:
       TZ: ${{ matrix.tz }}
+    defaults:
+      run:
+        working-directory: tradingagents
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
@@ -38,6 +41,9 @@ jobs:
   smoke-install:
     name: clean-install smoke
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: tradingagents
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
@@ -62,6 +68,5 @@ jobs:
       - name: Install ruff
         run: pip install "ruff>=0.16"
       - name: Lint the repository
-        # The repo is fully clean under the strict select, so we lint everything
-        # (generated results/ is excluded via pyproject extend-exclude).
-        run: ruff check .
+        # Lint the trading-agents sub-project with its own pyproject config.
+        run: ruff check --config tradingagents/pyproject.toml tradingagents
