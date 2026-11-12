@@ -1,3 +1,4 @@
-# The dependencies are declared in pyproject.toml. From the repository root this
-# installs TradingAgents with them, the same as `pip install .`
-.
+# The dependencies are declared in tradingagents/pyproject.toml.
+# From the repository root this installs the trading-agents sub-project with
+# them, the same as `pip install ./tradingagents`
+./tradingagents

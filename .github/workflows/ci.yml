@@ -1,9 +1,11 @@
 name: CI
 
 on:
-  push:
-    branches: [main, 'v[0-9]+.[0-9]+.[0-9]+']
+  # Run CI only for pull requests that target master. Pushes to other branches
+  # do not trigger CI; the master branch is protected so a PR cannot merge
+  # unless these checks pass (Require status checks before merging).
   pull_request:
+    branches: [master]
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -23,6 +25,9 @@ jobs:
             tz: America/New_York
     env:
       TZ: ${{ matrix.tz }}
+    defaults:
+      run:
+        working-directory: tradingagents
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
@@ -38,6 +43,9 @@ jobs:
   smoke-install:
     name: clean-install smoke
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: tradingagents
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
@@ -54,6 +62,9 @@ jobs:
   lint:
     name: ruff (strict, full repo)
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: tradingagents
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
@@ -61,7 +72,9 @@ jobs:
           python-version: "3.12"
       - name: Install ruff
         run: pip install "ruff>=0.16"
-      - name: Lint the repository
-        # The repo is fully clean under the strict select, so we lint everything
-        # (generated results/ is excluded via pyproject extend-exclude).
+      - name: Lint the sub-project
+        # Run from inside tradingagents/ so pyproject.toml (including its isort
+        # config) resolves relative to the package root, matching how the code
+        # is validated locally. Linting from the repo root with an explicit
+        # --config path mis-resolves the isort root and reports spurious I001.
         run: ruff check .
