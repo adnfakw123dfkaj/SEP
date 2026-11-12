@@ -60,6 +60,9 @@ jobs:
   lint:
     name: ruff (strict, full repo)
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: tradingagents
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
@@ -67,6 +70,9 @@ jobs:
           python-version: "3.12"
       - name: Install ruff
         run: pip install "ruff>=0.16"
-      - name: Lint the repository
-        # Lint the trading-agents sub-project with its own pyproject config.
-        run: ruff check --config tradingagents/pyproject.toml tradingagents
+      - name: Lint the sub-project
+        # Run from inside tradingagents/ so pyproject.toml (including its isort
+        # config) resolves relative to the package root, matching how the code
+        # is validated locally. Linting from the repo root with an explicit
+        # --config path mis-resolves the isort root and reports spurious I001.
+        run: ruff check .
