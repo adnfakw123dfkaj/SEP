@@ -1,9 +1,11 @@
 name: CI
 
 on:
-  push:
-    branches: [main, 'v[0-9]+.[0-9]+.[0-9]+']
+  # Run CI only for pull requests that target master. Pushes to other branches
+  # do not trigger CI; the master branch is protected so a PR cannot merge
+  # unless these checks pass (Require status checks before merging).
   pull_request:
+    branches: [master]
 
 concurrency:
   group: ci-${{ github.ref }}
