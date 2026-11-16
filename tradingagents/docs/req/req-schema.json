@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TradingAgents Requirements",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["metadata", "requirements"],
+  "properties": {
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["project", "baseline_ref", "n_policy", "open_code_required"],
+      "properties": {
+        "project": {"type": "string", "minLength": 1},
+        "baseline_ref": {"type": "string", "minLength": 1},
+        "n_policy": {"type": "string", "minLength": 1},
+        "open_code_required": {"type": "boolean"}
+      }
+    },
+    "requirements": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id", "type", "title", "priority", "priority_rationale",
+          "description", "acceptance_criteria", "tests", "sources", "status"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^(FR|NFR)-[0-9]{2,}$"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "functional_behavior", "invariant", "quality_attribute",
+              "performance", "cost", "governance", "security"
+            ]
+          },
+          "title": {"type": "string", "minLength": 1},
+          "priority": {
+            "type": "string",
+            "enum": ["Must", "Should", "Could", "Won't"]
+          },
+          "priority_rationale": {"type": "string", "minLength": 1},
+          "description": {"type": "string", "minLength": 1},
+          "acceptance_criteria": {
+            "type": "array",
+            "minItems": 1,
+            "items": {"type": "string", "minLength": 1}
+          },
+          "tests": {
+            "type": "array",
+            "minItems": 1,
+            "items": {"type": "string", "minLength": 1}
+          },
+          "sources": {
+            "type": "array",
+            "minItems": 1,
+            "items": {"type": "string", "minLength": 1}
+          },
+          "status": {
+            "type": "string",
+            "enum": ["planned", "approved", "implemented", "verified", "deferred", "rejected"]
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,182 @@
+metadata:
+  project: TradingAgents
+  baseline_ref: baseline_fred_enabled_20261112-204453
+  n_policy: "provisional total 6; teacher confirmation pending"
+  open_code_required: false
+
+requirements:
+  - id: FR-01
+    type: functional_behavior
+    title: 结构化多 Agent 讨论协议
+    priority: Must
+    priority_rationale: "核心协作能力；必须保留讨论分歧并可靠交接给 Trader。"
+    description: >
+      Research Debate 使用统一讨论协议，保留 Bull/Bear 的观点和未解决分歧，
+      并将研究结论及交接状态传给 Trader。中间结构化输出失败时，必须重试或标记
+      交接不完整，但不因此自动触发最终 REVIEW。
+    acceptance_criteria:
+      - "每轮讨论记录包含发言角色和轮次。"
+      - "未解决的 Bull/Bear 分歧得到保留。"
+      - "Trader 能收到研究结论及交接状态。"
+      - "结构化输出失败时能够重试或标记交接不完整。"
+      - "中间失败本身不会自动触发最终 REVIEW。"
+    tests:
+      - test_debate_protocol
+      - test_disagreement_preservation
+      - test_research_handoff
+      - test_intermediate_failure
+      - test_review_boundary
+    sources:
+      - "baseline: results/baseline_fred_enabled_20261112-204453/console.raw.txt — Research Manager 与 Trader 各一次结构化输出回退。"
+      - "team: 阶段1团队暂定需求 — 讨论协议、分歧保留、Trader 交接。"
+    status: planned
+
+  - id: FR-02
+    type: functional_behavior
+    title: 不可用数据的有界重试与降级
+    priority: Must
+    priority_rationale: "关键数据缺失须安全终止，可选数据故障须可控降级并如实披露。"
+    description: >
+      关键数据包括 OHLCV/已验证行情快照，以及 as_of 窗口内可用的利润表
+      （get_income_statement）、资产负债表（get_balance_sheet）和现金流量表
+      （get_cashflow）。三张表缺任何一张即为基本面缺失；get_fundamentals 摘要不能替代，
+      内幕交易归新闻类，不算基本面。关键数据缺失时只允许两种结果：运行失败且不发布
+      最终评级和交易内容；或运行状态为硬 REVIEW 且最终评级为 REVIEW，再由 NFR-03
+      阻断交易内容。可选数据为个股新闻、FRED 宏观数据、Polymarket 和 sentiment；
+      有界重试后可降级继续，标记 DATA_UNAVAILABLE/数据缺口，不得把不可用说成没有相关事件。
+      同一次数据请求中的供应商切换、Yahoo 重试和新策略重试共用一个上限；重试次数不在此预设。
+    acceptance_criteria:
+      - "任一关键行情数据或三张基本报表缺失时，运行只能失败或进入硬 REVIEW。"
+      - "运行失败时，不发布最终评级和交易内容。"
+      - "运行状态为硬 REVIEW 时，最终评级必须为 REVIEW。"
+      - "get_fundamentals 摘要或内幕交易数据不能满足三张基本报表要求。"
+      - "可选数据实际缺失且重试预算耗尽时，报告标记 DATA_UNAVAILABLE/数据缺口。"
+      - "数据不可用不得表述为不存在相关事件。"
+      - "供应商切换、Yahoo 重试和新策略重试计入同一次请求的共享重试上限。"
+    tests:
+      - test_critical_data_missing_outcomes
+      - test_failed_run_publishes_no_final_decision
+      - test_hard_review_requires_review_rating
+      - test_financial_statement_completeness
+      - test_fundamentals_summary_not_substitute
+      - test_optional_data_gap
+      - test_shared_retry_budget
+    sources:
+      - "baseline: results/baseline_fred_enabled_20261112-204453/console.raw.txt — FRED T10Y2Y SSL 错误。"
+      - "baseline: results/baseline_fred_enabled_20261112-204453/reports/NVDA_20261112_205433/complete_report.md — 第7节披露多个日期窗口未返回 NVDA 文章；属于报告披露，不代表已确认供应商故障或系统重试。"
+      - "team: 团队暂定关键数据、基本面定义及共享重试上限。"
+    status: planned
+
+  - id: FR-03
+    type: functional_behavior
+    title: 运行指标采集与持久化
+    priority: Must
+    priority_rationale: "可测运行指标是成本比较、故障分析和结果追踪的基础。"
+    description: >
+      每次运行记录运行 ID、配置、阶段耗时、LLM/工具调用、可取得的 Token 输入/输出、
+      重试、结构化输出回退、数据可用状态、运行状态和报告产物位置。不可取得的 Token
+      标记为 unavailable，不得记为零；记录不得泄露密钥。
+    acceptance_criteria:
+      - "每次运行都有可关联到配置和报告产物的指标记录。"
+      - "记录阶段耗时、LLM/工具调用、重试、结构化输出回退和数据状态。"
+      - "Token 可取得时记录用量；不可取得时标记 unavailable 而不是 0。"
+      - "运行记录不包含 API 密钥。"
+    tests:
+      - test_run_metrics_record
+      - test_token_usage_unavailable
+      - test_metric_report_link
+      - test_secret_redaction
+    sources:
+      - "baseline: results/baseline_fred_enabled_20261112-204453 — 产物几乎无可用应用运行 Token 总量。"
+      - "team: 阶段1团队暂定需求 — FR-03 Must。"
+    status: planned
+
+  - id: NFR-01
+    type: cost
+    title: 同任务应用运行成本控制
+    priority: Should
+    priority_rationale: "成本下降幅度是应当达成的方向；须先补齐可观测基线和质量底线，不作为当前 Must 门槛。"
+    description: >
+      固定任务、配置和可比数据条件下，增强版本应降低应用运行成本并满足团队批准的输出质量底线。
+      正式验收须基线至少3次、增强版至少3次，且达到团队批准的成本阈值和质量底线。
+      同配置先各跑1次仅用于取得 Token/调用数据，不得宣称 NFR-01 已通过。
+      成本百分比和质量底线均待补齐可观测基线后确定。
+    acceptance_criteria:
+      - "同配置基线和增强版各运行1次时，只记录 Token/调用数据，不判定 NFR-01 通过。"
+      - "正式对比的基线运行至少3次。"
+      - "正式对比的增强版运行至少3次。"
+      - "成本改善百分比和输出质量底线仍为 pending_baseline，直至团队基于可观测基线锁定。"
+      - "只有样本数达标且成本与质量阈值均满足时，NFR-01 才通过。"
+    tests:
+      - test_nfr01_interim_runs_not_pass
+      - test_nfr01_requires_three_baseline_runs
+      - test_nfr01_requires_three_enhanced_runs
+      - test_nfr01_cost_and_quality_thresholds
+    sources:
+      - "baseline: results/baseline_fred_enabled_20261112-204453/console.raw.txt — 基线耗时；无可用 Token 总量。"
+      - "team: 团队暂定 NFR-01 评估口径 — 两版正式对比各至少3次，先各跑1次仅采集数据。"
+      - "course: CS5351_Assignment_Brief_for_Agent_CN.md — Higher Grade 包含降低应用运行 Token 消耗。"
+    status: planned
+
+  - id: NFR-02
+    type: quality_attribute
+    title: 外部依赖失败时的结果完整性
+    priority: Must
+    priority_rationale: "运行必须如实表达依赖失败、数据缺口和 point-in-time 范围。"
+    description: >
+      关键数据缺失时只允许运行失败且不发布最终评级/交易内容，或运行状态为硬 REVIEW 且最终评级为 REVIEW；
+      硬 REVIEW 的交易内容由 NFR-03 阻断。可选数据实际缺失时允许有界降级，但不得把不完整结果标记为完整。
+      报告使用指定 as_of，写明数据窗口和生成时刻；仅在可选数据实际缺失时标记缺口。
+    acceptance_criteria:
+      - "关键数据缺失时，运行状态为失败或硬 REVIEW，不得标记为成功完整。"
+      - "失败状态下不发布最终评级和交易内容。"
+      - "硬 REVIEW 状态下最终评级必须为 REVIEW。"
+      - "可选数据实际缺失且重试预算耗尽时，报告标记 DATA_UNAVAILABLE/数据缺口。"
+      - "可选数据可用时不得虚报该项缺口。"
+      - "报告写明指定 as_of、对应数据窗口和生成时刻。"
+      - "point-in-time 验证不得使用晚于指定 as_of 的数据。"
+    tests:
+      - test_critical_data_result_integrity
+      - test_hard_review_rating_binding
+      - test_optional_gap_conditional_reporting
+      - test_as_of_window_and_generation_time
+      - test_point_in_time_no_lookahead
+    sources:
+      - "baseline: results/baseline_fred_enabled_20261112-204453/console.raw.txt — FRED T10Y2Y SSL 错误。"
+      - "team: 团队暂定关键/可选数据及 point-in-time 规则。"
+    status: planned
+
+  - id: NFR-03
+    type: security
+    title: 最终评级确定性输出护栏
+    priority: Must
+    priority_rationale: "课程要求确定性安全边界；硬 REVIEW 与评级必须一致且不得泄露可执行交易内容。"
+    description: >
+      最终评级只允许 Buy、Overweight、Hold、Underweight、Sell、REVIEW。
+      缺少 Rating:、非枚举、多评级冲突或解析失败时进入 REVIEW。
+      运行状态为硬 REVIEW 时，最终评级必须为 REVIEW。REVIEW 时清空或标记 blocked：
+      Trader 提案中的 action、entry_price、stop_loss、position_sizing，
+      以及 Portfolio Executive Summary 中的可执行内容；CLI/API 和最终报告不得泄露这些内容。
+      自由文本回退不得绕过护栏。Research Debate 中间结构化失败不自动触发最终 REVIEW。
+    acceptance_criteria:
+      - "合法最终评级保留为允许枚举之一。"
+      - "评级缺失、非枚举、多评级冲突或解析失败时，最终评级为 REVIEW。"
+      - "运行状态为硬 REVIEW 时，最终评级不得为 Buy、Overweight、Hold、Underweight 或 Sell。"
+      - "REVIEW 时 Trader 提案的 action、entry_price、stop_loss、position_sizing 为空或 blocked。"
+      - "REVIEW 时 Portfolio Executive Summary 不含可执行内容。"
+      - "CLI/API 和最终报告不暴露被阻断的交易内容。"
+      - "自由文本回退不能绕过护栏；中间辩论失败本身不触发最终 REVIEW。"
+    tests:
+      - test_final_rating_enum
+      - test_missing_invalid_conflicting_rating_review
+      - test_hard_review_rating_must_be_review
+      - test_review_blocks_trader_fields
+      - test_review_blocks_portfolio_summary
+      - test_review_blocks_external_surfaces
+      - test_free_text_fallback_cannot_bypass_guard
+      - test_intermediate_failure_review_boundary
+    sources:
+      - "course: CS5351-项目作业要求-中文版.md — 确定性约束 AI 输出的安全边界。"
+      - "baseline: results/baseline_fred_enabled_20261112-204453/console.raw.txt — Research Manager 与 Trader 各一次结构化输出回退。"
+      - "team: 团队暂定最终评级与硬 REVIEW 绑定规则。"
+    status: planned
