@@ -3,9 +3,21 @@
 import run_static_checks as sc
 
 
-def test_run_all_returns_all_four_keys():
+def test_run_all_returns_all_checks():
     results = sc.run_all()
-    assert set(results) == {"contract", "security", "api_surface", "permission"}
+    assert set(results) == {"contract", "security", "api_surface", "permission", "dependencies"}
+
+
+def test_dependencies_passes_when_package_imports():
+    import importlib
+
+    try:
+        importlib.import_module("tradingagents")
+    except Exception:
+        import pytest
+
+        pytest.skip("tradingagents not installed in this environment")
+    assert sc.check_dependencies() is True
 
 
 def test_contract_passes_without_contract_modules():

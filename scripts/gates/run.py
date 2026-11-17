@@ -3,7 +3,7 @@
 Usage:
     python scripts/gates/run.py <gate> --input <json> [--warn-only]
 
-``<gate>`` is ``g1``..``g6``. ``--input`` is a JSON file with the arguments for
+``<gate>`` is ``g1``..``g7``. ``--input`` is a JSON file with the arguments for
 that gate's ``check()``. ``--warn-only`` is layer 1 (branch self-check): report
 violations but always exit 0. Without it, the run is layer 2 (PR to master) and a
 failed gate exits non-zero.
@@ -53,6 +53,10 @@ def main(argv: list[str]) -> int:
     payload = json.loads(Path(input_path).read_text(encoding="utf-8"))
 
     func, keys = _GATES[gate]
+    # Pass only the keys the caller provided; the check functions supply defaults
+    # for optional inputs (e.g. G4's ``metrics``), so an omitted optional field
+    # does not crash. A genuinely required field that is absent surfaces as an
+    # error, which the workflow should never produce.
     kwargs = {k: payload[k] for k in keys if k in payload}
     result = func(**kwargs)
 

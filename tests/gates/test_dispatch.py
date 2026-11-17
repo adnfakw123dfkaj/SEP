@@ -52,3 +52,24 @@ def test_cli_warn_only_passes_exit_but_reports(tmp_path):
     assert proc.returncode == 0
     report = json.loads(proc.stdout)
     assert report["status"] == "fail"
+
+
+def test_cli_g4_without_metrics_key_does_not_crash(tmp_path):
+    # A non-eval change: the workflow omits "metrics". run.py must not pass a
+    # missing required arg; G4 defaults it and reports skipped.
+    payload = {"changed_files": ["README.md"]}
+    proc = _run_gate(tmp_path, "g4", payload)
+    assert proc.returncode == 0
+    report = json.loads(proc.stdout)
+    assert report["status"] == "skipped"
+
+
+def test_cli_g1_with_all_fields_passes(tmp_path):
+    payload = {
+        "changed_files": ["src/x.py", "tests/test_x.py"],
+        "approvals": [{"change_id": "c", "tests": ["tests/test_x.py"], "approved_by": "a",
+                       "approved_at": "2026-11-01T09:00:00+00:00"}],
+        "first_implementation_commit": "2026-11-01T10:00:00+00:00",
+    }
+    proc = _run_gate(tmp_path, "g1", payload)
+    assert proc.returncode == 0

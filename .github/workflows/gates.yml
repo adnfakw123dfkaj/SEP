@@ -79,11 +79,16 @@ jobs:
           # Progressive type-check: strict on the gate scripts + eval harness,
           # legacy package excluded (see pyrightconfig.json).
           run("type_check", "pyright")
-          # Dependency audit against the installed environment (the deps declared
-          # in tradingagents/pyproject.toml). A found vulnerability fails the gate.
-          run("dependencies", "pip-audit")
-          # Safety-path checks (contract/security/api_surface/permission): run them
-          # so a safety-path change has real results instead of "not run".
+          # Dependency audit is informational only: auditing the whole env
+          # surfaces pre-existing transitive CVEs no PR can fix, so it must not
+          # block. The blocking "dependencies" check (declared deps importable)
+          # is produced by run_static_checks.py below.
+          audit = subprocess.run(["pip-audit"], capture_output=True, text=True)
+          with open("/tmp/pip_audit.txt", "w") as fh:
+              fh.write(audit.stdout + audit.stderr)
+          print("pip-audit (informational) exit:", audit.returncode)
+          # Safety-path + dependency checks so a safety-path change has real
+          # results instead of "not run".
           import os
           changed = os.popen("python scripts/gates/collect_context.py changed --base \"${{ inputs.base_ref }}\"").read()
           env = dict(os.environ)
@@ -98,7 +103,7 @@ jobs:
           try:
               results.update(json.loads(heavy.stdout))
           except Exception:
-              for name in ("contract", "security", "api_surface", "permission"):
+              for name in ("contract", "security", "api_surface", "permission", "dependencies"):
                   results[name] = False
           json.dump(results, open("/tmp/check_results.json", "w"))
           PY
@@ -149,7 +154,9 @@ jobs:
           import json
           import check_semantic_eval as g
           files = json.load(open("/tmp/changed.json"))["changed_files"]
-          payload = {"changed_files": files}
+          # Always carry "metrics" (None when not eval-relevant) so the payload is
+          # shape-stable regardless of change type.
+          payload = {"changed_files": files, "metrics": None}
           # If the change is eval-relevant, replay the fixed set offline.
           if g.is_eval_relevant(files):
               from harness import run_fixed_set
@@ -246,7 +253,11 @@ jobs:
           pip install -e tradingagents >/dev/null
       - name: Collect Part test outcomes
         run: |
+          # Run WITHOUT integration: a claimed Part is judged on its unit tests
+          # (integration tests need infra and may depend on other unimplemented
+          # Parts, so they are out of scope for the ownership gate).
           ( cd tradingagents && python -m pytest tests/req tests/security -q \
+              -m "not integration" \
               --json-report --json-report-file=/tmp/part_raw.json ) || true
           python - <<'PY'
           import json
