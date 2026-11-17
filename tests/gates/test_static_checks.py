@@ -38,15 +38,16 @@ def test_security_detects_a_secret(tmp_path, monkeypatch):
     assert sc.check_security() is False
 
 
-def test_permission_passes_when_no_protected_change(monkeypatch):
-    monkeypatch.setenv("CHANGED_FILES", "tradingagents/agents/x.py")
+def test_permission_passes_on_clean_workflows():
+    # The repo's workflows use least privilege.
     assert sc.check_permission() is True
 
 
-def test_permission_fails_on_protected_change_without_approval(tmp_path, monkeypatch):
+def test_permission_fails_when_a_workflow_grants_write(tmp_path, monkeypatch):
+    wf = tmp_path / ".github" / "workflows"
+    wf.mkdir(parents=True)
+    (wf / "bad.yml").write_text("name: x\npermissions:\n  contents: write\n", encoding="utf-8")
     monkeypatch.setattr(sc, "REPO", tmp_path)
-    monkeypatch.setenv("CHANGED_FILES", "scripts/gates/run.py")
-    # no docs/approvals dir -> fail
     assert sc.check_permission() is False
 
 

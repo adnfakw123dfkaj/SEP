@@ -73,3 +73,20 @@ entries:
     summary: "Fix G5 false 'deletion' when baseline and current disagree on parameterized test-id escaping (pytest version difference). check_regression now normalises \n/\t/\\ escaping on both sides before matching, while still catching real deletions and regressions. Human reviewed."
     files_changed:
       - scripts/gates/check_regression.py
+
+  - change_id: "g5-autoid-normalization"
+    date: "2026-11-17"
+    agent_session: "g5-textN-fix"
+    summary: "Fix G5 when pytest names parameters with auto ids (text6) instead of full text: check_regression bridges same-base/same-count auto-id params; test_rating_integrity parametrize blocks given explicit stable ids so nodeids are version-independent. Baseline re-recorded. Human reviewed."
+    files_changed:
+      - scripts/gates/check_regression.py
+      - tradingagents/tests/test_rating_integrity.py
+
+  - change_id: "gate-ci-yaml-and-permission-fix"
+    date: "2026-11-17"
+    agent_session: "gate-ci-failure-fix"
+    summary: "Fix live CI failures: gate-test-approval and gate-ai-use-log jobs install pyyaml; collect_context parses YAML with a built-in fallback so a missing pyyaml never crashes; run_static_checks.check_permission is now a workflow-permission property check (no approval file required for gate-infra changes). Human reviewed."
+    files_changed:
+      - .github/workflows/gates.yml
+      - scripts/gates/collect_context.py
+      - scripts/gates/run_static_checks.py

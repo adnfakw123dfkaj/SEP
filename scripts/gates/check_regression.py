@@ -15,6 +15,8 @@ tests to make a red change pass.
 
 from __future__ import annotations
 
+import re
+
 from common import GateResult, Violation
 
 PASS = "passed"
@@ -64,6 +66,29 @@ def _approved_deletions(approvals: list[dict] | None) -> set[str]:
     return approved
 
 
+def _base_of(test_id: str) -> str:
+    """The ``path::function`` part of a node id, dropping any ``[...]`` params."""
+    return test_id.split("[", 1)[0]
+
+
+# pytest falls back to automatic ids like ``text0``/``param1`` for parameters whose
+# text has no readable id (special/non-ASCII characters, some versions). Such a
+# placeholder carries no mapping to the original text, so the same test gets a
+# different node id across environments.
+_AUTO_ID = re.compile(r"^(text|param)?\d+$")
+
+
+def _is_auto_id_suffix(suffix: str) -> bool:
+    # suffix is the content inside the last ``[...]`` of a node id
+    return bool(_AUTO_ID.match(suffix.strip().rstrip("-")))
+
+
+def _last_param_suffix(test_id: str) -> str | None:
+    if "[" not in test_id or not test_id.endswith("]"):
+        return None
+    return test_id[test_id.rfind("[") + 1 : -1]
+
+
 def check(
     baseline: dict[str, str],
     current: dict[str, str],
@@ -89,12 +114,48 @@ def check(
         current_norm.setdefault(_norm_id(cid), outcome)
     approved_norm = {_norm_id(d) for d in approved_deletes}
 
+    # Group current parameterized ids by their base (path::function) so an
+    # auto-generated id (text6) can stand in for a full-text id that pytest named
+    # differently. Only same-base, same-count substitution is allowed.
+    current_by_base: dict[str, list[tuple[str, str]]] = {}
+    for cid, outcome in current.items():
+        current_by_base.setdefault(_base_of(cid), []).append((cid, outcome))
+
+    def _resolve(nid: str, test_id: str) -> str | None:
+        outcome = current_norm.get(nid)
+        if outcome is not None:
+            return outcome
+        # Fallback: baseline has a full-text param id; current produced an
+        # auto id (textN) for the same base with the same number of params.
+        suffix = _last_param_suffix(test_id)
+        if suffix is None or _is_auto_id_suffix(suffix):
+            return None  # not the mismatch case we can safely bridge
+        base = _base_of(test_id)
+        candidates = current_by_base.get(base, [])
+        if not candidates:
+            return None
+        baseline_count = sum(1 for b in baseline if _base_of(b) == base)
+        auto = [
+            (cid, o) for cid, o in candidates
+            if (s := _last_param_suffix(cid)) is not None and _is_auto_id_suffix(s)
+        ]
+        # Only bridge when every current id for this base is an auto id and the
+        # counts match, so we are not masking a real removal.
+        if auto and len(auto) == len(candidates) == baseline_count:
+            # Any present outcome is the best evidence; a failure among them
+            # should still be reported.
+            for _cid, o in auto:
+                if o in (FAIL, ERROR):
+                    return o
+            return PASS
+        return None
+
     for test_id, base_outcome in baseline.items():
         if base_outcome != PASS:
             # Nothing to regress from a test that was already not passing.
             continue
         nid = _norm_id(test_id)
-        outcome = current_norm.get(nid)
+        outcome = _resolve(nid, test_id)
         if outcome is None:
             # A previously-passing test vanished. Allowed only with an approval
             # that explicitly authorises deleting it; otherwise it blocks.

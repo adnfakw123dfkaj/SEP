@@ -112,10 +112,115 @@ def _is_implementation_file(path: str) -> bool:
     return path.endswith(".py") or path.startswith("prompts/")
 
 
+def _yaml_load(text: str):
+    """Parse YAML, using PyYAML when available.
+
+    Falls back to JSON (YAML is a JSON superset for the simple mapping/list files
+    here) and, failing that, a minimal line parser, so a missing PyYAML never
+    crashes the gate job. Returns None when nothing usable can be parsed.
+    """
+    try:
+        import yaml
+
+        try:
+            return yaml.safe_load(text)
+        except yaml.YAMLError:
+            return None
+    except ModuleNotFoundError:
+        # No PyYAML: try JSON first (valid for pure-JSON content), then a tiny
+        # parser sufficient for ``entries:``/``parts:`` files with simple values.
+        try:
+            return json.loads(text)
+        except ValueError:
+            return _mini_yaml(text)
+
+def _mini_yaml(text: str):
+    """A minimal YAML reader for the simple documents here.
+
+    Supports top-level ``key:`` mappings whose value is a ``- item`` list (or a
+    scalar), flat ``k: v`` mappings in each item, and one nested ``- item`` list
+    under an item key (e.g. ``files_changed``). Indentation decides whether a
+    ``- item`` line starts a new entry or continues a nested list. Returns None if
+    the input does not fit this shape.
+    """
+    lines = [ln for ln in text.splitlines() if ln.strip() and not ln.lstrip().startswith("#")]
+    result: dict = {}
+    top_list: list | None = None
+    item: dict | None = None
+    nested_key: str | None = None
+    nested_indent = 0
+
+    def flush_item():
+        nonlocal item
+        if item is not None and top_list is not None:
+            top_list.append(item)
+            item = None
+
+    for raw in lines:
+        indent = len(raw) - len(raw.lstrip())
+        s = raw.strip()
+
+        if indent == 0 and not s.startswith("- ") and ":" in s:
+            flush_item()
+            key, _, value = s.partition(":")
+            key = key.strip()
+            if value.strip() == "":
+                top_list = []
+                result[key] = top_list
+            else:
+                top_list = None
+                result[key] = _scalar(value.strip())
+            nested_key = None
+            continue
+
+        if s.startswith("- "):
+            if nested_key is not None and indent > nested_indent and item is not None:
+                item[nested_key].append(_scalar(s[2:].strip()))
+                continue
+            flush_item()
+            item = {}
+            nested_key = None
+            body = s[2:].strip()
+            if ":" in body:
+                k, _, v = body.partition(":")
+                if v.strip() == "":
+                    nested_key = k.strip()
+                    nested_indent = indent
+                    item[nested_key] = []
+                else:
+                    item[k.strip()] = _scalar(v.strip())
+            continue
+
+        if item is not None and ":" in s:
+            k, _, v = s.partition(":")
+            if v.strip() == "":
+                nested_key = k.strip()
+                nested_indent = indent
+                item[nested_key] = []
+            else:
+                item[k.strip()] = _scalar(v.strip())
+                nested_key = None
+            continue
+
+        return None
+
+    flush_item()
+    return result
+
+
+def _scalar(value: str):
+    if value == "" :
+        return None
+    if (value.startswith('"') and value.endswith('"')) or (value.startswith("'") and value.endswith("'")):
+        return value[1:-1]
+    try:
+        return int(value)
+    except ValueError:
+        return value
+
+
 def load_approvals(directory: str = "docs/approvals") -> list[dict]:
     """Read every *.json / *.yaml approval record in ``directory``."""
-    import yaml
-
     path = Path(directory)
     records: list[dict] = []
     if not path.exists():
@@ -123,8 +228,8 @@ def load_approvals(directory: str = "docs/approvals") -> list[dict]:
     for file in sorted(list(path.glob("*.json")) + list(path.glob("*.yaml")) + list(path.glob("*.yml"))):
         text = file.read_text(encoding="utf-8")
         try:
-            data = json.loads(text) if file.suffix == ".json" else yaml.safe_load(text)
-        except (ValueError, yaml.YAMLError):
+            data = json.loads(text) if file.suffix == ".json" else _yaml_load(text)
+        except ValueError:
             continue
         if isinstance(data, dict):
             records.append(data)
@@ -133,12 +238,7 @@ def load_approvals(directory: str = "docs/approvals") -> list[dict]:
 
 def _load_entries_text(text: str) -> list[dict]:
     """Parse AI-use-log entries from YAML text (the file is YAML, not JSON)."""
-    import yaml
-
-    try:
-        data = yaml.safe_load(text)
-    except yaml.YAMLError:
-        return []
+    data = _yaml_load(text)
     if isinstance(data, dict):
         data = data.get("entries", [])
     if not isinstance(data, list):
