@@ -1,0 +1,19 @@
+{
+  "change_id": "part6-cost-control",
+  "tests": [
+    "tradingagents/tests/part6/conftest.py",
+    "tradingagents/tests/part6/test_audit.py",
+    "tradingagents/tests/part6/test_benchmark.py",
+    "tradingagents/tests/part6/test_budget.py",
+    "tradingagents/tests/part6/test_callback.py",
+    "tradingagents/tests/part6/test_cli.py",
+    "tradingagents/tests/part6/test_contracts.py",
+    "tradingagents/tests/part6/test_estimator.py",
+    "tradingagents/tests/part6/test_failure.py",
+    "tradingagents/tests/part6/test_integration.py",
+    "tradingagents/tests/part6/test_monitor.py",
+    "tradingagents/tests/part6/test_router.py"
+  ],
+  "approved_by": "hhshow",
+  "approved_at": "2026-11-17T10:16:40.842040+00:00"
+}
