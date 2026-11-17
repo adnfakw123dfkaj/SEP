@@ -28,3 +28,13 @@ entries:
       - .github/workflows/gates.yml
       - .github/workflows/ci.yml
       - .github/workflows/branch-check.yml
+
+  - change_id: "gate-fixes-static-and-aiuse"
+    date: "2026-11-17"
+    agent_session: "gate-issues-report-response"
+    summary: "Address colleague gate issues: G2 now runs the safety-path checks (contract/security/api_surface/permission) via run_static_checks.py; G6 no longer requires change_id==head SHA and excludes test files from 'production code'; schema aligned to the canonical requirements.yaml. Human reviewed and approved."
+    files_changed:
+      - scripts/gates/run_static_checks.py
+      - scripts/gates/check_ai_use_log.py
+      - scripts/gates/check_schema.py
+      - .github/workflows/gates.yml

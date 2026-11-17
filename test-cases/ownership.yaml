@@ -27,12 +27,14 @@ parts:
     enabled: false
     tests:
       - tradingagents/tests/req/test_debate_protocol.py
+      - tradingagents/tests/req/test_debate_quality.py
 
   part3:
     owner: null
     enabled: false
     tests:
       - tradingagents/tests/req/test_evidence_manifest.py
+      - tradingagents/tests/req/test_report_faithfulness.py
       - tradingagents/tests/req/test_records.py
 
   part4:

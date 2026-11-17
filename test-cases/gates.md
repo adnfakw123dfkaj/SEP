@@ -265,27 +265,32 @@ blocks. (Deleting tests must not become a way to hide a red change.)
 (`date`, `change_id`, `agent_session`, `summary`, `files_changed`). Rule: if the
 PR changes code (`**/*.py` outside docs/tests-only) or prompts (`prompts/**`,
 prompt strings), then `docs/ai-use-log.yaml` must also change in the same PR,
-with an entry referencing the change.
+adding **at least one new entry**.
+
+> The `change_id` is informational (a stable id such as a PR number, branch name,
+> or a hand-written id). The gate does **not** require it to equal the head SHA:
+> a commit adding the log entry changes the head SHA, so a SHA match is circular
+> and can never be satisfied.
 
 | ID | Kind | Title | Pass criterion |
 |---|---|---|---|
-| TC-G6-AILOG-01 | OFFLINE | Code change + updated log passes | pass |
+| TC-G6-AILOG-01 | OFFLINE | Code change + a new log entry passes | pass |
 | TC-G6-AILOG-02 | OFFLINE | Code change + unchanged log blocks (negative) | blocked |
 | TC-G6-AILOG-03 | OFFLINE | Prompt change + unchanged log blocks (negative) | blocked |
 | TC-G6-AILOG-04 | OFFLINE | Docs-only PR needs no log update | pass |
-| TC-G6-AILOG-05 | OFFLINE | Log entry must reference the change id | blocked if missing |
+| TC-G6-AILOG-05 | OFFLINE | Log touched but no new entry blocks (negative) | blocked |
 | TC-G6-AILOG-06 | GITHUB | PR changing code with stale log cannot merge | merge blocked |
 
-- **TC-G6-AILOG-01** — Given a code diff and a log entry for it in the same PR.
-  Then pass.
+- **TC-G6-AILOG-01** — Given a code diff and a new log entry in the same PR. Then
+  pass (the entry's `change_id` value is not checked).
 - **TC-G6-AILOG-02** — Given a code diff and no log change. Then blocked, reason
   `AI-use log not updated`. (mandatory must-fail)
 - **TC-G6-AILOG-03** — Given a prompt change and no log change. Then blocked.
   (must-fail)
 - **TC-G6-AILOG-04** — Given a docs-only PR. Then the gate is not applicable;
   passes.
-- **TC-G6-AILOG-05** — Given a log updated but with an entry not referencing the
-  change id. Then blocked, reason `log entry missing change id`.
+- **TC-G6-AILOG-05** — Given the log file modified but with no new entry added.
+  Then blocked (a touch without an entry is not evidence).
 - **TC-G6-AILOG-06** — GITHUB: a code PR with untouched log is blocked.
 
 ### Gate 7 — Ownership gate

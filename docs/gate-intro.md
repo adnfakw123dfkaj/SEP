@@ -21,11 +21,11 @@
 | 闸门 | 作用 | 规则要点 |
 |---|---|---|
 | **G1 测试审批** | 改动代码前，测试须先被批准 | 需有 `docs/approvals/*.json` 审批记录，且批准时间早于首次实现提交 |
-| **G2 静态分析** | 代码质量与依赖安全 | 每次提交跑 lint、类型检查（pyright）、依赖审计；改动“安全相关路径”时加跑 contract/安全/API/权限检查 |
+| **G2 静态分析** | 代码质量与依赖安全 | 每次提交跑 lint、类型检查（pyright）、依赖审计；改动“安全相关路径”时加跑 contract/安全/API/权限检查（由 `scripts/gates/run_static_checks.py` 实际执行并收集结果） |
 | **G3 Schema** | 需求登记册合法 | `docs/req/requirements.yaml` 须通过 `req-schema.json` 校验 |
 | **G4 语义评测** | 改 prompt/model 前须过质量门槛 | 改动 prompt 或模型配置时，回放固定评测集，任一阈值不达即阻断 |
 | **G5 回归** | 新改动不能弄坏旧功能 | 跑全量旧测试，任何回归即阻断（详见“测试修改/删除规则”） |
-| **G6 AI 使用日志** | 留痕 | 改了代码或 prompt 的 PR，必须同时更新 `docs/ai-use-log.yaml` |
+| **G6 AI 使用日志** | 留痕 | 改了代码或 prompt 的 PR，必须同时更新 `docs/ai-use-log.yaml` 且**新增至少一条条目**；`change_id` 仅作说明用（可为 PR 号/分支名），不要求等于 head SHA（否则循环、无法满足） |
 | **G7 所有权** | 认领承诺 | 见下方“Part 认领规则” |
 
 > 备注：G2 的类型检查目前只严格检查新写的闸门脚本与评测代码（`scripts/gates`、`eval`），历史 `tradingagents/` 包暂排除，后续逐步纳入（见 `pyrightconfig.json`）。

@@ -5,7 +5,13 @@ blocked.
 
 Rule: if the change touches production code (a ``.py`` file outside tests, docs
 and ``.github``) or a prompt, then ``docs/ai-use-log.yaml`` must also change in
-the same change, and the new log entries must reference this change's id.
+the same change, adding **at least one new entry**.
+
+The gate deliberately does **not** require the entry's ``change_id`` to equal the
+commit's head SHA: a commit that adds the log entry changes the head SHA itself,
+so a SHA requirement is circular and can never be satisfied. A new entry is the
+evidence; its ``change_id`` is informational (a stable id such as a PR number,
+branch name, or a hand-written id is fine).
 """
 
 from __future__ import annotations
@@ -15,8 +21,22 @@ from common import GateResult, Violation
 AI_USE_LOG_PATH = "docs/ai-use-log.yaml"
 PROMPT_MODEL_PATHS = ("prompts/",)
 PROMPT_MODEL_SUFFIXES = ("_analyst.py", "prompts.py")
-# Trees whose .py files are not "production code" for this gate.
-_NON_CODE_PREFIXES = ("tests/", "docs/", ".github/", "test-cases/", "scripts/gates/tests/")
+# Directory segments / prefixes whose .py files are not "production code" for
+# this gate. Tests live under a ``tests/`` segment at any depth (e.g.
+# ``tests/req/...`` and ``tradingagents/tests/req/...``), plus docs, CI config
+# and the test-case specs.
+_NON_CODE_PREFIXES = ("docs/", ".github/", "test-cases/")
+_TEST_SUFFIXES = ("_test.py",)
+_TEST_DIR_SEGMENT = "tests/"
+
+
+def _is_test_file(normalized: str) -> bool:
+    """True for any file inside a ``tests/`` directory or named ``test_*/…_test``."""
+    segments = normalized.split("/")
+    if _TEST_DIR_SEGMENT.rstrip("/") in segments[:-1]:
+        return True
+    name = segments[-1] if segments else ""
+    return name.startswith("test_") or normalized.endswith(_TEST_SUFFIXES)
 
 
 def is_code_or_prompt(path: str) -> bool:
@@ -28,13 +48,15 @@ def is_code_or_prompt(path: str) -> bool:
         return True
     if not normalized.endswith(".py"):
         return False
+    if _is_test_file(normalized):
+        return False
     return not any(normalized.startswith(p) for p in _NON_CODE_PREFIXES)
 
 
 def check(
     changed_files: list[str],
     new_log_entries: list[dict] | None,
-    change_id: str | None,
+    change_id: str | None = None,
 ) -> GateResult:
     """Evaluate the AI-use-log gate.
 
@@ -42,7 +64,8 @@ def check(
         changed_files: every path the change touches.
         new_log_entries: the entries added to the AI-use log in this change (None
             when the log was not touched).
-        change_id: this change's identifier; entries must reference it.
+        change_id: unused for blocking. Kept for callers that pass a stable id;
+            the gate does not require entries to match it (see module docstring).
     """
     result = GateResult(gate="G6")
 
@@ -58,10 +81,4 @@ def check(
         )
         return result
 
-    if change_id:
-        referencing = [e for e in new_log_entries if e.get("change_id") == change_id]
-        if not referencing:
-            result.violations.append(
-                Violation("log entry missing change id", f"no entry references {change_id!r}")
-            )
     return result

@@ -82,6 +82,24 @@ jobs:
           # Dependency audit against the installed environment (the deps declared
           # in tradingagents/pyproject.toml). A found vulnerability fails the gate.
           run("dependencies", "pip-audit")
+          # Safety-path checks (contract/security/api_surface/permission): run them
+          # so a safety-path change has real results instead of "not run".
+          import os
+          changed = os.popen("python scripts/gates/collect_context.py changed --base \"${{ inputs.base_ref }}\"").read()
+          env = dict(os.environ)
+          try:
+              env["CHANGED_FILES"] = "\n".join(json.loads(changed)["changed_files"])
+          except Exception:
+              env["CHANGED_FILES"] = ""
+          heavy = subprocess.run(
+              ["python", "scripts/gates/run_static_checks.py"],
+              capture_output=True, text=True, env=env,
+          )
+          try:
+              results.update(json.loads(heavy.stdout))
+          except Exception:
+              for name in ("contract", "security", "api_surface", "permission"):
+                  results[name] = False
           json.dump(results, open("/tmp/check_results.json", "w"))
           PY
       - name: Determine required checks and gate
@@ -204,11 +222,12 @@ jobs:
           python scripts/gates/collect_context.py changed --base "${{ inputs.base_ref }}" > /tmp/changed.json
           python scripts/gates/collect_context.py log-entries --path docs/ai-use-log.yaml --since "${{ inputs.base_ref }}" > /tmp/log.json
           python - <<'PY'
-          import json, os
+          import json
           payload = {}
           payload.update(json.load(open("/tmp/changed.json")))
           payload.update(json.load(open("/tmp/log.json")))
-          payload["change_id"] = os.environ.get("GITHUB_HEAD_SHA") or os.environ.get("GITHUB_SHA", "")
+          # A stable change id is informational only; the gate requires a new log
+          # entry, not a match against the (self-changing) head SHA.
           json.dump(payload, open("/tmp/g6.json", "w"))
           PY
           python scripts/gates/run.py g6 --input /tmp/g6.json ${{ inputs.layer == 'warn-only' && '--warn-only' || '' }}

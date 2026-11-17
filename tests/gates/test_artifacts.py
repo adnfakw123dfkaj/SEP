@@ -22,7 +22,7 @@ def test_registry_passes_schema_gate():
     data = yaml.safe_load((REPO / "docs/req/requirements.yaml").read_text(encoding="utf-8"))
     result = g3.check(data)
     assert result.passed, result.render()
-    assert len(data["entries"]) == 14
+    assert len(data["requirements"]) == 14
 
 
 def test_fixed_set_passes_eval_thresholds():
