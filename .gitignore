@@ -221,3 +221,8 @@ __marimo__/
 # Enterprise env file (secrets) and generated run reports
 .env.enterprise
 reports/
+
+requirements-to-develop.md
+requirements-to-develop.zh.md
+ta-details.md
+gate-issues-report.md

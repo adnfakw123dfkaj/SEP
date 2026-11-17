@@ -1,0 +1,62 @@
+# Part ownership registry — manual claim.
+#
+# Each Part's tests live on master (tradingagents/tests/{req,security}). A Part is
+# "unclaimed" until a developer claims it in their branch by setting
+# `enabled: true` and filling `owner`, then commits the change with their PR.
+#
+# The claim rule (Gate G7 — see scripts/gates/check_ownership.py):
+#   - unclaimed Part  -> its tests may skip (work not started): not counted.
+#   - claimed Part    -> its tests must NOT skip and must pass (skip == failure).
+#
+# This makes "claim" a machine-enforced commitment, not a promise. Edit only the
+# Part you own; do not change another Part's block.
+#
+# `tests` lists the test files whose outcomes count for the Part. Keep it in sync
+# with test-cases/partN-*.md.
+
+parts:
+  part1:
+    owner: null
+    enabled: false
+    tests:
+      - tradingagents/tests/req/test_profiles.py
+      - tradingagents/tests/req/test_preflight.py
+
+  part2:
+    owner: null
+    enabled: false
+    tests:
+      - tradingagents/tests/req/test_debate_protocol.py
+      - tradingagents/tests/req/test_debate_quality.py
+
+  part3:
+    owner: null
+    enabled: false
+    tests:
+      - tradingagents/tests/req/test_evidence_manifest.py
+      - tradingagents/tests/req/test_report_faithfulness.py
+      - tradingagents/tests/req/test_records.py
+
+  part4:
+    owner: null
+    enabled: false
+    tests:
+      - tradingagents/tests/req/test_point_in_time.py
+      - tradingagents/tests/req/test_checkpoint_resume.py
+      - tradingagents/tests/req/test_cache.py
+      - tradingagents/tests/req/test_fallback.py
+
+  part5:
+    owner: null
+    enabled: false
+    tests:
+      - tradingagents/tests/req/test_rating_invariant.py
+      - tradingagents/tests/security/test_prompt_injection.py
+      - tradingagents/tests/security/test_secret_redaction.py
+
+  part6:
+    owner: null
+    enabled: false
+    tests:
+      - tradingagents/tests/req/test_latency.py
+      - tradingagents/tests/req/test_token_cost.py

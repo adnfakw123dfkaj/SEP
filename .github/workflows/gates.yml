@@ -1,0 +1,283 @@
+# Reusable blocking-gate workflow — the single set of rules, owned by master.
+#
+# Called by:
+#   - ci.yml            (layer 2: pull_request -> master, blocking)
+#   - branch-check.yml  (layer 1: push to a feature branch, warn-only)
+#
+# All gate logic lives in scripts/gates/. This file only orchestrates: collect
+# context, run checks, call the gate scripts, gate on their exit code.
+#
+# `layer` input decides severity:
+#   blocking  -> a failed gate exits non-zero and the caller fails (merge blocked)
+#   warn-only -> violations are reported but the job passes (branch self-check)
+
+name: gates
+
+on:
+  workflow_call:
+    inputs:
+      layer:
+        description: "blocking (PR to master) or warn-only (branch self-check)"
+        type: string
+        required: true
+      base_ref:
+        description: "Base ref to diff against (e.g. master)"
+        type: string
+        required: false
+        default: master
+
+permissions:
+  contents: read
+
+jobs:
+  # Gate 1 — test approval: tests approved before implementation began.
+  gate-test-approval:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: pip install pyyaml
+      - name: Run gate G1
+        run: |
+          python scripts/gates/collect_context.py changed --base "${{ inputs.base_ref }}" > /tmp/changed.json
+          python scripts/gates/collect_context.py first-impl-commit --base "${{ inputs.base_ref }}" > /tmp/impl.json
+          python scripts/gates/collect_context.py approvals > /tmp/approvals.json
+          python - <<'PY'
+          import json
+          payload = {}
+          for p in ("/tmp/changed.json", "/tmp/impl.json", "/tmp/approvals.json"):
+              payload.update(json.load(open(p)))
+          payload.setdefault("first_implementation_commit", None)
+          json.dump(payload, open("/tmp/g1.json", "w"))
+          PY
+          python scripts/gates/run.py g1 --input /tmp/g1.json ${{ inputs.layer == 'warn-only' && '--warn-only' || '' }}
+
+  # Gate 2 — static analysis: always-on lint/type/dep; heavy checks on safety paths.
+  gate-static-analysis:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install tooling
+        run: pip install "ruff>=0.16" pip-audit pyright
+      - name: Run checks and collect results
+        run: |
+          pip install -e tradingagents >/dev/null
+          python - <<'PY'
+          import json, subprocess
+          results = {}
+          def run(name, cmd):
+              results[name] = subprocess.run(cmd, shell=True).returncode == 0
+          run("lint", "ruff check tradingagents")
+          # Progressive type-check: strict on the gate scripts + eval harness,
+          # legacy package excluded (see pyrightconfig.json).
+          run("type_check", "pyright")
+          # Dependency audit is informational only: auditing the whole env
+          # surfaces pre-existing transitive CVEs no PR can fix, so it must not
+          # block. The blocking "dependencies" check (declared deps importable)
+          # is produced by run_static_checks.py below.
+          audit = subprocess.run(["pip-audit"], capture_output=True, text=True)
+          with open("/tmp/pip_audit.txt", "w") as fh:
+              fh.write(audit.stdout + audit.stderr)
+          print("pip-audit (informational) exit:", audit.returncode)
+          # Safety-path + dependency checks so a safety-path change has real
+          # results instead of "not run".
+          import os
+          changed = os.popen("python scripts/gates/collect_context.py changed --base \"${{ inputs.base_ref }}\"").read()
+          env = dict(os.environ)
+          try:
+              env["CHANGED_FILES"] = "\n".join(json.loads(changed)["changed_files"])
+          except Exception:
+              env["CHANGED_FILES"] = ""
+          heavy = subprocess.run(
+              ["python", "scripts/gates/run_static_checks.py"],
+              capture_output=True, text=True, env=env,
+          )
+          try:
+              results.update(json.loads(heavy.stdout))
+          except Exception:
+              for name in ("contract", "security", "api_surface", "permission", "dependencies"):
+                  results[name] = False
+          json.dump(results, open("/tmp/check_results.json", "w"))
+          PY
+      - name: Determine required checks and gate
+        run: |
+          python scripts/gates/collect_context.py changed --base "${{ inputs.base_ref }}" > /tmp/changed.json
+          python - <<'PY'
+          import json
+          payload = json.load(open("/tmp/changed.json"))
+          payload["check_results"] = json.load(open("/tmp/check_results.json"))
+          json.dump(payload, open("/tmp/g2.json", "w"))
+          PY
+          python scripts/gates/run.py g2 --input /tmp/g2.json ${{ inputs.layer == 'warn-only' && '--warn-only' || '' }}
+
+  # Gate 3 — schema: requirements registry validates against its schema.
+  gate-schema:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install YAML reader
+        run: pip install pyyaml
+      - name: Run gate G3
+        run: |
+          python - <<'PY'
+          import json, yaml
+          data = yaml.safe_load(open("docs/req/requirements.yaml", encoding="utf-8"))
+          json.dump({"registry": data}, open("/tmp/g3.json", "w"))
+          PY
+          python scripts/gates/run.py g3 --input /tmp/g3.json ${{ inputs.layer == 'warn-only' && '--warn-only' || '' }}
+
+  # Gate 4 — semantic evaluation: on prompt/model change, replay the fixed set.
+  gate-semantic-eval:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run gate G4
+        run: |
+          python scripts/gates/collect_context.py changed --base "${{ inputs.base_ref }}" > /tmp/changed.json
+          PYTHONPATH=scripts/gates:eval python - <<'PY'
+          import json
+          import check_semantic_eval as g
+          files = json.load(open("/tmp/changed.json"))["changed_files"]
+          # Always carry "metrics" (None when not eval-relevant) so the payload is
+          # shape-stable regardless of change type.
+          payload = {"changed_files": files, "metrics": None}
+          # If the change is eval-relevant, replay the fixed set offline.
+          if g.is_eval_relevant(files):
+              from harness import run_fixed_set
+              payload["metrics"] = run_fixed_set()
+          json.dump(payload, open("/tmp/g4.json", "w"))
+          PY
+          PYTHONPATH=scripts/gates python scripts/gates/run.py g4 --input /tmp/g4.json ${{ inputs.layer == 'warn-only' && '--warn-only' || '' }}
+
+  # Gate 5 — regression: full prior suite; any regression blocks.
+  gate-regression:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install
+        working-directory: tradingagents
+        run: pip install -e ".[dev]" pytest-json-report
+      - name: Run full suite (current)
+        run: |
+          # App suite runs from inside tradingagents/ (its tests assume that CWD,
+          # as the existing `test` job does). Gate self-tests run from the repo
+          # root. Both are normalized to the baseline's keying.
+          ( cd tradingagents && python -m pytest tests -q --json-report --json-report-file=/tmp/app_raw.json ) || true
+          python -m pytest tests/gates -q --json-report --json-report-file=/tmp/gates_raw.json || true
+          python - <<'PY'
+          import json
+          current = {}
+          app = json.load(open("/tmp/app_raw.json"))
+          for t in app["tests"]:
+              current[f"tradingagents/{t['nodeid']}"] = t["outcome"]
+          gates = json.load(open("/tmp/gates_raw.json"))
+          for t in gates["tests"]:
+              nid = t["nodeid"]
+              idx = nid.find("tests/gates/")
+              current[nid[idx:] if idx >= 0 else nid] = t["outcome"]
+          json.dump({"current": current}, open("/tmp/current.json", "w"))
+          PY
+      - name: Gate on regression
+        run: |
+          if [ -f docs/req/regression-baseline.json ]; then
+            python scripts/gates/collect_context.py baseline --path docs/req/regression-baseline.json > /tmp/baseline.json
+          else
+            echo '{"baseline": {}}' > /tmp/baseline.json
+          fi
+          python scripts/gates/collect_context.py approvals > /tmp/approvals.json
+          python - <<'PY'
+          import json
+          payload = {}
+          payload.update(json.load(open("/tmp/baseline.json")))
+          payload.update(json.load(open("/tmp/current.json")))
+          payload.update(json.load(open("/tmp/approvals.json")))
+          json.dump(payload, open("/tmp/g5.json", "w"))
+          PY
+          python scripts/gates/run.py g5 --input /tmp/g5.json ${{ inputs.layer == 'warn-only' && '--warn-only' || '' }}
+
+  # Gate 6 — AI-use log: code/prompt change requires a log update.
+  gate-ai-use-log:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: pip install pyyaml
+      - name: Run gate G6
+        run: |
+          python scripts/gates/collect_context.py changed --base "${{ inputs.base_ref }}" > /tmp/changed.json
+          python scripts/gates/collect_context.py log-entries --path docs/ai-use-log.yaml --since "${{ inputs.base_ref }}" > /tmp/log.json
+          python - <<'PY'
+          import json
+          payload = {}
+          payload.update(json.load(open("/tmp/changed.json")))
+          payload.update(json.load(open("/tmp/log.json")))
+          # A stable change id is informational only; the gate requires a new log
+          # entry, not a match against the (self-changing) head SHA.
+          json.dump(payload, open("/tmp/g6.json", "w"))
+          PY
+          python scripts/gates/run.py g6 --input /tmp/g6.json ${{ inputs.layer == 'warn-only' && '--warn-only' || '' }}
+
+  # Gate 7 — ownership: a claimed Part's tests must not skip or fail.
+  gate-ownership:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: |
+          pip install pyyaml pytest pytest-json-report
+          pip install -e tradingagents >/dev/null
+      - name: Collect Part test outcomes
+        run: |
+          # Run WITHOUT integration: a claimed Part is judged on its unit tests
+          # (integration tests need infra and may depend on other unimplemented
+          # Parts, so they are out of scope for the ownership gate).
+          ( cd tradingagents && python -m pytest tests/req tests/security -q \
+              -m "not integration" \
+              --json-report --json-report-file=/tmp/part_raw.json ) || true
+          python - <<'PY'
+          import json
+          raw = json.load(open("/tmp/part_raw.json"))
+          outcomes = {f"tradingagents/{t['nodeid']}": t["outcome"] for t in raw["tests"]}
+          json.dump({"current": outcomes}, open("/tmp/current.json", "w"))
+          PY
+      - name: Run gate G7
+        run: |
+          python scripts/gates/collect_context.py ownership > /tmp/own.json
+          python scripts/gates/collect_context.py outcomes --path /tmp/current.json > /tmp/out.json
+          python - <<'PY'
+          import json
+          payload = {}
+          payload.update(json.load(open("/tmp/own.json")))
+          payload.update(json.load(open("/tmp/out.json")))
+          json.dump(payload, open("/tmp/g7.json", "w"))
+          PY
+          python scripts/gates/run.py g7 --input /tmp/g7.json ${{ inputs.layer == 'warn-only' && '--warn-only' || '' }}
