@@ -12,7 +12,7 @@ import threading
 import time
 from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from langchain_core.callbacks import BaseCallbackHandler
@@ -222,7 +222,7 @@ class CostTrackingCallback(BaseCallbackHandler):
                 retry_count=0,
                 route_path=self.route_path,
                 usage_source=source,
-                timestamp=datetime.now(timezone.utc),
+                timestamp=datetime.now(UTC),
                 cache_hit=self.cache_hit,
             )
         )
@@ -246,7 +246,7 @@ class CostTrackingCallback(BaseCallbackHandler):
                 retry_count=0,
                 route_path=self.route_path,
                 usage_source=UsageSource.ESTIMATED,
-                timestamp=datetime.now(timezone.utc),
+                timestamp=datetime.now(UTC),
                 cache_hit=self.cache_hit,
             )
         )

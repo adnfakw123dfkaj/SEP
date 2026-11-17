@@ -7,12 +7,12 @@ the boundary rather than re-checked in every report.
 """
 
 from datetime import datetime
-from enum import Enum
+from enum import StrEnum
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 
-class CallStatus(str, Enum):
+class CallStatus(StrEnum):
     """Terminal or retry state of one provider call."""
 
     SUCCESS = "success"
@@ -20,7 +20,7 @@ class CallStatus(str, Enum):
     FAILURE = "failure"
 
 
-class RoutePath(str, Enum):
+class RoutePath(StrEnum):
     """Budget route selected before a provider call."""
 
     DIRECT = "direct"
@@ -29,7 +29,7 @@ class RoutePath(str, Enum):
     HARD_FAIL = "hard_fail"
 
 
-class UsageSource(str, Enum):
+class UsageSource(StrEnum):
     """Where the token counts came from."""
 
     PROVIDER = "provider"

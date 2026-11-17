@@ -40,22 +40,22 @@ def test_tc_p6_con_001_event_required_fields(make_event):
 
 def test_tc_p6_con_002_token_sum_consistency(shanghai):
     """TC-P6-CON-002: total_tokens must equal prompt + completion."""
-    base = dict(
-        event_id="e",
-        run_id="r",
-        call_id="c",
-        agent_name="market",
-        model="model-a",
-        provider="p",
-        prompt_tokens=10,
-        completion_tokens=5,
-        latency_ms=1.0,
-        status=CallStatus.SUCCESS,
-        retry_count=0,
-        route_path=RoutePath.DIRECT,
-        usage_source=UsageSource.PROVIDER,
-        timestamp=datetime(2026, 11, 16, 10, 0, tzinfo=shanghai),
-    )
+    base = {
+        "event_id": "e",
+        "run_id": "r",
+        "call_id": "c",
+        "agent_name": "market",
+        "model": "model-a",
+        "provider": "p",
+        "prompt_tokens": 10,
+        "completion_tokens": 5,
+        "latency_ms": 1.0,
+        "status": CallStatus.SUCCESS,
+        "retry_count": 0,
+        "route_path": RoutePath.DIRECT,
+        "usage_source": UsageSource.PROVIDER,
+        "timestamp": datetime(2026, 11, 16, 10, 0, tzinfo=shanghai),
+    }
 
     with pytest.raises(ValidationError):
         LLMCallEvent(**base, total_tokens=16)
