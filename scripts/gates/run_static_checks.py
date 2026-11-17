@@ -58,12 +58,27 @@ def check_contract() -> bool:
     return True
 
 
+def _is_test_or_doc_path(path: Path) -> bool:
+    parts = path.parts
+    if "tests" in parts or "test-cases" in parts:
+        return True
+    name = path.name
+    return name.startswith("test_") or name.endswith("_test.py")
+
+
 def check_security() -> bool:
-    """No secret-like literal in tracked source files."""
+    """No secret-like literal in tracked production source files.
+
+    Test files and fixtures are skipped: they legitimately contain fake keys to
+    prove redaction works, and flagging them would block any change that adds
+    such a test.
+    """
     for path in _tracked_files():
         if not path.exists() or path.suffix not in _SOURCE_SUFFIXES:
             continue
         if "/.git/" in str(path):
+            continue
+        if _is_test_or_doc_path(path):
             continue
         try:
             text = path.read_text(encoding="utf-8", errors="ignore")
@@ -117,11 +132,32 @@ def check_permission() -> bool:
     return approvals.exists() and any(approvals.glob("*.json"))
 
 
+def check_dependencies() -> bool:
+    """Declared dependencies resolve and the package imports cleanly.
+
+    This is the deterministic, offline half of the dependency check: the
+    ``tradingagents`` package (and its declared deps) must be importable. A
+    vulnerability audit (pip-audit) is run separately and reported as
+    informational, not blocking — auditing the whole interpreter environment
+    surfaces pre-existing CVEs in transitive deps that no single PR can fix, and
+    would otherwise block every PR.
+    """
+    try:
+        import importlib
+
+        for mod in ("tradingagents",):
+            importlib.import_module(mod)
+    except Exception:  # noqa: BLE001 — any import failure is a broken dependency
+        return False
+    return True
+
+
 _CHECKS = {
     "contract": check_contract,
     "security": check_security,
     "api_surface": check_api_surface,
     "permission": check_permission,
+    "dependencies": check_dependencies,
 }
 
 

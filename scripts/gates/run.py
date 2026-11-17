@@ -53,6 +53,10 @@ def main(argv: list[str]) -> int:
     payload = json.loads(Path(input_path).read_text(encoding="utf-8"))
 
     func, keys = _GATES[gate]
+    # Pass only the keys the caller provided; the check functions supply defaults
+    # for optional inputs (e.g. G4's ``metrics``), so an omitted optional field
+    # does not crash. A genuinely required field that is absent surfaces as an
+    # error, which the workflow should never produce.
     kwargs = {k: payload[k] for k in keys if k in payload}
     result = func(**kwargs)
 

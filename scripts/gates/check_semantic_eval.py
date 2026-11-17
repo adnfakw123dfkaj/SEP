@@ -51,7 +51,7 @@ def is_eval_relevant(changed_files: list[str], changed_config_keys: list[str] | 
 
 def check(
     changed_files: list[str],
-    metrics: dict[str, float] | None,
+    metrics: dict[str, float] | None = None,
     changed_config_keys: list[str] | None = None,
 ) -> GateResult:
     """Evaluate the semantic-evaluation gate.
