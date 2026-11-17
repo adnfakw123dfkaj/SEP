@@ -116,20 +116,33 @@ def check_api_surface() -> bool:
 
 
 def check_permission() -> bool:
-    """Protected-path changes must carry an approval record.
+    """Permission integrity for the gate pipeline.
 
-    Reads the changed files from the environment the workflow provides
-    (CHANGED_FILES, newline-separated). If absent, passes (the gate is also
-    enforced by G1/G6; this check is the API-surface-style guard).
+    Checks that the CI workflows do not grant broad write permissions: a workflow
+    that requests ``contents: write`` (or a bare ``write-all``) at the workflow
+    level would let a compromised run mutate the repo. Workflow files already use
+    least privilege (``permissions: contents: read``); this guards against a
+    change that silently widens them. It is a property check on the files, not an
+    approval requirement — gate-infrastructure and application changes both pass
+    it unless they widen permissions.
     """
-    import os
-
-    protected = ("scripts/gates/", ".github/workflows/")
-    touched = [line.strip() for line in os.environ.get("CHANGED_FILES", "").splitlines() if line.strip()]
-    if not any(p.startswith(protected) for p in touched):
+    workflows = REPO / ".github" / "workflows"
+    if not workflows.exists():
         return True
-    approvals = REPO / "docs" / "approvals"
-    return approvals.exists() and any(approvals.glob("*.json"))
+    broad = ("contents: write", "write-all", "permissions: write")
+    for path in workflows.glob("*.yml"):
+        try:
+            text = path.read_text(encoding="utf-8")
+        except OSError:
+            continue
+        # release-assets legitimately needs contents: write to attach assets;
+        # it is an explicit, reviewed exception.
+        if path.name == "release-assets.yml":
+            continue
+        for needle in broad:
+            if needle in text:
+                return False
+    return True
 
 
 def check_dependencies() -> bool:

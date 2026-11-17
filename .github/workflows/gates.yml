@@ -40,6 +40,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - name: Install
+        run: pip install pyyaml
       - name: Run gate G1
         run: |
           python scripts/gates/collect_context.py changed --base "${{ inputs.base_ref }}" > /tmp/changed.json
@@ -224,6 +226,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - name: Install
+        run: pip install pyyaml
       - name: Run gate G6
         run: |
           python scripts/gates/collect_context.py changed --base "${{ inputs.base_ref }}" > /tmp/changed.json

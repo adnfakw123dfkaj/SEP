@@ -54,3 +54,36 @@ def test_load_approvals_reads_json_and_yaml(tmp_path):
     records = cc.load_approvals(str(tmp_path))
     ids = sorted(r["change_id"] for r in records)
     assert ids == ["a", "b"]
+
+
+def test_collect_context_works_without_pyyaml(monkeypatch):
+    # Simulate a CI job that forgot to install pyyaml: parsing must not crash.
+    import builtins
+
+    real_import = builtins.__import__
+
+    def fake_import(name, *a, **k):
+        if name == "yaml" or name.startswith("yaml."):
+            raise ModuleNotFoundError("No module named 'yaml'")
+        return real_import(name, *a, **k)
+
+    monkeypatch.setattr(builtins, "__import__", fake_import)
+    # approvals (no files) and log entries must both parse without raising.
+    assert isinstance(cc.load_approvals("docs/approvals"), list)
+    entries = cc.new_log_entries("docs/ai-use-log.yaml", "doesnotexist")
+    assert isinstance(entries, list)
+    assert entries  # the committed log has entries
+
+
+def test_mini_yaml_counts_entries_and_nested_lists():
+    text = (
+        "entries:\n"
+        "  - change_id: a\n"
+        "    files_changed:\n"
+        "      - x.py\n"
+        "      - y.py\n"
+        "  - change_id: b\n"
+    )
+    data = cc._mini_yaml(text)
+    assert [e["change_id"] for e in data["entries"]] == ["a", "b"]
+    assert data["entries"][0]["files_changed"] == ["x.py", "y.py"]
