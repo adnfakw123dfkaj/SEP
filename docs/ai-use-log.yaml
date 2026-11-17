@@ -66,3 +66,10 @@ entries:
       - .github/workflows/gates.yml
       - scripts/gates/run.py
       - scripts/gates/collect_context.py
+
+  - change_id: "g5-param-id-normalization"
+    date: "2026-11-17"
+    agent_session: "g5-baseline-id-fix"
+    summary: "Fix G5 false 'deletion' when baseline and current disagree on parameterized test-id escaping (pytest version difference). check_regression now normalises \n/\t/\\ escaping on both sides before matching, while still catching real deletions and regressions. Human reviewed."
+    files_changed:
+      - scripts/gates/check_regression.py

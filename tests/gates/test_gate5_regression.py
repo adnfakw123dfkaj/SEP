@@ -63,3 +63,26 @@ def test_already_not_passing_baseline_is_ignored():
     current = dict(BASELINE)
     result = g5.check(baseline, current)
     assert result.passed
+
+
+def test_parameter_escaping_mismatch_is_not_a_deletion():
+    # Baseline recorded under one pytest version escapes newlines as \\n; the
+    # current run (another version) emits a real newline. Same test, so pass.
+    baseline = {"t::test_p[A\\nB]": "passed"}
+    current = {"t::test_p[A\nB]": "passed"}
+    result = g5.check(baseline, current)
+    assert result.passed
+
+
+def test_parameter_escaping_mismatch_still_detects_failure():
+    baseline = {"t::test_p[A\\nB]": "passed"}
+    current = {"t::test_p[A\nB]": "failed"}
+    result = g5.check(baseline, current)
+    assert not result.passed
+    assert any("regression: failed" in v.reason for v in result.violations)
+
+
+def test_true_deletion_still_blocks():
+    result = g5.check({"t::test_p": "passed"}, {})
+    assert not result.passed
+    assert any("deleted without approval" in v.reason for v in result.violations)

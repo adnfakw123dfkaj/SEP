@@ -22,6 +22,39 @@ FAIL = "failed"
 ERROR = "error"
 SKIP = "skipped"
 
+# pytest may or may not escape special characters inside a parameterized test id
+# depending on its version (e.g. ``\\n`` vs a real newline). ``_norm_id`` collapses
+# both forms to the same token so a baseline recorded under one pytest version
+# matches a run under another.
+
+
+def _norm_id(test_id: str) -> str:
+    """Canonicalise a pytest node id so parameter escaping differences do not
+    make an identical test look missing (pytest changes id escaping between
+    versions). The base (path::function) and the set of parameters are
+    preserved; only how special characters are written is normalised.
+    """
+    # Normalise escape sequences from both "escaped" and "raw" forms to tokens.
+    out = []
+    i = 0
+    while i < len(test_id):
+        ch = test_id[i]
+        if ch == "\\" and i + 1 < len(test_id):
+            nxt = test_id[i + 1]
+            out.append({"n": "\x00N", "r": "\x00R", "t": "\x00T"}.get(nxt, "\x00B"))
+            i += 2
+            continue
+        if ch == "\n":
+            out.append("\x00N")
+        elif ch == "\r":
+            out.append("\x00R")
+        elif ch == "\t":
+            out.append("\x00T")
+        else:
+            out.append(ch)
+        i += 1
+    return "".join(out)
+
 
 def _approved_deletions(approvals: list[dict] | None) -> set[str]:
     """Test ids an approval record explicitly authorises to delete."""
@@ -48,15 +81,24 @@ def check(
     result = GateResult(gate="G5")
     approved_deletes = _approved_deletions(approvals)
 
+    # Index current outcomes and approved deletions by a normalised id so
+    # parameter-escaping differences between pytest versions do not register as
+    # deletions. Keep the original id for reporting.
+    current_norm: dict[str, str] = {}
+    for cid, outcome in current.items():
+        current_norm.setdefault(_norm_id(cid), outcome)
+    approved_norm = {_norm_id(d) for d in approved_deletes}
+
     for test_id, base_outcome in baseline.items():
         if base_outcome != PASS:
             # Nothing to regress from a test that was already not passing.
             continue
-        outcome = current.get(test_id)
+        nid = _norm_id(test_id)
+        outcome = current_norm.get(nid)
         if outcome is None:
             # A previously-passing test vanished. Allowed only with an approval
             # that explicitly authorises deleting it; otherwise it blocks.
-            if test_id not in approved_deletes:
+            if nid not in approved_norm:
                 result.violations.append(
                     Violation("previously-passing test deleted without approval", test_id)
                 )
