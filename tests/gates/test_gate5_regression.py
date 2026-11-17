@@ -86,3 +86,28 @@ def test_true_deletion_still_blocks():
     result = g5.check({"t::test_p": "passed"}, {})
     assert not result.passed
     assert any("deleted without approval" in v.reason for v in result.violations)
+
+
+def test_auto_generated_id_fallback_matches_full_text_id():
+    # Baseline has a full-text param id; a different pytest version emitted an
+    # auto id "text0" for the same base/param count. Not a deletion.
+    baseline = {"t::test_p[Street views:\\n- Goldman rating: Buy]": "passed"}
+    current = {"t::test_p[text0]": "passed"}
+    result = g5.check(baseline, current)
+    assert result.passed
+
+
+def test_auto_id_fallback_still_reports_failure():
+    baseline = {"t::test_p[some long text]": "passed"}
+    current = {"t::test_p[text0]": "failed"}
+    result = g5.check(baseline, current)
+    assert not result.passed
+    assert any("regression: failed" in v.reason for v in result.violations)
+
+
+def test_auto_id_fallback_does_not_mask_param_count_change():
+    # Two baseline params, only one auto param now -> not a clean substitution.
+    baseline = {"t::test_p[a]": "passed", "t::test_p[b]": "passed"}
+    current = {"t::test_p[text0]": "passed"}
+    result = g5.check(baseline, current)
+    assert not result.passed

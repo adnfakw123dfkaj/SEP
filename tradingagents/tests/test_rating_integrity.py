@@ -275,6 +275,25 @@ def test_a_quoted_rating_in_a_list_table_or_quote_is_not_the_decision(quoted):
     ("Broker views:\n- Rating: Buy (Morgan Stanley)\n- Rating: Hold (Goldman)\n\n**Rating**: Sell", "Sell"),
     ("Previous decision recap:\n- **Rating**: Buy (2026-09-01)\n\n**Rating**: Sell", "Sell"),
     ("Lessons:\n- Rating: Buy was wrong last time\n\n**Rating**: Hold", "Hold"),
+], ids=[
+    "consensus_buy_rating_sell",
+    "analyst_overweight_rating_underweight",
+    "previous_buy_final_hold",
+    "street_sell_our_buy",
+    "credit_sell_rating_buy",
+    "sellside_consensus_buy_hold",
+    "opening_sell_consensus_buy",
+    "opening_sell_thesis_consensus_buy",
+    "numbered_underweight_street_buy",
+    "bullet_sell_consensus_buy",
+    "decision_hold_goldman_buy",
+    "recommended_buy_consensus_sell",
+    "updated_sell_previous_buy",
+    "our_final_sell_consensus_buy",
+    "overall_final_sell_consensus_buy",
+    "brokers_buy_hold_own_sell",
+    "previous_recap_buy_own_sell",
+    "lessons_buy_own_hold",
 ])
 def test_a_rating_someone_else_gave_does_not_become_the_decision(text, expected):
     """The decision's own rating line is read as the call; another party's
@@ -296,6 +315,19 @@ def test_a_rating_someone_else_gave_does_not_become_the_decision(text, expected)
     "Broker views:\n- Rating: Buy (MS)\n\n- **Rating**: Sell",
     "Investment rating: Underweight\nStreet rating: Buy",
     "## Street view\n1. Rating: Buy, target $250 (JPM)\n\n## Our call\n**Rating**: Underweight",
+], ids=[
+    "trader_pm_hold",
+    "research_manager_portfolio_underweight",
+    "trader_risk_pm_hold",
+    "risk_views_pm_hold",
+    "pm_sell_jpm_buy",
+    "position_underweight_citi_overweight",
+    "street_views_pm_underweight",
+    "analyst_views_final_sell",
+    "lessons_rating_hold",
+    "broker_views_sell",
+    "investment_street_underweight",
+    "street_view_our_call_underweight",
 ])
 def test_ratings_that_disagree_with_no_line_of_the_decisions_own_need_review(text):
     """When the text never states its own rating in the decision's shape and the
