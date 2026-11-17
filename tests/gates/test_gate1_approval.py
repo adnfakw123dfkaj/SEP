@@ -75,3 +75,25 @@ def test_docs_only_change_not_applicable():
     result = g1.check(["docs/ai-use-log.yaml", "docs/req/x.json"], [], None)
     assert result.applicable is False
     assert result.status == "skipped"
+
+
+def test_gate_infrastructure_only_change_not_applicable():
+    # Changes only to the gate's own scripts/tests are maintenance, not app
+    # behaviour: G1 does not apply even without an approval.
+    result = g1.check(
+        ["scripts/gates/check_regression.py", "tests/gates/test_gate5_regression.py"],
+        [],
+        "2026-11-17T10:00:00+00:00",
+    )
+    assert result.applicable is False
+    assert result.status == "skipped"
+
+
+def test_app_code_plus_gate_infra_still_requires_approval():
+    result = g1.check(
+        ["tradingagents/tradingagents/agents/rating.py", "scripts/gates/run.py"],
+        [],
+        "2026-11-17T10:00:00+00:00",
+    )
+    assert result.applicable is True
+    assert not result.passed

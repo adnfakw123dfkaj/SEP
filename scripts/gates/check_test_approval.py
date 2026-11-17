@@ -26,10 +26,19 @@ _TEST_PATH = re.compile(r"(^|/)(tests?|__tests__)/|(^|/)test_[^/]*\.py$|_test\.p
 # Trees that hold non-code (docs, data, config) — never "implementation" for G1.
 _NON_CODE_PREFIXES = ("docs/", "test-cases/", ".github/")
 _PROMPT_PREFIXES = ("prompts/",)
+# Gate-infrastructure maintenance (the gate's own scripts, tests, and CI wiring)
+# is not application behaviour and has no "tests approved before implementation"
+# phase — it is reviewed like any code change, but G1 does not apply to it.
+_GATE_INFRA_PREFIXES = ("scripts/gates/", "tests/gates/")
 
 
 def is_test_path(path: str) -> bool:
     return bool(_TEST_PATH.search(path))
+
+
+def is_gate_infrastructure_path(path: str) -> bool:
+    normalized = path.lstrip("./")
+    return any(normalized.startswith(p) for p in _GATE_INFRA_PREFIXES)
 
 
 def is_code_path(path: str) -> bool:
@@ -78,6 +87,12 @@ def check(
     if not code_changed:
         # No production code change (tests-only, docs-only, data-only): nothing
         # to approve against. Not applicable rather than a pass.
+        result.applicable = False
+        return result
+
+    if all(is_gate_infrastructure_path(p) for p in code_changed):
+        # Only the gate's own scripts/tests changed: infrastructure maintenance,
+        # not application behaviour. G1 does not apply.
         result.applicable = False
         return result
 
