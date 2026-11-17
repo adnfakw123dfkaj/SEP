@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://adnfakw123dfkaj.github.io/SEP/req-schema.json",
+  "title": "TradingAgents requirements registry",
+  "description": "Schema the Gate 3 (schema gate) validates docs/req/requirements.yaml against.",
+  "type": "object",
+  "required": ["entries"],
+  "properties": {
+    "entries": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/entry" }
+    }
+  },
+  "$defs": {
+    "entry": {
+      "type": "object",
+      "required": ["id", "type", "priority", "statement", "fit_criterion"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^(REQ-(FR|INV|QUAL|PER|COST|GOV|SEC|UNCLEAR)|ARCH-EA)-[0-9]{3}$"
+        },
+        "type": {
+          "type": "string",
+          "enum": ["REQ-FR", "REQ-INV", "REQ-QUAL", "REQ-PER", "REQ-COST", "REQ-GOV", "REQ-SEC", "REQ-UNCLEAR", "ARCH-EA"]
+        },
+        "priority": {
+          "type": "string",
+          "enum": ["Must", "Should", "Could", "Won't"]
+        },
+        "statement": { "type": "string", "minLength": 1 },
+        "part": { "type": "integer", "minimum": 1, "maximum": 6 },
+        "fit_criterion": {
+          "type": "object",
+          "required": ["metric", "threshold", "verification"],
+          "properties": {
+            "metric": { "type": "string", "minLength": 1 },
+            "threshold": { "type": "string", "minLength": 1 },
+            "verification": { "type": "string", "minLength": 1 }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": true
+    }
+  }
+}

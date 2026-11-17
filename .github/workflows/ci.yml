@@ -1,9 +1,9 @@
 name: CI
 
 on:
-  # Run CI only for pull requests that target master. Pushes to other branches
-  # do not trigger CI; the master branch is protected so a PR cannot merge
-  # unless these checks pass (Require status checks before merging).
+  # Layer 2 — the blocking gate set, run on every PR targeting master. The rules
+  # come from this file and .github/workflows/gates.yml on master; the code
+  # checked out is the PR head. A failed gate blocks the merge.
   pull_request:
     branches: [master]
 
@@ -11,7 +11,21 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
+  # The six blocking gates (D7), in blocking mode. Calls the reusable workflow
+  # so the rule set has exactly one definition, owned by master.
+  gates:
+    uses: ./.github/workflows/gates.yml
+    with:
+      layer: blocking
+      base_ref: master
+
+  # Existing application jobs (kept): unit/integration-offline tests, a
+  # clean-install smoke, and ruff. Gate 2/5 supersede parts of these but these
+  # remain as the always-on baseline the project has relied on.
   test:
     name: tests (py${{ matrix.python-version }}${{ matrix.tz && format(', {0}', matrix.tz) || '' }})
     runs-on: ubuntu-latest
@@ -19,7 +33,6 @@ jobs:
       fail-fast: false
       matrix:
         python-version: ["3.11", "3.12", "3.13", "3.14"]
-        # One run away from UTC, so a test that only passes in UTC fails here.
         include:
           - python-version: "3.12"
             tz: America/New_York
@@ -55,8 +68,6 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install .
-          # Catches undeclared runtime deps (e.g. #994 python-dotenv): a bare
-          # install must import the package and the CLI module.
           python -c "import tradingagents, cli.main; print('clean-install import OK')"
 
   lint:
@@ -73,8 +84,17 @@ jobs:
       - name: Install ruff
         run: pip install "ruff>=0.16"
       - name: Lint the sub-project
-        # Run from inside tradingagents/ so pyproject.toml (including its isort
-        # config) resolves relative to the package root, matching how the code
-        # is validated locally. Linting from the repo root with an explicit
-        # --config path mis-resolves the isort root and reports spurious I001.
         run: ruff check .
+
+  gate-selftests:
+    name: gate self-tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Install pytest
+        run: pip install pytest
+      - name: Verify the gate decision logic
+        run: python -m pytest tests/gates -q

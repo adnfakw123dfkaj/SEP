@@ -1,0 +1,30 @@
+# AI-use log (Gate 6).
+#
+# Append-only. Every PR that changes production code (*.py outside tests/docs/
+# .github) or a prompt must add an entry here whose change_id matches the PR's
+# head SHA. Gate 6 blocks a code/prompt change with no new entry.
+#
+# Entry fields:
+#   change_id      the PR head SHA (or a stable change id)
+#   date           ISO-8601 date of the change
+#   agent_session  short label of the AI coding session (for course evidence)
+#   summary        what the agent produced and what the human changed/approved
+#   files_changed  the production files touched (allowlist, no keys/paths)
+entries:
+  - change_id: "bootstrap"
+    date: "2026-11-17"
+    agent_session: "gate-framework-bootstrap"
+    summary: "Initial blocking-gate framework: six gate scripts, reusable workflow, layer-1 stub, registry and schema."
+    files_changed:
+      - scripts/gates/common.py
+      - scripts/gates/run.py
+      - scripts/gates/collect_context.py
+      - scripts/gates/check_test_approval.py
+      - scripts/gates/check_static_analysis.py
+      - scripts/gates/check_schema.py
+      - scripts/gates/check_semantic_eval.py
+      - scripts/gates/check_regression.py
+      - scripts/gates/check_ai_use_log.py
+      - .github/workflows/gates.yml
+      - .github/workflows/ci.yml
+      - .github/workflows/branch-check.yml

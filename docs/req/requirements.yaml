@@ -1,0 +1,146 @@
+# Machine-readable requirements registry (D1).
+#
+# Derived from requirements-final.md (14 requirements, 6 Parts). Each entry has a
+# stable id, a type matching its id prefix, a MoSCoW priority, a statement, and a
+# machine-checkable fit criterion (metric + threshold + verification). Validated
+# by the schema gate (Gate 3) against docs/req/req-schema.json.
+entries:
+  - id: REQ-FR-001
+    type: REQ-FR
+    priority: Must
+    part: 1
+    statement: "Quick/Standard/Deep run profiles, each fixing analysts, rounds, tool rounds, model tiers, token budget, timeout, cache TTL; --profile override recorded in manifest."
+    fit_criterion:
+      metric: profile_matrix_match_rate
+      threshold: "== 1.0"
+      verification: "pytest tests/req/test_profiles.py::test_profile_matrix"
+
+  - id: REQ-FR-002
+    type: REQ-FR
+    priority: Should
+    part: 1
+    statement: "Preflight ticker resolution and data availability before the graph; on failure stop with no analyst calls and zero LLM tokens."
+    fit_criterion:
+      metric: invalid_ticker_analyst_calls
+      threshold: "== 0"
+      verification: "pytest tests/req/test_preflight.py::test_no_analyst_calls"
+
+  - id: REQ-FR-003
+    type: REQ-FR
+    priority: Must
+    part: 2
+    statement: "Structured debate turns with required fields, field validation with one retry then degrade, and convergence early-stop / max-rounds."
+    fit_criterion:
+      metric: debate_turn_schema_valid_rate
+      threshold: "== 1.0"
+      verification: "pytest tests/req/test_debate_protocol.py::test_schema_valid --runs 30"
+
+  - id: REQ-QUAL-001
+    type: REQ-QUAL
+    priority: Must
+    part: 2
+    statement: "Debate quality proxies: evidence coverage, rebuttal coverage, unsupported-claim rate, duplicate-claim rate."
+    fit_criterion:
+      metric: rebuttal_coverage
+      threshold: ">= 0.90"
+      verification: "pytest tests/req/test_debate_quality.py::test_rebuttal_coverage --transcripts 30"
+
+  - id: REQ-FR-004
+    type: REQ-FR
+    priority: Must
+    part: 3
+    statement: "Evidence refs on substantive claims and a per-run manifest.json with provenance, tokens, cost, events, rating, timestamps, status."
+    fit_criterion:
+      metric: numeric_claims_with_evidence_ref_rate
+      threshold: "== 1.0"
+      verification: "pytest tests/req/test_evidence_manifest.py::test_numeric_refs --reports 30"
+
+  - id: REQ-QUAL-002
+    type: REQ-QUAL
+    priority: Should
+    part: 3
+    statement: "Report numeric faithfulness vs verified snapshot, citation support, unsupported-claim rate, schema validity, extractor recall."
+    fit_criterion:
+      metric: numeric_claim_contradiction_rate
+      threshold: "<= 0.02"
+      verification: "pytest tests/req/test_report_faithfulness.py::test_numeric --reports 30"
+
+  - id: REQ-INV-001
+    type: REQ-INV
+    priority: Should
+    part: 3
+    statement: "Atomic and idempotent decision record: whole set written or none; re-running the same key does not append a second entry."
+    fit_criterion:
+      metric: partial_records
+      threshold: "== 0"
+      verification: "pytest tests/req/test_records.py::test_fault_injection"
+
+  - id: REQ-FR-005
+    type: REQ-FR
+    priority: Must
+    part: 4
+    statement: "Cache with TTL/provenance, node-level checkpoint resume without duplicate LLM calls, and bounded retry -> cache -> unavailable -> REVIEW degradation."
+    fit_criterion:
+      metric: duplicate_completed_node_llm_calls
+      threshold: "== 0"
+      verification: "pytest tests/req/test_checkpoint_resume.py::test_no_duplicate_calls"
+
+  - id: REQ-INV-002
+    type: REQ-INV
+    priority: Should
+    part: 4
+    statement: "Point-in-time integrity: no data item dated after the analysis date enters any agent input; social unavailable on historical runs."
+    fit_criterion:
+      metric: future_dated_items_in_prompt
+      threshold: "== 0"
+      verification: "pytest tests/req/test_point_in_time.py::test_no_future_items"
+
+  - id: REQ-INV-003
+    type: REQ-INV
+    priority: Must
+    part: 5
+    statement: "Deterministic rating authority: committed rating only from the closed set by a deterministic validator; missing provenance yields REVIEW."
+    fit_criterion:
+      metric: invalid_rating_escapes
+      threshold: "== 0"
+      verification: "pytest tests/req/test_rating_invariant.py::test_fuzz --cases 10000"
+
+  - id: REQ-SEC-001
+    type: REQ-SEC
+    priority: Must
+    part: 5
+    statement: "Untrusted input/output security: sanitise before prompt, validate before state, drop/log suspicious, no unauthorised tool calls."
+    fit_criterion:
+      metric: injection_block_or_drop_rate
+      threshold: ">= 0.99"
+      verification: "python scripts/security_regression.py --injections 200 --assert-block-rate 0.99"
+
+  - id: REQ-INV-004
+    type: REQ-INV
+    priority: Must
+    part: 5
+    statement: "No secret leakage into logs, reports, manifest, prompts or errors; secrets read only from env/key store and redacted before persistence."
+    fit_criterion:
+      metric: secret_findings_in_artifacts
+      threshold: "== 0"
+      verification: "pytest tests/security/test_secret_redaction.py::test_artifacts"
+
+  - id: REQ-PER-001
+    type: REQ-PER
+    priority: Must
+    part: 6
+    statement: "Tiered end-to-end p95 latency on the reference environment; p99 ratio, failure rate, and Quick/Standard improvement vs baseline."
+    fit_criterion:
+      metric: quick_p95_seconds
+      threshold: "<= 300"
+      verification: "python scripts/bench_latency.py --profile quick --cold 15 --warm 15 --assert-p95 300"
+
+  - id: REQ-COST-001
+    type: REQ-COST
+    priority: Must
+    part: 6
+    statement: "Tiered token budget with budget routing, per-agent/model/tool accounting, a token/cost report every run, and no silent over-budget."
+    fit_criterion:
+      metric: quick_p95_tokens
+      threshold: "<= 25000"
+      verification: "python scripts/token_audit.py --profile quick --runs 30 --assert-p95 25000"

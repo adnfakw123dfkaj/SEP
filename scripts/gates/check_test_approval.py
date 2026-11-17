@@ -1,0 +1,113 @@
+"""Gate 1 — Test approval gate (PDF §6.1).
+
+No code change merges unless the tests for the change were approved *before*
+implementation began.
+
+Approval evidence is a committed record with fields ``change_id``, ``tests``
+(list of test paths it approves), ``approved_by`` and ``approved_at`` (ISO-8601).
+The gate is given the changed files and the first implementation commit time (the
+earliest non-test code change), and checks:
+
+- if only tests changed (no production code), the gate does not apply;
+- otherwise an approval must exist;
+- it must cover every changed test file;
+- its ``approved_at`` must be earlier than the first implementation commit.
+"""
+
+from __future__ import annotations
+
+import re
+from datetime import datetime
+
+from common import GateResult, Violation
+
+# A path is a test path when it lives under a tests/ dir or names a test module.
+_TEST_PATH = re.compile(r"(^|/)(tests?|__tests__)/|(^|/)test_[^/]*\.py$|_test\.py$")
+
+
+def is_test_path(path: str) -> bool:
+    return bool(_TEST_PATH.search(path))
+
+
+def _parse_iso(value: str) -> datetime | None:
+    try:
+        return datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+    except (TypeError, ValueError):
+        return None
+
+
+def check(
+    changed_files: list[str],
+    approvals: list[dict],
+    first_implementation_commit: str | None,
+) -> GateResult:
+    """Evaluate the test-approval gate.
+
+    Args:
+        changed_files: every path the change touches.
+        approvals: committed approval records (dicts with the fields above).
+        first_implementation_commit: ISO-8601 time of the earliest non-test code
+            change in the change, or None when only tests changed.
+    """
+    result = GateResult(gate="G1")
+
+    code_changed = [p for p in changed_files if not is_test_path(p)]
+    test_changed = [p for p in changed_files if is_test_path(p)]
+
+    if not code_changed:
+        # Tests-only change: the tests are the thing being approved, so nothing
+        # to approve against. Not applicable rather than a pass.
+        result.applicable = False
+        return result
+
+    if not approvals:
+        result.violations.append(
+            Violation("missing approval", f"{len(code_changed)} code file(s) changed without an approval record")
+        )
+        return result
+
+    if first_implementation_commit is None:
+        # Code changed but we were not told when implementation began; the gate
+        # cannot prove ordering, so it fails closed rather than guessing.
+        result.violations.append(
+            Violation("missing implementation time", "cannot verify approval precedes implementation")
+        )
+        return result
+
+    impl_time = _parse_iso(first_implementation_commit)
+    if impl_time is None:
+        result.violations.append(
+            Violation("unreadable implementation time", repr(first_implementation_commit))
+        )
+        return result
+
+    # At least one approval must cover the changed tests and predate implementation.
+    for approval in approvals:
+        approved_at = _parse_iso(approval.get("approved_at", ""))
+        if approved_at is None:
+            result.violations.append(
+                Violation("unreadable approval time", f"change {approval.get('change_id')!r}")
+            )
+            continue
+        covered = set(approval.get("tests") or [])
+        uncovered = [t for t in test_changed if t not in covered]
+        if uncovered:
+            result.violations.append(
+                Violation(
+                    "approval does not cover changed tests",
+                    ", ".join(sorted(uncovered)),
+                )
+            )
+            continue
+        if approved_at >= impl_time:
+            result.violations.append(
+                Violation(
+                    "approval after implementation",
+                    f"approved {approved_at.isoformat()} >= implementation {impl_time.isoformat()}",
+                )
+            )
+            continue
+        # This approval is valid.
+        return result
+
+    return result
