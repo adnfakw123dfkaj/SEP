@@ -154,7 +154,9 @@ jobs:
           import json
           import check_semantic_eval as g
           files = json.load(open("/tmp/changed.json"))["changed_files"]
-          payload = {"changed_files": files}
+          # Always carry "metrics" (None when not eval-relevant) so the payload is
+          # shape-stable regardless of change type.
+          payload = {"changed_files": files, "metrics": None}
           # If the change is eval-relevant, replay the fixed set offline.
           if g.is_eval_relevant(files):
               from harness import run_fixed_set
@@ -251,7 +253,11 @@ jobs:
           pip install -e tradingagents >/dev/null
       - name: Collect Part test outcomes
         run: |
+          # Run WITHOUT integration: a claimed Part is judged on its unit tests
+          # (integration tests need infra and may depend on other unimplemented
+          # Parts, so they are out of scope for the ownership gate).
           ( cd tradingagents && python -m pytest tests/req tests/security -q \
+              -m "not integration" \
               --json-report --json-report-file=/tmp/part_raw.json ) || true
           python - <<'PY'
           import json

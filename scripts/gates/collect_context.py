@@ -11,6 +11,8 @@ Sub-commands:
     log-entries --path docs/ai-use-log.yaml --since <ref>  -> {"new_log_entries": [...]}
     baseline --path <json>                   -> {"baseline": {...}}  (reads a stored JSON)
     tests --path <json>                      -> {"current": {...}}  (reads pytest-json report)
+    ownership [--path test-cases/ownership.yaml] -> {"ownership": {...}}
+    outcomes [--path /tmp/current.json]      -> {"outcomes": {...}}
 
 All output is JSON on stdout. No network.
 """

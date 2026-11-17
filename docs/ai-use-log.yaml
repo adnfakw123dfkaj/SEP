@@ -57,3 +57,12 @@ entries:
       - scripts/gates/check_semantic_eval.py
       - scripts/gates/run.py
       - .github/workflows/gates.yml
+
+  - change_id: "gate-report-306893d-response"
+    date: "2026-11-17"
+    agent_session: "gate-bug-report-audit"
+    summary: "Respond to gate-bug-report-306893d.md: G4/G6 already fixed in f23a90d (verified). Hardened G4 workflow to always write metrics; ownership job runs -m 'not integration' so integration tests never affect G7; docstring fixes. Baseline re-recorded (no drift). Human reviewed."
+    files_changed:
+      - .github/workflows/gates.yml
+      - scripts/gates/run.py
+      - scripts/gates/collect_context.py
