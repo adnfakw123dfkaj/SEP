@@ -110,3 +110,33 @@ Verification scenarios expected from those integrations are listed per item in
 `docs/part5-integration.md` (unverified snapshot -> REVIEW; injected field does
 not change rating; unbound tool 0 executions; key never in output; tampered
 record reads as REVIEW; manifest replays to same rating).
+
+## G2 static analysis — correct interpretation
+
+`check_static_analysis.py` treats `dependencies` as an **ALWAYS_ON** check
+(alongside `lint`, `type_check`), so `dependencies=false` is **not** informational
+— it is a real G2 failure. Only `pip-audit` is informational.
+
+`check_dependencies()` is a single `import tradingagents` and returns False on any
+import error. The correct way to run/assess it is the CI path
+(`.github/workflows/gates.yml` gate-static-analysis): it runs
+`pip install -e tradingagents` **before** running all checks.
+
+- **Cause of an earlier `dependencies: false`:** it was observed by running
+  `python3 scripts/gates/run_static_checks.py` with the **system Python, without
+  the editable install**, and with `sys.path[0]=scripts/gates` — so
+  `import tradingagents` raised `ModuleNotFoundError`. That is a **local
+  environment artifact, not a dependency or code defect.** (A related reporting
+  error: that run's real exit code is **1**, but it was misreported as 0 because
+  the command was piped through `tail`, whose exit code was shown instead.)
+- **Correct result (editable-installed env, as in CI):**
+  `{"contract": true, "security": true, "api_surface": true, "permission": true,
+  "dependencies": true}` and `run_static_checks.py` exits **0**.
+- **G2 evaluator (real results + CI-computed lint/type_check):**
+  `lint=true`, `type_check=true`, `dependencies=true`, contract/security/
+  api_surface/permission=true → **G2 status: pass.** The gate is evaluated
+  separately from the script exit code; script exit 0 is not equated with G2
+  passing.
+- No gate was modified. There is **no dependency-related G2 todo**; G2 passes
+  when run in the installed environment. `pip-audit` (informational only) is not
+  a blocker.
