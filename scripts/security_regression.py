@@ -72,23 +72,41 @@ def false_positive_rate(limit: int) -> float:
 
 
 def influence_count() -> int:
-    """How many injected fetched fields change the deterministic rating.
+    """How many sanitised fetched fields are accepted as a changed rating.
 
-    A control run rates a fixed structured decision; a treatment run prepends an
-    injection (sanitised) to the same decision. Any rating difference is an
-    influence (must be 0).
+    A fixed structured decision is the control. Each injection is sanitised (the
+    real chain); if the sanitised field survives AND is accepted as a committed
+    rating different from the control, it counts as an influence (must be 0).
+    The reverse (raw, un-sanitised) acceptance is reported separately by
+    ``raw_would_flip`` so the result is provably not vacuous.
     """
-    decision = "**Rating**: Hold\n\nBalanced risk/reward."
-    control = commit_rating(decision, _prov(), InMemoryRatingStore(), decision_id="control")
+    control_text = "**Rating**: Hold\n\nBalanced risk/reward."
+    control = commit_rating(control_text, _prov(), InMemoryRatingStore(),
+                            decision_id="control")
     influenced = 0
     for i, payload in enumerate(_load("injections.txt")):
         fetched = sanitize(payload)  # what would reach the prompt
-        candidate = decision + "\n" + fetched
-        result = commit_rating(candidate, _prov(), InMemoryRatingStore(),
-                              decision_id=f"t{i}")
+        if not fetched:
+            continue
+        result = commit_rating(fetched, _prov(), InMemoryRatingStore(),
+                               decision_id=f"t{i}")
         if result.rating != control.rating:
             influenced += 1
     return influenced
+
+
+def raw_would_flip() -> int:
+    """Control metric: payloads a *broken* (no-sanitise) pipeline would accept.
+
+    Non-zero proves the influence check is not vacuous.
+    """
+    count = 0
+    for payload in _load("injections.txt"):
+        result = commit_rating(payload, _prov(), InMemoryRatingStore(),
+                              decision_id="raw")
+        if result.rating != "REVIEW":
+            count += 1
+    return count
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -125,8 +143,12 @@ def main(argv: list[str] | None = None) -> int:
     if args.assert_influence is not None:
         count = influence_count()
         print(f"injected_influence_on_rating_count={count}")
+        raw = raw_would_flip()
+        print(f"raw_pipeline_would_accept_count={raw}  (control: must be > 0)")
         if count > args.assert_influence:
             failures.append(f"influence {count} > {args.assert_influence}")
+        if raw == 0:
+            failures.append("reverse control is vacuous: no raw payload would flip")
 
     if failures:
         for f in failures:

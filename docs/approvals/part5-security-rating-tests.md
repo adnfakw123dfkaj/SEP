@@ -7,6 +7,9 @@
 - `tradingagents/tests/req/test_rating_invariant.py`
 - `tradingagents/tests/security/test_prompt_injection.py`
 - `tradingagents/tests/security/test_secret_redaction.py`
+- `tradingagents/tests/fixtures/security/injections.txt` (test fixture)
+- `tradingagents/tests/fixtures/security/benign.txt` (test fixture)
+- `tradingagents/tests/fixtures/security/secrets.txt` (test fixture)
 
 This list describes the scenarios the approved tests assert. Function names and
 node ids already on `master` are preserved (only their bodies change from a

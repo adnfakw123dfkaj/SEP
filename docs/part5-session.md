@@ -1,5 +1,14 @@
 # Part 5 — Session summary (OpenCode)
 
+> **This file is a SUMMARY, not the raw session transcript.** The complete raw
+> OpenCode session (every message and tool call) is stored outside the repo in
+> OpenCode's local data directory: `~/.local/share/opencode/` (SQLite
+> `opencode.db` plus `storage/` and `log/`). It is **not** committed here. To
+> export the complete session for the course, use OpenCode's own session
+> export/share feature from the same machine, or copy the relevant session rows
+> from `~/.local/share/opencode/opencode.db` (and `storage/session/**`) as-is.
+> Do not hand-edit that data. This summary exists only to index the artefacts.
+
 This records what the AI coding session did, so the course's full-session capture
 can be matched to concrete artefacts. It contains **no** fabricated human
 statements; the human review/approval is recorded factually because the user said

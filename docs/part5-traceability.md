@@ -41,7 +41,7 @@ Negative controls proving the tests can fail:
 |---|---|---|
 | INV004-01 artifacts clean | `security/redaction.py` (`scrub_manifest`, `RedactingFilter`) | `test_secret_redaction.py::test_artifacts` |
 | INV004-02 redaction rate 1.0 | `redact` / `redact_obj` / `redact_text` | `::test_redaction` |
-| INV004-03 gitleaks clean | CI scan (see below) | external |
+| INV004-03 gitleaks clean | `gitleaks detect --no-git --source .` | external (NOT in CI) |
 | INV004-04 model payload | `safe_prompt_payload` | `::test_prompt_payload` |
 | INV004-05 exception scrub | `redact_obj` (exception branch); existing `get_scrubbed` | `::test_redaction`, `::test_existing_scrub_redacts_secret` |
 | INV004-06 env-only source | redaction reads canonical env; client chain unchanged | `::test_env_only_key_source` |
@@ -60,9 +60,16 @@ python scripts/generate_security_fixtures.py   # regenerate fixtures (determinis
 
 ## Unverified / not done
 
-- `gitleaks` was not available locally; INV004-03 is covered by the CI secret
-  scan only, not run here.
-- `pyright` not installed locally; static type check not run here.
+- **No gitleaks step exists in any workflow** (`.github/workflows/*`): INV004-03
+  is not run in CI. Run locally in isolation, `gitleaks` reported **2 findings,
+  both in pre-existing test files not touched by this change**
+  (`tradingagents/tests/test_alpha_vantage_hardening.py`,
+  `tradingagents/tests/test_fred.py`), and **0 findings in the new Part 5
+  files**. The requirement's "0 findings" is not met at repo level, independently
+  of this change.
+- **pyright excludes `tradingagents/`** (`pyrightconfig.json`), so the new Part 5
+  modules are not type-checked by CI. Run explicitly in isolation, pyright on the
+  new modules reported 0 errors (supplementary, not CI-enforced).
 - Wiring into `graph/trading_graph.py`, analysts, and Part 3 records/manifest is
   documented in `docs/part5-integration.md` but **not** performed (out of scope
   for this Part / requires owner review).

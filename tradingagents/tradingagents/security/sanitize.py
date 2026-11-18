@@ -55,8 +55,14 @@ _INJECTION_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
     # "ignore (all) previous instructions", "disregard the above"
     ("instruction_override", re.compile(
         r"(?i)\b(ignore|disregard|forget|override|bypass)\b[^.\n]{0,40}"
-        r"\b(previous|prior|above|earlier|all|any|your)\b[^.\n]{0,30}"
-        r"\b(instruction|instructions|prompt|prompts|rules?|directions?)\b")),
+        r"\b(previous|prior|above|earlier|all|any|your|the)\b[^.\n]{0,30}"
+        r"\b(instruction|instructions|prompt|prompts|rules?|directions?|"
+        r"debate|analysis|analyst|guidance|guidelines)\b")),
+    # "new instructions:", "system override:", "obey the following"
+    ("override_shorthand", re.compile(
+        r"(?i)(\bnew\s+instructions?\b|\bsystem\s+override\b|"
+        r"\bobey\s+(the\s+)?following\b|\bfrom\s+now\s+on\b|"
+        r"\bonly\s+source\s+of\s+truth\b)")),
     # "you are now ...", "act as ...", "system prompt", "developer mode"
     ("role_hijack", re.compile(
         r"(?i)(\byou are now\b|\bact as\b|\bpretend to be\b|\bsystem prompt\b|"
@@ -64,6 +70,11 @@ _INJECTION_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
     # "new instructions:" / "### system:" / "assistant:" role markers
     ("role_marker", re.compile(
         r"(?im)^\s*(#{1,6}\s*)?(system|assistant|developer|tool)\s*:")),
+    # A role marker embedded mid-text ("news text system: ...") and explicit
+    # "follow these instructions" phrasing.
+    ("role_marker_inline", re.compile(
+        r"(?i)(\b(system|assistant|developer)\s*:\s*(now|you|ignore|follow|obey)\b|"
+        r"\bfollow\s+(only\s+)?(these|my|the\s+following)\s+instructions?\b)")),
     # Tool/function-call injection.
     ("tool_call_injection", re.compile(
         r"(?i)(\bcall\s+(the\s+)?(tool|function)\b|"
@@ -109,8 +120,14 @@ def _matching_kinds(text: str) -> list[str]:
 
 
 def is_suspicious(text: str) -> bool:
-    """Whether ``text`` contains an injection-shaped structure."""
-    return bool(_matching_kinds(_normalise(_strip_controls(text or ""))))
+    """Whether ``text`` contains an injection-shaped structure.
+
+    If ``text`` is already wrapped by :func:`sanitize` (our own delimiters), the
+    wrapper is unwrapped first, so our own boundary is not mistaken for a forged
+    one.
+    """
+    cleaned = _strip_controls(_normalise(text or ""))
+    return bool(_matching_kinds(_unwrap(cleaned)))
 
 
 def _neutralise_delimiters(text: str) -> str:
