@@ -1,8 +1,9 @@
 # Part 5 — Requirement → implementation → test traceability
 
-Owner: 陈妍妍. Branch: `part-5/security-rating`.
-Test-approval: `docs/approvals/chg-2026-11-18-part5-security-rating.json`
-(approved 2026-11-18T06:43:59+00:00, before implementation).
+Owner: 陈妍妍. Branch: `part-5/security-rating`. Final commit: `6bcd61e`.
+Test-approvals (all preserved): `chg-2026-11-18-part5-security-rating`,
+`chg-2026-11-18-part5-acceptance-2`, `chg-2026-11-18-part5-rating-failclosed`.
+G1 multi-round limitation: `docs/approvals/part5-g1-multiround-limitation.md`.
 
 ## REQ-INV-003 — Deterministic rating authority
 
@@ -88,3 +89,24 @@ python scripts/generate_security_fixtures.py   # regenerate fixtures (determinis
   verified here.
 - Integration-marked live cases (none remain in Part 5 after moving the rate
   tests offline). Results are for fixed fixtures, not a live model.
+
+## Part 1 / Part 3 integration handoff (not yet performed)
+
+Detailed call sites and verification scenarios are in
+`docs/part5-integration.md`.
+
+- **Part 1** (`graph/trading_graph.py::record_decision` and boundaries): build
+  verified `Provenance` (set `snapshot_verified=True` only after real
+  verification); call `commit_rating(...)` with a stable `decision_id`; use
+  `sanitize` on fetched fields; `safe_prompt_payload` before model calls;
+  `ToolGuard` on dispatch; `install_log_filter`/`register_handler` on handlers;
+  `drain_events` into the manifest.
+- **Part 3** (records/manifest): implement `Store.read/write` (atomic per id),
+  persist the full record **including `snapshot_verified`**, `scrub_manifest`
+  before writing artifacts, include `security_events` and the final
+  rating/reason_codes/provenance.
+
+Verification scenarios expected from those integrations are listed per item in
+`docs/part5-integration.md` (unverified snapshot -> REVIEW; injected field does
+not change rating; unbound tool 0 executions; key never in output; tampered
+record reads as REVIEW; manifest replays to same rating).

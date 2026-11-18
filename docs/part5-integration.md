@@ -57,34 +57,44 @@ Failure semantics:
 - **Serial idempotency only:** atomic concurrent commit is the store's (Part 3)
   responsibility; the store contract is `read(id)`/`write(id, record)`.
 
-### Where Part 1 wires it in
+### Part 1 — required integration points
 
-In `tradingagents/graph/trading_graph.py::record_decision`, before
-`self.memory_log.store_decision(...)`, Part 1 should:
-
-1. Build a `Provenance` from the run's verified snapshot id, evidence manifest
-   id, and the model/prompt/config versions actually used.
-2. Call `commit_rating(...)` with `decision_id` derived from ticker + trade date +
-   run signature.
-3. Persist the memory-log rating from `result.rating` (never from the raw text),
-   and surface `result.review_required`/`reason_codes` to the caller.
+| # | Location | Required call | Verification scenario |
+|---|---|---|---|
+| 1a | `graph/trading_graph.py::record_decision`, before `store_decision` | build `Provenance(snapshot_id, manifest_id, model, prompt_version, config_version, snapshot_verified=...)` from the run's **real** verified snapshot/manifest/versions; set `snapshot_verified=True` only after checking the market data | when the snapshot is unverified or a version is missing, the run's rating is `REVIEW` (never a tier) |
+| 1b | same | `commit_rating(candidate=final_state["final_trade_decision"], provenance, store, decision_id=<ticker:date:run-signature>)` | valid provenance + labelled call commits a tradeable tier; retry with same request returns the stored source |
+| 1c | same | persist memory-log rating from `result.rating`; surface `result.review_required`/`reason_codes` | `REVIEW` decisions are recorded as needing review, not as a fabricated Hold |
+| 1d | analyst prompt assembly | `sanitize(fetched_text)` for every news/social/user field | an injected fetched field cannot change the committed rating (offline adapter test covers the logic) |
+| 1e | model-call boundary | `safe_prompt_payload(messages)` | no secret in the payload before the call |
+| 1f | tool dispatch | `ToolGuard(allowed=...).call(role, tool, executables, ...)`; catch `UnauthorizedToolCall` and continue | unbound tool executes 0 times; `TOOL_REJECTED` logged |
+| 1g | logging setup (once, after config) | `install_log_filter()`; `register_handler(h)` for later handlers; handle `propagate=False` loggers | a registered non-pattern key from a child logger never reaches output |
+| 1h | run teardown / manifest hooks | `drain_events()` for security events | every detection/validation/rejection appears in the manifest |
 
 `run_rating(final_state)` in `agents/rating.py` remains the backward-compatible
 reader; the authority's `resolve_rating` shares the same parser, so there is no
 second implementation.
 
-### Where Part 3 wires persistence
+### Part 3 — required integration points
 
-Part 3's records store should implement the two-method `Store` protocol from
-`tradingagents/contracts/rating.py` (`read(decision_id)` / `write(decision_id,
-record)`). Part 5's write gate already refuses an out-of-set value before
-`write` and re-validates on `read_committed_rating`, so a faulty writer cannot
-persist a bad tier unbeknownst to us. The record shape written is:
+| # | Location | Required call | Verification scenario |
+|---|---|---|---|
+| 3a | records store | implement `read(decision_id)` / `write(decision_id, record)` per `contracts/rating.Store`; **atomic per id** (serial idempotency is all Part 5 promises) | concurrent writers do not produce two committed ratings for one id (Part 3 test) |
+| 3b | same | persist the record **including `snapshot_verified`**; do not mutate the rating | read-back of a valid record returns the tier; tampered/partial records read as `REVIEW` |
+| 3c | manifest writer | `scrub_manifest(manifest)` before writing `manifest.json`/reports | a synthetic key in any field is absent from the written artifact |
+| 3d | manifest writer | include `drain_events()` as `security_events` and `result.rating`/`reason_codes`/provenance as the final rating | manifest replays to the same rating; schema valid |
+
+Part 5's write gate already refuses an out-of-set value before `write` and
+`read_committed_rating` re-validates (fail-closed), so a faulty writer cannot
+persist a bad tier unbeknownst to us. The record shape written by Part 5 is:
 
 ```python
 {"rating", "decision_id", "snapshot_id", "manifest_id",
- "model", "prompt_version", "config_version"}
+ "model", "prompt_version", "config_version", "snapshot_verified"}
 ```
+
+Part 3 must preserve `snapshot_verified` verbatim; on read/retry Part 5 trusts
+provenance only when all fields are present, structurally valid, and
+`snapshot_verified is True`.
 
 ## Untrusted input/output (REQ-SEC-001)
 
