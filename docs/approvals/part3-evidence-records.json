@@ -1,0 +1,10 @@
+{
+  "change_id": "part3-evidence-records",
+  "tests": [
+    "tradingagents/tests/req/test_evidence_manifest.py",
+    "tradingagents/tests/req/test_records.py",
+    "tradingagents/tests/req/test_report_faithfulness.py"
+  ],
+  "approved_by": "luochen",
+  "approved_at": "2026-11-18T15:00:00+08:00"
+}
