@@ -115,3 +115,32 @@ entries:
       - .github/workflows/gates.yml
       - scripts/gates/collect_context.py
       - scripts/gates/run_static_checks.py
+
+  - change_id: "part3-evidence-records"
+    date: "2026-11-17"
+    agent_session: "part3-implementation"
+    summary: "Part 3 (REQ-FR-004/QUAL-002/INV-001): add EvidenceRef + RunManifest contracts, evidence registry and fidelity checks, records atomic write + idempotent store; claim part3 in ownership; implement the Part 3 requirement tests. Human reviewed."
+    files_changed:
+      - tradingagents/tradingagents/contracts/evidence.py
+      - tradingagents/tradingagents/contracts/manifest.py
+      - tradingagents/tradingagents/contracts/__init__.py
+      - tradingagents/tradingagents/evidence/registry.py
+      - tradingagents/tradingagents/evidence/fidelity.py
+      - tradingagents/tradingagents/evidence/__init__.py
+      - tradingagents/tradingagents/records/atomic.py
+      - tradingagents/tradingagents/records/idempotency.py
+      - tradingagents/tradingagents/records/__init__.py
+
+  - change_id: "g2-dependencies-disk-check"
+    date: "2026-11-18"
+    agent_session: "g2-dependencies-fix"
+    summary: "Fix Gate 2 dependencies check failing in CI: it imported 'tradingagents', which from the repo root resolves to the project directory as a namespace package and gets cached, shadowing the real package. check_dependencies now inspects tradingagents/tradingagents/__init__.py on disk (parses, declares __version__), cwd- and import-cache-independent. Human reviewed."
+    files_changed:
+      - scripts/gates/run_static_checks.py
+
+  - change_id: "g1-gate-infra-test-exemption"
+    date: "2026-11-18"
+    agent_session: "g1-approval-coverage-fix"
+    summary: "Fix Gate 1 false block: a gate-infrastructure test (tests/gates/) was required to be listed in a test-approval record even though it is gate tooling, not an application test. test_changed now excludes paths under _GATE_INFRA_PREFIXES, matching how scripts/gates/ is excluded from code_changed. App tests still require approval. Human reviewed."
+    files_changed:
+      - scripts/gates/check_test_approval.py

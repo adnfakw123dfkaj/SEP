@@ -30,8 +30,8 @@ parts:
       - tradingagents/tests/req/test_debate_quality.py
 
   part3:
-    owner: null
-    enabled: false
+    owner: "luochen"
+    enabled: true
     tests:
       - tradingagents/tests/req/test_evidence_manifest.py
       - tradingagents/tests/req/test_report_faithfulness.py
