@@ -28,6 +28,8 @@ result = commit_rating(
     store=store,                                      # read(id)/write(id, record)
     decision_id="AAPL:2026-11-18:<run-signature>",    # stable, unique per decision
 )
+# Provenance must set snapshot_verified=True explicitly (it defaults to False);
+# Part 1 is responsible for actually verifying the snapshot, not Part 5.
 # result.rating        in {Buy,Overweight,Hold,Underweight,Sell,REVIEW}
 # result.review_required  True iff rating == REVIEW
 # result.reason_codes  ("ok",) | ("missing_provenance",) | ...
@@ -38,8 +40,15 @@ Failure semantics:
 - Provenance missing/invalid/unverified -> `REVIEW`, nothing written.
 - Candidate with no readable call -> `REVIEW`, nothing written.
 - Out-of-set candidate -> `REVIEW`, nothing written.
-- Same `decision_id` re-committed -> returns the existing value (idempotent).
-- Blank `decision_id` -> `REVIEW`, nothing written (no shared default key).
+- Same `decision_id` + same rating + same source -> returns the **originally
+  persisted provenance** (idempotent retry; not a new claim).
+- Different rating OR different source for an existing id -> `CONFLICT`
+  (`review_required`), nothing written.
+- Corrupt stored record -> `PERSISTED_OUT_OF_SET` (rating out of set) or
+  `CORRUPT_RECORD` (other damage), nothing overwritten.
+- Blank `decision_id` -> refused, nothing written (no shared default key).
+- **Serial idempotency only:** atomic concurrent commit is the store's (Part 3)
+  responsibility; the store contract is `read(id)`/`write(id, record)`.
 
 ### Where Part 1 wires it in
 
@@ -119,8 +128,17 @@ Part 3 should call `drain_events()` and put them in the manifest's
 ```python
 from tradingagents.security import redact, safe_prompt_payload, scrub_manifest
 ```
-- **Logs:** `install_log_filter()` on the root logger (or your logger) — redacts
-  `record.msg`, deferred `%` args, and exception text.
+- **Logs (handler-level):** `install_log_filter()` installs a redacting filter on
+  the **existing handlers** of the root logger and its subtree (so child-logger
+  records that propagate are covered); `register_handler(handler)` installs on a
+  single handler. Filters are **not** attached to loggers (those miss propagated
+  child records) and nothing global is monkeypatched.
+  - **Composition-root responsibility (Part 1):** call `install_log_filter()`
+    once after logging is configured, and `register_handler()` on any handler
+    added later; for a third-party logger with `propagate=False`, register its
+    handlers too or set `propagate=True`. Part 5 provides the interface; Part 1
+    installs it. Redaction covers `record.msg`, deferred `%` args, and the full
+    traceback text (type kept, secret removed).
 - **Prompts / model payload:** wrap the assembled payload with
   `safe_prompt_payload(messages)` right before the model call (Part 1/2).
 - **Manifest / report:** wrap with `scrub_manifest(obj)` right before Part 3

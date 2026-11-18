@@ -43,10 +43,15 @@ class ReasonCode:
     INVALID_PROVENANCE = "invalid_provenance"
     # The snapshot id was absent or not marked verified.
     UNVERIFIED_SNAPSHOT = "unverified_snapshot"
-    # The same decision id was already committed with a different value.
+    # The same decision id was already committed with a different rating OR a
+    # different provenance source.
     CONFLICT = "conflict"
-    # The persisted value failed re-validation before write.
+    # The persisted value failed re-validation before write (out-of-set tier).
     PERSISTED_OUT_OF_SET = "persisted_out_of_set"
+    # The persisted record is corrupt/missing required fields other than a
+    # merely out-of-set rating (e.g. no rating key, or unreadable provenance
+    # fields). Distinct from PERSISTED_OUT_OF_SET so the cause is accurate.
+    CORRUPT_RECORD = "corrupt_record"
 
 
 def is_allowed(rating: str) -> bool:
@@ -132,8 +137,12 @@ class Provenance:
 
     Additional:
 
-    - ``snapshot_verified``: whether the snapshot was cryptographically/structurally
-      verified. An unverified snapshot id is not acceptable for a commit.
+    - ``snapshot_verified``: whether the snapshot was *actually* verified by the
+      trusted source layer. It defaults to ``False``: a provenance object does
+      not claim verification merely by existing. The verifier (Part 1) must set
+      it ``True`` only after checking the snapshot against the real market data
+      source. Part 5 validates structure plus this flag; it cannot itself
+      re-verify the underlying snapshot.
     """
 
     snapshot_id: str
@@ -141,7 +150,21 @@ class Provenance:
     model: str
     prompt_version: str
     config_version: str
-    snapshot_verified: bool = True
+    snapshot_verified: bool = False
+
+    def fingerprint(self) -> tuple[str, str, str, str, str]:
+        """The source identity used to detect a conflicting re-commit.
+
+        Covers the fields that identify *where* a decision came from. Two
+        provenance objects with the same fingerprint are the same source.
+        """
+        return (
+            self.snapshot_id,
+            self.manifest_id,
+            self.model,
+            self.prompt_version,
+            self.config_version,
+        )
 
     def missing_fields(self) -> list[str]:
         """Names of required fields that are empty/missing."""

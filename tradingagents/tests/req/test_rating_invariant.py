@@ -50,6 +50,17 @@ def _provenance(**overrides):
     return Provenance(**values)
 
 
+def _record_source(prov):
+    """The source fields as they are persisted in a store record."""
+    return {
+        "snapshot_id": prov.snapshot_id,
+        "manifest_id": prov.manifest_id,
+        "model": prov.model,
+        "prompt_version": prov.prompt_version,
+        "config_version": prov.config_version,
+    }
+
+
 def test_allowed_set():
     """TC-P5-INV003-02: a committed rating is always in the allowed set."""
     store = InMemoryRatingStore()
@@ -179,12 +190,15 @@ def test_persisted_revalidation():
 
 
 def test_idempotent_commit():
-    """TC-P5-INV003-07: the commit gate is idempotent."""
+    """TC-P5-INV003-07: the commit gate is idempotent (serial)."""
     store = InMemoryRatingStore()
     prov = _provenance()
     first = commit_rating("**Rating**: Buy", prov, store, decision_id="same")
     second = commit_rating("**Rating**: Buy", prov, store, decision_id="same")
     assert first.rating == second.rating == "Buy"
+    # A same-request retry returns the originally persisted source, reason ok.
+    assert second.reason_codes == (ReasonCode.OK,)
+    assert second.provenance == prov
     # Exactly one committed record for the decision.
     assert list(store.all()) == ["same"]
     # A blank decision id is refused — decisions never share a default key.
@@ -195,3 +209,82 @@ def test_idempotent_commit():
     other = commit_rating("**Rating**: Sell", prov, store, decision_id="different")
     assert other.rating == "Sell"
     assert set(store.all()) == {"same", "different"}
+
+
+def test_retry_returns_persisted_source():
+    """A retry with the same request returns the *stored* provenance, not the
+    request's object, and does not rewrite."""
+    store = InMemoryRatingStore()
+    original = _provenance()
+    commit_rating("Buy", original, store, decision_id="r")
+    before = dict(store.read("r"))
+    # A second, equal-but-distinct provenance object (same fingerprint).
+    retry = _provenance()
+    result = commit_rating("Buy", retry, store, decision_id="r")
+    assert result.rating == "Buy"
+    assert result.reason_codes == (ReasonCode.OK,)
+    # Returns the persisted source identity.
+    assert result.provenance is not None
+    assert result.provenance.fingerprint() == original.fingerprint()
+    # Nothing was rewritten.
+    assert store.read("r") == before
+
+
+def test_conflicting_rating_is_rejected():
+    """Different rating for an existing id -> CONFLICT, no overwrite."""
+    store = InMemoryRatingStore()
+    prov = _provenance()
+    commit_rating("Buy", prov, store, decision_id="c")
+    before = dict(store.read("c"))
+    result = commit_rating("Sell", prov, store, decision_id="c")
+    assert result.rating == RATING_REVIEW
+    assert result.review_required
+    assert ReasonCode.CONFLICT in result.reason_codes
+    assert store.read("c") == before  # not overwritten
+
+
+def test_conflicting_source_is_rejected():
+    """Same rating but a different source for an existing id -> CONFLICT."""
+    store = InMemoryRatingStore()
+    commit_rating("Hold", _provenance(), store, decision_id="s")
+    before = dict(store.read("s"))
+    # Different snapshot id => different source fingerprint.
+    other_source = _provenance(snapshot_id="snap-ffffffffffffffffffffffffffffffff")
+    result = commit_rating("Hold", other_source, store, decision_id="s")
+    assert result.rating == RATING_REVIEW
+    assert ReasonCode.CONFLICT in result.reason_codes
+    assert store.read("s") == before
+
+
+def test_missing_source_retry_is_not_success():
+    """Retrying an existing id with no provenance is not a normal success."""
+    store = InMemoryRatingStore()
+    commit_rating("Buy", _provenance(), store, decision_id="m")
+    before = dict(store.read("m"))
+    result = commit_rating("Buy", None, store, decision_id="m")
+    # Not reason=ok; the missing source cannot be silently accepted.
+    assert ReasonCode.OK not in result.reason_codes
+    assert result.review_required
+    assert store.read("m") == before
+
+
+def test_corrupt_record_is_classified_accurately():
+    """Corrupt records are refused with a cause-specific reason, not overwritten."""
+    store = InMemoryRatingStore()
+    prov = _provenance()
+    # (a) out-of-set stored rating -> PERSISTED_OUT_OF_SET
+    store.write("bad-rating", {"rating": "Moon", "decision_id": "bad-rating",
+                               **_record_source(prov)})
+    r = commit_rating("Buy", prov, store, decision_id="bad-rating")
+    assert ReasonCode.PERSISTED_OUT_OF_SET in r.reason_codes
+    assert store.read("bad-rating")["rating"] == "Moon"
+    # (b) missing source fields (not an out-of-set rating) -> CORRUPT_RECORD
+    store.write("bad-source", {"rating": "Buy", "decision_id": "bad-source"})
+    r = commit_rating("Buy", prov, store, decision_id="bad-source")
+    assert ReasonCode.CORRUPT_RECORD in r.reason_codes
+    assert ReasonCode.PERSISTED_OUT_OF_SET not in r.reason_codes
+    # (c) read-back also classifies accurately.
+    assert ReasonCode.PERSISTED_OUT_OF_SET in read_committed_rating(
+        store, decision_id="bad-rating").reason_codes
+    assert ReasonCode.CORRUPT_RECORD in read_committed_rating(
+        store, decision_id="bad-source").reason_codes

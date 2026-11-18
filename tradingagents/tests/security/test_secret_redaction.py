@@ -169,3 +169,153 @@ def test_env_only_key_source(monkeypatch):
 
     source = inspect.getsource(oc)
     assert "os.environ.get(api_key_env)" in source
+
+
+# ---------------------------------------------------------------------------
+# Handler-level install (REQ-INV-004): child-logger propagation, direct handler,
+# re-install idempotency, and exception/format preservation.
+# ---------------------------------------------------------------------------
+
+def _capture(handler: logging.Handler) -> "io.StringIO":
+    stream = io.StringIO()
+    handler.setStream(stream)  # type: ignore[attr-defined]
+    return stream
+
+
+def _all_handlers() -> list[logging.Handler]:
+    hs: list[logging.Handler] = list(logging.getLogger().handlers)
+    for lg in logging.Logger.manager.loggerDict.values():
+        if isinstance(lg, logging.Logger):
+            hs.extend(lg.handlers)
+    return hs
+
+
+class _restore_filters:
+    """Context manager: snapshot every handler's filters and restore on exit, so
+    install_log_filter() (which walks the global logging tree) cannot pollute
+    other tests' handlers."""
+
+    def __enter__(self):
+        self._snap = {id(h): (h, list(h.filters)) for h in _all_handlers()}
+        return self
+
+    def __exit__(self, *exc):
+        from tradingagents.security.redaction import RedactingFilter
+
+        # Remove any redacting filters we may have added, restore originals.
+        for handler in _all_handlers():
+            for f in list(handler.filters):
+                if isinstance(f, RedactingFilter):
+                    handler.removeFilter(f)
+        for handler, filters in self._snap.values():
+            for f in filters:
+                if f not in handler.filters:
+                    handler.addFilter(f)
+        return False
+
+
+def test_child_logger_propagation_is_redacted(monkeypatch):
+    """A non-pattern synthetic key emitted on a child logger never reaches
+    output, even though the filter lives on the root handler (propagation)."""
+    from tradingagents.security.redaction import install_log_filter, register_secret
+
+    key = "syntheticchildkeyNOTpattern0123456789"
+    register_secret(key)  # registered literal: no recognisable pattern
+
+    root = logging.getLogger()
+    root_handler = logging.StreamHandler(io.StringIO())
+    root_handler.setFormatter(logging.Formatter("%(levelname)s:%(name)s:%(message)s"))
+    root.addHandler(root_handler)
+    child = logging.getLogger("tradingagents.part5.child")
+    child.setLevel(logging.DEBUG)
+    child.propagate = True
+    try:
+        with _restore_filters():
+            installed = install_log_filter()
+            assert root_handler in installed
+            stream = _capture(root_handler)
+            # No filter on the child logger or the root logger — only on the
+            # handler. Deferred formatting arg carries the key.
+            child.info("token=%s", key)
+            text = stream.getvalue()
+        assert key not in text, "child-logger key leaked to output"
+        assert "INFO:tradingagents.part5.child" in text  # format preserved
+    finally:
+        root.removeHandler(root_handler)
+
+
+def test_direct_handler_install_redacts(monkeypatch):
+    """register_handler() on a single handler redacts output written directly."""
+    from tradingagents.security.redaction import register_handler, register_secret
+
+    key = "synthetichandlerkey0123456789ABCDEF"
+    register_secret(key)  # exact literal, no recognisable token pattern
+    handler = logging.StreamHandler(io.StringIO())
+    handler.setFormatter(logging.Formatter("%(message)s"))
+    register_handler(handler)
+    logger = logging.getLogger("tradingagents.part5.direct")
+    logger.setLevel(logging.DEBUG)
+    logger.addHandler(handler)
+    logger.propagate = False
+    try:
+        stream = handler.stream  # type: ignore[attr-defined]
+        logger.warning("key is %s", key)
+        out = stream.getvalue()
+        assert key not in out
+    finally:
+        logger.removeHandler(handler)
+
+
+def test_install_is_idempotent_on_handler():
+    """Installing twice adds exactly one redacting filter to a handler."""
+    from tradingagents.security.redaction import (
+        RedactingFilter,
+        install_log_filter,
+        register_handler,
+    )
+
+    handler = logging.StreamHandler(io.StringIO())
+    register_handler(handler)
+    register_handler(handler)
+    n = sum(1 for f in handler.filters if isinstance(f, RedactingFilter))
+    assert n == 1
+
+    root = logging.getLogger()
+    root.addHandler(handler)
+    try:
+        with _restore_filters():
+            install_log_filter()
+            install_log_filter()
+            n = sum(1 for f in handler.filters if isinstance(f, RedactingFilter))
+            assert n == 1
+    finally:
+        root.removeHandler(handler)
+
+
+def test_exception_text_redacted_but_type_kept():
+    """A logged exception keeps its type and message but not the key."""
+    from tradingagents.security.redaction import register_handler, register_secret
+
+    # Built by concatenation so no literal high-entropy token appears in source.
+    key = "synthetic" + "exception" + "key" + "0123456789" + "X"
+    register_secret(key)
+    stream = io.StringIO()
+    handler = logging.StreamHandler(stream)
+    # Default formatter: includes the traceback text (exc_info), unlike %message.
+    register_handler(handler)
+    logger = logging.getLogger("tradingagents.part5.exc")
+    logger.setLevel(logging.DEBUG)
+    logger.addHandler(handler)
+    logger.propagate = False
+    try:
+        try:
+            raise RuntimeError(f"provider auth failed for {key}")
+        except RuntimeError:
+            logger.exception("call failed")
+        err = stream.getvalue()
+        assert key not in err
+        assert "RuntimeError" in err  # traceback type preserved
+        assert "provider auth failed for" in err  # surrounding message kept
+    finally:
+        logger.removeHandler(handler)
+        register_secret(key)

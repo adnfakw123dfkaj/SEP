@@ -104,6 +104,21 @@ def _check(schema: dict, value: Any, path: str, errors: list[str],
                 _check(item_schema, item, f"{path}[{i}]", errors, refs)
 
 
+def _schema_uses_refs(schema: dict) -> bool:
+    """Whether any node in ``schema`` marks a field with ``ref: True``."""
+    if not isinstance(schema, dict) or not schema:
+        return False
+    if schema.get("ref"):
+        return True
+    items = schema.get("items")
+    if isinstance(items, dict) and items and _schema_uses_refs(items):
+        return True
+    props = schema.get("properties")
+    if isinstance(props, dict):
+        return any(_schema_uses_refs(sub) for sub in props.values())
+    return False
+
+
 def validate_output(
     value: Any,
     schema: dict,
@@ -116,7 +131,10 @@ def validate_output(
     Args:
         value: the model's parsed output (dict/list/etc.).
         schema: the small schema vocabulary described in the module docstring.
-        references: the set of valid ids a ``ref``-marked field may cite.
+        references: the set of valid ids a ``ref``-marked field may cite. **If
+            the schema uses ``ref`` and this is ``None``, validation fails closed
+            with a configuration error** — an omitted reference set must never
+            silently pass a reference check. An empty set means "no id is valid".
         event_log: where to record the rejection (default: process-wide).
 
     Returns:
@@ -125,6 +143,15 @@ def validate_output(
         ``security_event`` of kind ``output_rejected`` is logged.
     """
     errors: list[str] = []
+
+    # Fail closed: a schema that checks references but was given no reference
+    # set is a configuration error, not a pass.
+    if _schema_uses_refs(schema) and references is None:
+        message = "missing references configuration: schema uses ref=True but no references were provided"
+        target = event_log or get_event_log()
+        log_event(EventKind.OUTPUT_REJECTED, "schema:" + message, event_log=target)
+        return ValidationResult(ok=False, errors=[message], value=None)
+
     ref_set = frozenset(references) if references is not None else None
     _check(schema, value, "", errors, ref_set)
 

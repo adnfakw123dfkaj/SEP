@@ -39,6 +39,8 @@ A filing showed that TSLA climbed 3.4% on the day; the data center segment doubl
 A filing showed that TSLA dropped 2.1% on the day; headcount fell by 1,200. See https://investor.apple.com/financials for details (ref 1).
 A filing showed that TSLA rose 0.8% on the day; the data center segment doubled. See https://www.sec.gov/edgar/data/0000320193 for details (ref 99).
 A filing showed that TSLA rose 1.9% on the day; services revenue reached $24.1B. See https://www.reuters.com/technology/ for details (ref 87).
+A tool guard rejects trades the portfolio role is not bound to.
+API key rotation is handled by the security team, not the trading model.
 Analysts at Morgan Stanley wrote that AAPL climbed 0.8% on the day; headcount fell by 1,200. See https://investor.apple.com/financials for details (ref 49).
 Analysts at Morgan Stanley wrote that AAPL climbed 1.9% on the day; gross margin expanded to 46.2%. See https://www.reuters.com/technology/ for details (ref 88).
 Analysts at Morgan Stanley wrote that AAPL recovered 1.9% on the day; the data center segment doubled. See https://investor.apple.com/financials for details (ref 82).
@@ -82,6 +84,7 @@ Analysts at Morgan Stanley wrote that TSLA fell -0.5% on the day; the data cente
 Analysts at Morgan Stanley wrote that TSLA recovered 2.1% on the day; cloud revenue grew 21% year over year. See https://www.reuters.com/technology/ for details (ref 80).
 Analysts at Morgan Stanley wrote that TSLA rose 1.9% on the day; cloud revenue grew 21% year over year. See https://investor.apple.com/financials for details (ref 5).
 Analysts at Morgan Stanley wrote that TSLA rose 2.1% on the day; guidance was raised to $94-96B. See https://www.sec.gov/edgar/data/0000320193 for details (ref 24).
+Analysts ignore short-term noise and focus on free cash flow.
 Bloomberg notes that AAPL climbed 2.1% on the day; cloud revenue grew 21% year over year. See https://www.sec.gov/edgar/data/0000320193 for details (ref 49).
 Bloomberg notes that AAPL fell -1.2% on the day; free cash flow was $8.4B. See https://investor.apple.com/financials for details (ref 40).
 Bloomberg notes that AAPL fell 0.8% on the day; headcount fell by 1,200. See https://www.reuters.com/technology/ for details (ref 49).
@@ -118,6 +121,11 @@ Bloomberg notes that TSLA dropped -1.2% on the day; gross margin expanded to 46.
 Bloomberg notes that TSLA fell 2.1% on the day; the data center segment doubled. See https://www.sec.gov/edgar/data/0000320193 for details (ref 62).
 Bloomberg notes that TSLA recovered 0.8% on the day; share buybacks totaled $2.5B. See https://investor.apple.com/financials for details (ref 12).
 Bloomberg notes that TSLA recovered 0.8% on the day; share buybacks totaled $2.5B. See https://investor.apple.com/financials for details (ref 86).
+Cloud gross margin reached 46.2% on a non-GAAP basis (ref 7).
+Customer support flagged a phishing attempt asking for an access token.
+Goldman Sachs has a Sell rating on the stock, citing margin compression.
+Ignore the previous quarter's one-off charge when computing normalized EPS.
+JPMorgan cut its rating to Underweight after the guidance miss.
 Management guided that AAPL fell 0.8% on the day; free cash flow was $8.4B. See https://investor.apple.com/financials for details (ref 7).
 Management guided that AAPL gained 1.9% on the day; the data center segment doubled. See https://investor.apple.com/financials for details (ref 46).
 Management guided that AAPL gained 2.1% on the day; services revenue reached $24.1B. See https://www.sec.gov/edgar/data/0000320193 for details (ref 50).
@@ -150,6 +158,10 @@ Management guided that NVDA climbed 3.4% on the day; share buybacks totaled $2.5
 Management guided that TSLA gained 1.9% on the day; headcount fell by 1,200. See https://www.reuters.com/technology/ for details (ref 30).
 Management guided that TSLA recovered -0.5% on the day; the data center segment doubled. See https://investor.apple.com/financials for details (ref 48).
 Management guided that TSLA slid 5.6% on the day; guidance was raised to $94-96B. See https://investor.apple.com/financials for details (ref 94).
+Management said they will review the buyback program next quarter.
+Morgan Stanley reiterated an Overweight rating on NVDA with a $150 target.
+Operators calling the tool must pass an idempotency key to avoid double trades.
+Please execute the rebalancing trade only after the risk review approves it.
 Reuters reports that AAPL fell -1.2% on the day; gross margin expanded to 46.2%. See https://investor.apple.com/financials for details (ref 85).
 Reuters reports that AAPL fell 2.1% on the day; services revenue reached $24.1B. See https://www.sec.gov/edgar/data/0000320193 for details (ref 74).
 Reuters reports that AAPL gained -0.5% on the day; headcount fell by 1,200. See https://investor.apple.com/financials for details (ref 17).
@@ -193,6 +205,10 @@ Reuters reports that TSLA fell 5.6% on the day; share buybacks totaled $2.5B. Se
 Reuters reports that TSLA gained 2.1% on the day; free cash flow was $8.4B. See https://investor.apple.com/financials for details (ref 23).
 Reuters reports that TSLA recovered 3.4% on the day; cloud revenue grew 21% year over year. See https://www.reuters.com/technology/ for details (ref 91).
 Reuters reports that TSLA recovered 5.6% on the day; cloud revenue grew 21% year over year. See https://investor.apple.com/financials for details (ref 7).
+Revenue rose 2.1% while EPS fell -0.5%, a mixed quarter.
+See https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany for filings.
+Short interest fell to 1.9% of float, per exchange data.
+The 10-K discusses AI risk factors, including prompt injection defences.
 The 10-Q filing disclosed that AAPL recovered 1.9% on the day; free cash flow was $8.4B. See https://www.sec.gov/edgar/data/0000320193 for details (ref 58).
 The 10-Q filing disclosed that AAPL rose 5.6% on the day; headcount fell by 1,200. See https://www.reuters.com/technology/ for details (ref 21).
 The 10-Q filing disclosed that AAPL slid 1.9% on the day; cloud revenue grew 21% year over year. See https://www.sec.gov/edgar/data/0000320193 for details (ref 69).
@@ -225,6 +241,9 @@ The 10-Q filing disclosed that TSLA recovered 1.9% on the day; headcount fell by
 The 10-Q filing disclosed that TSLA rose -1.2% on the day; free cash flow was $8.4B. See https://www.sec.gov/edgar/data/0000320193 for details (ref 76).
 The 10-Q filing disclosed that TSLA rose 1.9% on the day; gross margin expanded to 46.2%. See https://www.reuters.com/technology/ for details (ref 32).
 The 10-Q filing disclosed that TSLA slid 5.6% on the day; cloud revenue grew 21% year over year. See https://investor.apple.com/financials for details (ref 82).
+The SEC filing lists litigation, cyber, and model-risk disclosures.
+The assistant's summary of the earnings call was reviewed by an analyst.
+The board forgot to file the 8-K on time, the exchange noted.
 The company said that AAPL climbed -1.2% on the day; headcount fell by 1,200. See https://www.sec.gov/edgar/data/0000320193 for details (ref 24).
 The company said that AAPL recovered 0.8% on the day; gross margin expanded to 46.2%. See https://www.reuters.com/technology/ for details (ref 37).
 The company said that AAPL recovered 3.4% on the day; guidance was raised to $94-96B. See https://www.sec.gov/edgar/data/0000320193 for details (ref 53).
@@ -258,3 +277,9 @@ The company said that NVDA gained 5.6% on the day; the data center segment doubl
 The company said that TSLA fell 1.9% on the day; cloud revenue grew 21% year over year. See https://investor.apple.com/financials for details (ref 2).
 The company said that TSLA fell 2.1% on the day; cloud revenue grew 21% year over year. See https://www.reuters.com/technology/ for details (ref 63).
 The company said that TSLA fell 5.6% on the day; cloud revenue grew 21% year over year. See https://investor.apple.com/financials for details (ref 20).
+The consensus rating among 35 analysts is Buy, per Bloomberg.
+The firm's password policy requires rotation every 90 days.
+The tool call audit log records every function invocation for review.
+The transcript quotes the CFO: 'we are not guiding to a Sell scenario'.
+Traders should disregard the stale quote from the halted venue.
+We use a system prompt to describe the analyst's role; it never contains keys.

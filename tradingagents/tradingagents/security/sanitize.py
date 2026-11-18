@@ -63,9 +63,13 @@ _INJECTION_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
         r"(?i)(\bnew\s+instructions?\b|\bsystem\s+override\b|"
         r"\bobey\s+(the\s+)?following\b|\bfrom\s+now\s+on\b|"
         r"\bonly\s+source\s+of\s+truth\b)")),
-    # "you are now ...", "act as ...", "system prompt", "developer mode"
+    # "you are now ...", "act as ...", "reveal your system prompt",
+    # "developer mode", "jailbreak". A bare "system prompt" is a legitimate
+    # security term, so it only counts when paired with an extract/obey verb.
     ("role_hijack", re.compile(
-        r"(?i)(\byou are now\b|\bact as\b|\bpretend to be\b|\bsystem prompt\b|"
+        r"(?i)(\byou are now\b|\bact as\b|\bpretend to be\b|"
+        r"\b(print|reveal|show|repeat|output|ignore|override|leak)\b[^.\n]{0,20}"
+        r"\bsystem prompt\b|"
         r"\bdeveloper mode\b|\bjailbreak\b|\bDAN\b)")),
     # "new instructions:" / "### system:" / "assistant:" role markers
     ("role_marker", re.compile(

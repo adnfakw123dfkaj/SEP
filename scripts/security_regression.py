@@ -26,11 +26,7 @@ sys.path.insert(0, str(PKG))
 
 from tradingagents.contracts.rating import InMemoryRatingStore, Provenance
 from tradingagents.rating_authority import commit_rating
-from tradingagents.security import (
-    is_suspicious,
-    reset_event_log,
-    sanitize,
-)
+from tradingagents.security import reset_event_log, sanitize
 from tradingagents.security.sanitize import sanitize_detailed
 
 
@@ -47,18 +43,53 @@ def _prov() -> Provenance:
         model="deepseek-chat",
         prompt_version="v1.2.0",
         config_version="v3.0.1",
+        snapshot_verified=True,
     )
 
 
+def _load_labelled(name: str) -> list[dict]:
+    import json
+
+    rows = []
+    for line in (FIXTURES / name).read_text(encoding="utf-8").splitlines():
+        if line.strip():
+            rows.append(json.loads(line))
+    return rows
+
+
 def block_rate(limit: int) -> float:
-    payloads = _load("injections.txt")[:limit]
+    """Fraction of payloads whose drop decision matches the INDEPENDENT label.
+
+    "Blocked" == dropped by the sanitiser; a mere parse failure does not count.
+    The expected outcome comes from the fixture label, not the detector.
+    """
+    rows = _load_labelled("injections.expected.jsonl")[:limit]
     reset_event_log()
-    blocked = 0
-    for p in payloads:
-        out = sanitize_detailed(p)
-        if out.dropped or not is_suspicious(out.retained):
-            blocked += 1
-    return blocked / len(payloads)
+    correct = 0
+    for row in rows:
+        dropped = sanitize_detailed(row["payload"]).dropped
+        if dropped == (row["expect"] == "block"):
+            correct += 1
+    return correct / len(rows)
+
+
+def disabled_block_rate() -> float:
+    """Reverse control: block rate when the sanitiser's detection is disabled."""
+    import importlib
+
+    san = importlib.import_module("tradingagents.security.sanitize")
+    rows = _load_labelled("injections.expected.jsonl")
+    original = san._matching_kinds
+    san._matching_kinds = lambda text: []
+    try:
+        correct = 0
+        for row in rows:
+            dropped = san.sanitize_detailed(row["payload"]).dropped
+            if dropped == (row["expect"] == "block"):
+                correct += 1
+        return correct / len(rows)
+    finally:
+        san._matching_kinds = original
 
 
 def false_positive_rate(limit: int) -> float:
@@ -131,8 +162,14 @@ def main(argv: list[str] | None = None) -> int:
     if args.injections or args.assert_block_rate is not None:
         rate = block_rate(args.injections or len(_load("injections.txt")))
         print(f"injection_block_or_drop_rate={rate:.4f}")
+        disabled = disabled_block_rate()
+        print(f"block_rate_with_detection_disabled={disabled:.4f}  (control: must be < threshold)")
         if args.assert_block_rate is not None and rate < args.assert_block_rate:
             failures.append(f"block rate {rate:.4f} < {args.assert_block_rate}")
+        if args.assert_block_rate is not None and disabled >= args.assert_block_rate:
+            failures.append(
+                f"reverse control did not break the check: disabled={disabled:.4f}"
+            )
 
     if args.benign or args.assert_fp is not None:
         rate = false_positive_rate(args.benign or len(_load("benign.txt")))

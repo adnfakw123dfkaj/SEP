@@ -40,6 +40,7 @@ __all__ = [
     "redact",
     "RedactingFilter",
     "install_log_filter",
+    "register_handler",
     "safe_prompt_payload",
     "scrub_manifest",
     "contains_secret",
@@ -202,27 +203,95 @@ class RedactingFilter(logging.Filter):
             record.msg = _redact_text(message)
             record.args = ()
         if record.exc_info:
+            # Build the full traceback text once, including the exception type
+            # and message, then redact it. The handler formats from exc_text when
+            # present, so the type/traceback shape is preserved but the secret is
+            # gone. Clearing exc_info stops a handler from re-formatting the raw
+            # traceback (which would print the secret from the frame).
             exc = record.exc_info[1]
             if exc is not None:
-                record.exc_text = _redact_text(str(exc))
+                import traceback
+
+                formatted = "".join(
+                    traceback.format_exception(record.exc_info[0], exc,
+                                               record.exc_info[2])
+                )
+                record.exc_text = _redact_text(formatted)
+                record.exc_info = None
         elif record.exc_text:
             record.exc_text = _redact_text(record.exc_text)
         return True
 
 
-def install_log_filter(logger: logging.Logger | None = None) -> RedactingFilter:
-    """Attach a :class:`RedactingFilter` to ``logger`` (root by default).
+def register_handler(handler: logging.Handler) -> logging.Handler:
+    """Install a :class:`RedactingFilter` on a single ``handler``.
 
-    Returns the filter so callers/tests can remove it. Idempotent: returns the
-    existing filter if one is already installed on that logger.
+    Handler-level is the reliable place to redact: a filter attached to a logger
+    only sees records *emitted on that logger*, not records that propagate *up*
+    to it from child loggers. Filters attached to a handler run for every record
+    that handler processes, whichever logger produced it and wherever it
+    propagated from. So installing on the handlers that actually write output is
+    what makes child-logger and directly-addressed handler output safe.
+
+    Idempotent per handler: returns the handler, with exactly one redacting
+    filter attached (an existing one is reused).
+
+    Returns ``handler`` for chaining.
+    """
+    for existing in handler.filters:
+        if isinstance(existing, RedactingFilter):
+            return handler
+    handler.addFilter(RedactingFilter())
+    return handler
+
+
+def install_log_filter(
+    logger: logging.Logger | None = None,
+    *,
+    include_descendants: bool = True,
+) -> list[logging.Handler]:
+    """Install redaction on the handlers under ``logger`` (root by default).
+
+    This is the explicit, non-monkeypatching install path:
+
+    - It attaches a :class:`RedactingFilter` to **every existing handler** on
+      ``logger`` and, by default, on every logger in its subtree, so a record
+      emitted on a child logger is redacted at whichever handler ultimately
+      writes it (including after propagation to the root handlers).
+    - It returns the list of handlers it installed on, so callers can verify or
+      remove the filter.
+
+    What this function deliberately does **not** do (composition-root
+    responsibility — Part 1, not modified here):
+
+    - It does not touch ``logging.Handler`` or ``Logger.addHandler`` globally.
+    - Handlers added **after** this call are not automatically covered; the
+      composition root should call :func:`register_handler` on any handler it
+      adds later, or re-call :func:`install_log_filter`.
+    - A third-party logger with ``propagate = False`` will not reach the root
+      handlers; the composition root must either call :func:`register_handler`
+      on that logger's own handlers or set ``propagate = True``.
+
+    Prefer calling this once at process start (CLI entry) after logging is
+    configured, and :func:`register_handler` for any handler created later.
     """
     target = logger or logging.getLogger()
-    for existing in target.filters:
-        if isinstance(existing, RedactingFilter):
-            return existing
-    filt = RedactingFilter()
-    target.addFilter(filt)
-    return filt
+    handlers: list[logging.Handler] = list(target.handlers)
+    if include_descendants:
+        # Walk the logging tree: each logger's own handlers.
+        for existing_logger in logging.Logger.manager.loggerDict.values():
+            if not isinstance(existing_logger, logging.Logger):
+                continue  # PlaceHolder
+            handlers.extend(existing_logger.handlers)
+    installed: list[logging.Handler] = []
+    seen: set[int] = set()
+    for handler in handlers:
+        if id(handler) in seen:
+            continue
+        seen.add(id(handler))
+        register_handler(handler)
+        installed.append(handler)
+    return installed
 
 
 def safe_prompt_payload(messages: Any) -> Any:

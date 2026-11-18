@@ -127,11 +127,64 @@ def resolve_rating(candidate: object) -> str:
     return rating
 
 
-def _normalise_existing(record: dict | None) -> str | None:
+_RECORD_SOURCE_FIELDS = (
+    "snapshot_id",
+    "manifest_id",
+    "model",
+    "prompt_version",
+    "config_version",
+)
+
+
+def _provenance_from_record(record: dict) -> Provenance | None:
+    """Rebuild the :class:`Provenance` a stored record came from, or ``None``.
+
+    The record persists every source field needed to reconstruct provenance, so
+    a retry can return the *originally committed* source rather than the
+    request's. A record missing any source field cannot be reconstructed.
+    """
     if not record:
         return None
+    if any(not record.get(field) for field in _RECORD_SOURCE_FIELDS):
+        return None
+    return Provenance(
+        snapshot_id=record["snapshot_id"],
+        manifest_id=record["manifest_id"],
+        model=record["model"],
+        prompt_version=record["prompt_version"],
+        config_version=record["config_version"],
+        # The flag is not part of source identity; a stored record is by
+        # definition one we accepted (verified) when committed.
+        snapshot_verified=True,
+    )
+
+
+def _classify_existing(record: dict | None) -> tuple[str, RatingResult | None]:
+    """Classify an existing record for re-commit handling.
+
+    Returns ``("absent", None)`` when nothing is stored, or one of
+    ``("intact", result)`` / ``("corrupt", result)`` handling the stored rating
+    and provenance precisely.
+    """
+    if not record:
+        return "absent", None
     value = record.get("rating")
-    return value if value in ALLOWED_RATINGS else None
+    if value not in ALLOWED_RATINGS:
+        # Out-of-set rating is specifically a persisted-out-of-set corruption.
+        return "corrupt", coerce_review(
+            ReasonCode.PERSISTED_OUT_OF_SET,
+            provenance=_provenance_from_record(record),
+        )
+    if _provenance_from_record(record) is None:
+        # Missing/unreadable source fields: corrupt, but not "rating out of set".
+        return "corrupt", RatingResult(
+            rating=value,
+            reason_codes=(ReasonCode.CORRUPT_RECORD,),
+            provenance=None,
+            review_required=(value == REVIEW),
+            decision_id=record.get("decision_id"),
+        )
+    return "intact", None
 
 
 def commit_rating(
@@ -150,33 +203,63 @@ def commit_rating(
         store: an object with ``read(decision_id)`` and ``write(decision_id,
             record)`` (see :data:`tradingagents.contracts.rating.Store`). The
             authority re-validates before writing and never trusts the store.
+            **Serial idempotency only:** atomicity under concurrent writers is
+            the store's responsibility (Part 3); this function's read-then-write
+            is safe only when a single writer serialises per ``decision_id``.
         decision_id: a stable, non-empty id for this decision. It keys idempotency
             and prevents cross-decision collisions. A blank id is a programming
             error and is refused (never defaulted to a shared key).
 
     Returns:
-        A :class:`RatingResult`. On any failure the ``rating`` is ``REVIEW``,
-        ``review_required`` is ``True``, ``reason_codes`` explains why, and
-        nothing is written. On success the value is tradeable, is in the allowed
-        set, carries the provenance, and exactly one record exists for
-        ``decision_id``.
+        A :class:`RatingResult`. On any failure the ``rating`` is ``REVIEW`` or
+        blocked, ``review_required`` is set, ``reason_codes`` explains why, and
+        nothing is written.
+
+    Re-commit policy (an existing record for ``decision_id``):
+
+    - same rating **and** same source fingerprint -> returns the **originally
+      persisted provenance** with ``reason_codes == ("ok",)`` (an idempotent
+      retry, not a new claim).
+    - same/different rating but a **different** source -> ``review_required``
+      ``ReasonCode.CONFLICT``, nothing written.
+    - different rating with the same source -> ``CONFLICT``, nothing written.
+    - corrupt stored record -> ``PERSISTED_OUT_OF_SET`` (rating out of set) or
+      ``CORRUPT_RECORD`` (other corruption), nothing overwritten.
     """
     if not isinstance(decision_id, str) or not decision_id.strip():
         # Refuse an unusable key rather than letting decisions share one.
         return coerce_review(ReasonCode.INVALID_PROVENANCE, provenance=provenance)
 
-    # Idempotency: an existing commit for this id wins, unless it conflicts.
-    existing = _normalise_existing(store.read(decision_id))
-    if existing is not None:
+    record = store.read(decision_id)
+    state, corrupt_result = _classify_existing(record)
+    if state == "corrupt":
+        assert corrupt_result is not None
+        return corrupt_result
+    if state == "intact":
+        assert record is not None
+        stored_rating = record["rating"]
+        stored_prov = _provenance_from_record(record)
+        assert stored_prov is not None
+        request_fp = provenance.fingerprint() if provenance is not None else None
+        # Same rating AND same source -> the original commit, returned as-is.
+        if stored_rating == resolve_rating(candidate) and request_fp == stored_prov.fingerprint():
+            return RatingResult(
+                rating=stored_rating,
+                reason_codes=(ReasonCode.OK,),
+                provenance=stored_prov,  # the ORIGINAL persisted source
+                review_required=(stored_rating == REVIEW),
+                decision_id=decision_id,
+            )
+        # Anything else (different rating or different source) is a conflict.
         return RatingResult(
-            rating=existing,
-            reason_codes=(ReasonCode.OK,),
-            provenance=provenance,
-            review_required=(existing == REVIEW),
+            rating=REVIEW,
+            reason_codes=(ReasonCode.CONFLICT,),
+            provenance=stored_prov,
+            review_required=True,
             decision_id=decision_id,
         )
 
-    # Provenance gate: missing/invalid/unverified -> REVIEW, no write.
+    # No stored record: the normal commit path.
     check = validate_provenance(provenance)
     if not check.ok:
         return coerce_review(check.reason, provenance=provenance)
@@ -215,12 +298,19 @@ def read_committed_rating(store: Store, *, decision_id: str) -> RatingResult:
     with :data:`ReasonCode.PERSISTED_OUT_OF_SET` — it is never returned as a tier.
     """
     record = store.read(decision_id)
-    value = record.get("rating") if record else None
-    if value in ALLOWED_RATINGS:
-        return RatingResult(
-            rating=value,
-            reason_codes=(ReasonCode.OK,),
-            review_required=(value == REVIEW),
-            decision_id=decision_id,
-        )
-    return coerce_review(ReasonCode.PERSISTED_OUT_OF_SET)
+    if record is None:
+        return coerce_review(ReasonCode.CORRUPT_RECORD)  # nothing to read back
+    state, corrupt_result = _classify_existing(record)
+    if state == "corrupt":
+        assert corrupt_result is not None
+        # Out-of-set rating -> PERSISTED_OUT_OF_SET; other damage -> CORRUPT_RECORD.
+        if ReasonCode.PERSISTED_OUT_OF_SET in corrupt_result.reason_codes:
+            return corrupt_result
+        return coerce_review(ReasonCode.CORRUPT_RECORD)
+    return RatingResult(
+        rating=record["rating"],
+        reason_codes=(ReasonCode.OK,),
+        provenance=_provenance_from_record(record),
+        review_required=(record["rating"] == REVIEW),
+        decision_id=decision_id,
+    )

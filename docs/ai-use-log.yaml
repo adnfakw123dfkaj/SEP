@@ -110,3 +110,19 @@ entries:
       - tradingagents/tests/security/test_secret_redaction.py
       - scripts/security_regression.py
       - scripts/generate_security_fixtures.py
+
+  - change_id: "part5-security-rating-acceptance-2"
+    date: "2026-11-18"
+    agent_session: "opencode-part5-security-rating"
+    summary: "Part 5 acceptance-round-2 fixes from independent review: handler-level log redaction install (register_handler/install_log_filter, no global monkeypatch) with child-propagation tests; re-commit conflict/corrupt-record semantics returning the persisted provenance and never defaulting snapshot_verified to true; injection block-rate now graded against independent fixture labels with a reverse control (detection disabled must fail) and diverse benign lines; output refs fail closed when references are missing; ADR added under docs/architecture/adr/; full sanitized session exported. Human (陈妍妍) approved the revised scenarios; approval precedes implementation. No Part 1/3 code changed; shared CI untouched."
+    files_changed:
+      - tradingagents/tradingagents/security/redaction.py
+      - tradingagents/tradingagents/security/sanitize.py
+      - tradingagents/tradingagents/security/validate_output.py
+      - tradingagents/tradingagents/rating_authority.py
+      - tradingagents/tradingagents/contracts/rating.py
+      - tradingagents/tests/security/test_secret_redaction.py
+      - tradingagents/tests/security/test_prompt_injection.py
+      - tradingagents/tests/req/test_rating_invariant.py
+      - scripts/generate_security_fixtures.py
+      - scripts/security_regression.py

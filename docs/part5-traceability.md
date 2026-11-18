@@ -61,17 +61,30 @@ python scripts/generate_security_fixtures.py   # regenerate fixtures (determinis
 ## Unverified / not done
 
 - **No gitleaks step exists in any workflow** (`.github/workflows/*`): INV004-03
-  is not run in CI. Run locally in isolation, `gitleaks` reported **2 findings,
-  both in pre-existing test files not touched by this change**
-  (`tradingagents/tests/test_alpha_vantage_hardening.py`,
-  `tradingagents/tests/test_fred.py`), and **0 findings in the new Part 5
-  files**. The requirement's "0 findings" is not met at repo level, independently
-  of this change.
+  is not run in CI and this change does not modify shared CI.
+  - **Repo-level scan** (`gitleaks detect --no-git --source .`): **2 findings**,
+    both in pre-existing test files this change did not touch —
+    `tradingagents/tests/test_alpha_vantage_hardening.py:165` and
+    `tradingagents/tests/test_fred.py:261`.
+  - **This change's new files**: **0 findings**.
+  - **Triage of the two existing findings:** both are **synthetic test keys**
+    (false positives), not real credentials:
+    - `test_alpha_vantage_hardening.py:165` — `AVKEY1234567890XYZ`, a fake Alpha
+      Vantage key used to assert the key is scrubbed from HTTP errors.
+    - `test_fred.py:261` — `abcdef0123456789abcdef0123456789`, a fake 64-hex
+      FRED-style key used to assert the key is kept out of errors.
+    - Rule: `generic-api-key`. Judgement: test data in test files; the repo's G2
+      static check already skips `tests/`. Not suppressed/expanded here; the
+      "0 findings" requirement is **not** met at repo level, independently of
+      this change.
 - **pyright excludes `tradingagents/`** (`pyrightconfig.json`), so the new Part 5
   modules are not type-checked by CI. Run explicitly in isolation, pyright on the
   new modules reported 0 errors (supplementary, not CI-enforced).
 - Wiring into `graph/trading_graph.py`, analysts, and Part 3 records/manifest is
   documented in `docs/part5-integration.md` but **not** performed (out of scope
   for this Part / requires owner review).
+- **Concurrency:** only serial idempotency is implemented/tested. Atomic
+  concurrent commit is delegated to the Part 3 store contract (documented), not
+  verified here.
 - Integration-marked live cases (none remain in Part 5 after moving the rate
-  tests offline).
+  tests offline). Results are for fixed fixtures, not a live model.
