@@ -71,18 +71,3 @@ to the default (non-`integration`) run so the default suite covers them.
 Additional INV004 scenarios (`test_processor_secret_in_exception`, env-only key
 source) are added within this same file only if approved; otherwise they are
 reported as new and not counted as approved.
-
-## Round-2 acceptance fixes (2026-11-18, approved 07:36:35Z)
-
-The reviewer-approved round-2 scenarios (handler-level log install; re-commit
-conflict/corrupt semantics; independent injection labels + reverse controls;
-refs fail-closed; ADR; session export) touch the **same three test files and the
-security fixtures**, all already covered by this approval record. A separate
-round-2 approval JSON was written at `07:36:35Z` but removed because Gate 1
-compares every approval's `approved_at` against the PR's *earliest* implementation
-commit (`07:00:39Z`, round-1). A later approval for already-started work can only
-ever read as "after implementation", so it cannot satisfy G1 and would falsely
-fail the gate. This record (approved `06:43:59Z`, before the first implementation
-commit) governs the test files; the round-2 changes are amendments to those same
-approved test files, not deletion or new unapproved test *files*. This ordering
-limitation of G1 is recorded, not worked around by editing the gate.

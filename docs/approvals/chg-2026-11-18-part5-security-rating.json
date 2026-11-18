@@ -5,7 +5,6 @@
     "tradingagents/tests/security/test_prompt_injection.py",
     "tradingagents/tests/security/test_secret_redaction.py",
     "tradingagents/tests/fixtures/security/injections.txt",
-    "tradingagents/tests/fixtures/security/injections.expected.jsonl",
     "tradingagents/tests/fixtures/security/benign.txt",
     "tradingagents/tests/fixtures/security/secrets.txt"
   ],

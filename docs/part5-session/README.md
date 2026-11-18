@@ -4,20 +4,29 @@
 
 - **Exported file:** `docs/part5-session/session-export.json`
   (OpenCode `opencode export <sessionID>`, session
-  `ses_e12a35d3effeg4ZwlWw1sb9ANP`, 330 messages, full message text retained).
+  `ses_e12a35d3effeg4ZwlWw1sb9ANP`, **330 messages**, full message text, message
+  order, ids and all **347 tool-call parts** retained).
 - **How it was produced:** `opencode export ses_e12a35d3effeg4ZwlWw1sb9ANP`
-  (no `--sanitize`, because that redacts all message text and defeats review).
-- **Secret handling:** before committing, the export was scanned for real
-  credentials. No real environment key value appears in it. Only **synthetic test
-  keys** (e.g. `sk-synthetic…`, `AKIAIOSFODNN7EXAMPLE`, `ghp_synthetic…`) and
-  the fake keys created for the redaction tests were present; those literal
-  strings were replaced with `[synthetic-test-key-redacted]`. All human
-  instructions and assistant reasoning text are otherwise unchanged.
-- **Controlled original (not committed):** the unredacted raw export is kept
-  locally at `/tmp/opencode/session_full.json` (and OpenCode's own store
-  `~/.local/share/opencode/opencode.db`). It is not placed in the repo because it
-  contains synthetic key literals; the committed copy differs only in those
-  literals.
+  once (no `--sanitize`, because that redacts all message text and defeats
+  review). The committed copy is a byte-faithful derivative of that single
+  export: only synthetic-key literals were replaced; nothing was regenerated or
+  reordered.
+- **Persistent backup of the complete original (outside /tmp and outside the
+  repo):** `~/group/SEP-work-part5-session-backup/session-original-raw.json`
+  (unredacted export, 330 messages) and
+  `~/group/SEP-work-part5-session-backup/session-redacted.json`. The OpenCode
+  store (`~/.local/share/opencode/opencode.db`, `storage/`) is the ultimate
+  source of record.
+- **Redaction applied to the committed copy (documented):**
+  Before committing, the export was scanned for real credentials. **No real
+  environment key value appears** in it. Only **synthetic test keys** were
+  present and were replaced with `[synthetic-test-key-redacted]`:
+  `sk-synthetic…`, `sk-proj-synthetic…`, `sk-ant-synthetic…`,
+  `sk-envonly…`, `ghp_synthetic…`, the AWS public example `AKIAIOSFODNN7EXAMPLE`,
+  and the test-only `syntheticchildkey…`/`synthetichandlerkey…`/
+  `syntheticexceptionkey…`. Message text, approvals, timestamps, order and tool
+  calls are otherwise unchanged (verified: same 330 ids in the same order, same
+  347 tool parts; only 3 messages differ, solely by these token literals).
 
 To re-export from a machine with the session:
 ```
@@ -25,6 +34,7 @@ opencode export ses_e12a35d3effeg4ZwlWw1sb9ANP > /tmp/session_full.json
 # then redact synthetic key literals before committing, or use --sanitize
 # (which also redacts all message text — not suitable for review).
 ```
+
 
 ## Human-intervention index
 
