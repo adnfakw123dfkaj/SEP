@@ -137,3 +137,10 @@ entries:
     summary: "Fix Gate 2 dependencies check failing in CI: it imported 'tradingagents', which from the repo root resolves to the project directory as a namespace package and gets cached, shadowing the real package. check_dependencies now inspects tradingagents/tradingagents/__init__.py on disk (parses, declares __version__), cwd- and import-cache-independent. Human reviewed."
     files_changed:
       - scripts/gates/run_static_checks.py
+
+  - change_id: "g1-gate-infra-test-exemption"
+    date: "2026-11-18"
+    agent_session: "g1-approval-coverage-fix"
+    summary: "Fix Gate 1 false block: a gate-infrastructure test (tests/gates/) was required to be listed in a test-approval record even though it is gate tooling, not an application test. test_changed now excludes paths under _GATE_INFRA_PREFIXES, matching how scripts/gates/ is excluded from code_changed. App tests still require approval. Human reviewed."
+    files_changed:
+      - scripts/gates/check_test_approval.py

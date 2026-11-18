@@ -97,3 +97,29 @@ def test_app_code_plus_gate_infra_still_requires_approval():
     )
     assert result.applicable is True
     assert not result.passed
+
+
+def test_gate_infrastructure_test_does_not_need_approval():
+    # App code changed (needs approval) plus a gate-infra test (tests/gates/).
+    # The approval must cover the app tests but NOT the gate-infra test.
+    impl = "2026-11-18T16:00:00+08:00"
+    approval = {"change_id": "c", "tests": ["tradingagents/tests/req/test_x.py"],
+                "approved_by": "a", "approved_at": "2026-11-18T15:00:00+08:00"}
+    result = g1.check(
+        ["tradingagents/tradingagents/x.py",
+         "tests/gates/test_static_checks.py",
+         "tradingagents/tests/req/test_x.py"],
+        [approval], impl,
+    )
+    assert result.passed
+
+
+def test_app_test_not_covered_still_blocks():
+    impl = "2026-11-18T16:00:00+08:00"
+    approval = {"change_id": "c", "tests": [], "approved_by": "a",
+                "approved_at": "2026-11-18T15:00:00+08:00"}
+    result = g1.check(
+        ["tradingagents/tradingagents/x.py", "tradingagents/tests/req/test_x.py"],
+        [approval], impl,
+    )
+    assert not result.passed
