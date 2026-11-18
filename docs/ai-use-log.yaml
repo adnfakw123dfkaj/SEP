@@ -39,6 +39,31 @@ entries:
       - scripts/gates/check_schema.py
       - .github/workflows/gates.yml
 
+  - change_id: "part6-cost-control"
+    date: "2026-11-17"
+    agent_session: "opencode-part6"
+    summary: "Implemented Part 6 cost/performance library, callback capture, offline CLI scripts, and 81 tests. Human reviewed the test plan, approved implementation, and will review the gate results."
+    files_changed:
+      - tradingagents/tradingagents/contracts/__init__.py
+      - tradingagents/tradingagents/contracts/cost.py
+      - tradingagents/tradingagents/contracts/llm_event.py
+      - tradingagents/tradingagents/cost/__init__.py
+      - tradingagents/tradingagents/cost/agent_context.py
+      - tradingagents/tradingagents/cost/audit.py
+      - tradingagents/tradingagents/cost/benchmark.py
+      - tradingagents/tradingagents/cost/budget.py
+      - tradingagents/tradingagents/cost/callback.py
+      - tradingagents/tradingagents/cost/cli.py
+      - tradingagents/tradingagents/cost/enforcement.py
+      - tradingagents/tradingagents/cost/estimator.py
+      - tradingagents/tradingagents/cost/monitor.py
+      - tradingagents/tradingagents/cost/pricing.py
+      - tradingagents/tradingagents/cost/report.py
+      - tradingagents/tradingagents/cost/router.py
+      - tradingagents/tradingagents/cost/runner.py
+      - tradingagents/scripts/bench_latency.py
+      - tradingagents/scripts/smoke_cost_tracking.py
+      - tradingagents/scripts/token_audit.py
   - change_id: "gate-ci-robustness"
     date: "2026-11-17"
     agent_session: "gate-ci-audit"
