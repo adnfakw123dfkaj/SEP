@@ -51,13 +51,15 @@ def _provenance(**overrides):
 
 
 def _record_source(prov):
-    """The source fields as they are persisted in a store record."""
+    """The source fields as they are persisted in a store record (incl. the
+    persisted verification flag)."""
     return {
         "snapshot_id": prov.snapshot_id,
         "manifest_id": prov.manifest_id,
         "model": prov.model,
         "prompt_version": prov.prompt_version,
         "config_version": prov.config_version,
+        "snapshot_verified": True,
     }
 
 
@@ -268,23 +270,122 @@ def test_missing_source_retry_is_not_success():
     assert store.read("m") == before
 
 
+def _assert_fail_closed(result, store, decision_id, reason=None):
+    """A refused outcome must be REVIEW, require review, be non-tradeable, and
+    not have written anything for ``decision_id``."""
+    assert result.rating == RATING_REVIEW
+    assert result.review_required is True
+    assert result.is_tradeable is False
+    if reason is not None:
+        assert reason in result.reason_codes, result.reason_codes
+    # The stored record (if any) is not created/overwritten by the refusal.
+    return store.read(decision_id)
+
+
 def test_corrupt_record_is_classified_accurately():
-    """Corrupt records are refused with a cause-specific reason, not overwritten."""
+    """Corrupt records fail closed: REVIEW / review_required / non-tradeable,
+    with an accurate reason, and are never overwritten."""
     store = InMemoryRatingStore()
     prov = _provenance()
-    # (a) out-of-set stored rating -> PERSISTED_OUT_OF_SET
+    # (a) out-of-set stored rating -> PERSISTED_OUT_OF_SET, source intact.
     store.write("bad-rating", {"rating": "Moon", "decision_id": "bad-rating",
                                **_record_source(prov)})
+    before = dict(store.read("bad-rating"))
     r = commit_rating("Buy", prov, store, decision_id="bad-rating")
-    assert ReasonCode.PERSISTED_OUT_OF_SET in r.reason_codes
-    assert store.read("bad-rating")["rating"] == "Moon"
-    # (b) missing source fields (not an out-of-set rating) -> CORRUPT_RECORD
+    stored = _assert_fail_closed(r, store, "bad-rating", ReasonCode.PERSISTED_OUT_OF_SET)
+    assert stored == before  # not overwritten
+
+    # (b) existing **Buy** record whose SOURCE FIELDS ARE MISSING must still be
+    # REVIEW/non-tradeable (this was the defect: it used to surface Buy).
     store.write("bad-source", {"rating": "Buy", "decision_id": "bad-source"})
+    before = dict(store.read("bad-source"))
     r = commit_rating("Buy", prov, store, decision_id="bad-source")
-    assert ReasonCode.CORRUPT_RECORD in r.reason_codes
+    stored = _assert_fail_closed(r, store, "bad-source", ReasonCode.CORRUPT_RECORD)
     assert ReasonCode.PERSISTED_OUT_OF_SET not in r.reason_codes
-    # (c) read-back also classifies accurately.
-    assert ReasonCode.PERSISTED_OUT_OF_SET in read_committed_rating(
-        store, decision_id="bad-rating").reason_codes
-    assert ReasonCode.CORRUPT_RECORD in read_committed_rating(
-        store, decision_id="bad-source").reason_codes
+    assert store.read("bad-source")["rating"] == "Buy"  # untouched
+    assert stored == before
+
+    # (c) read-back classifies and fails closed the same way.
+    back_a = read_committed_rating(store, decision_id="bad-rating")
+    assert back_a.rating == RATING_REVIEW and back_a.is_tradeable is False
+    assert ReasonCode.PERSISTED_OUT_OF_SET in back_a.reason_codes
+    back_b = read_committed_rating(store, decision_id="bad-source")
+    assert back_b.rating == RATING_REVIEW and back_b.is_tradeable is False
+    assert ReasonCode.CORRUPT_RECORD in back_b.reason_codes
+
+
+def test_corrupt_source_eventually_rejected_on_retry_and_readback():
+    """A stored record whose source id/version format is invalid -> rejected on
+    both read-back and retry; REVIEW / review_required / non-tradeable."""
+    prov = _provenance()
+    store = InMemoryRatingStore()
+    bad = _record_source(prov)
+    bad["snapshot_id"] = "not-a-snapshot-id"  # malformed id
+    store.write("fmt", {"rating": "Buy", "decision_id": "fmt", **bad})
+    before = dict(store.read("fmt"))
+
+    back = read_committed_rating(store, decision_id="fmt")
+    assert back.rating == RATING_REVIEW and back.review_required is True
+    assert back.is_tradeable is False
+
+    retry = commit_rating("Buy", prov, store, decision_id="fmt")
+    assert retry.rating == RATING_REVIEW and retry.review_required is True
+    assert retry.is_tradeable is False
+    assert ReasonCode.CORRUPT_RECORD in retry.reason_codes
+    assert store.read("fmt") == before  # not overwritten
+
+
+def test_unverified_same_source_retry_is_rejected():
+    """A retry whose REQUEST provenance is snapshot_verified=False is rejected
+    even when its fingerprint matches the stored source."""
+    store = InMemoryRatingStore()
+    good = _provenance()
+    commit_rating("Buy", good, store, decision_id="u")
+    before = dict(store.read("u"))
+
+    # Same source fields, but the request did not verify the snapshot.
+    unverified = _provenance(snapshot_verified=False)
+    result = commit_rating("Buy", unverified, store, decision_id="u")
+    assert result.rating == RATING_REVIEW and result.review_required is True
+    assert result.is_tradeable is False
+    assert ReasonCode.UNVERIFIED_SNAPSHOT in result.reason_codes
+    assert store.read("u") == before  # not rewritten
+
+
+def test_decision_id_mismatch_is_rejected():
+    """A stored record whose decision_id disagrees with the queried id is
+    corrupt -> REVIEW, non-tradeable, not overwritten."""
+    prov = _provenance()
+    store = InMemoryRatingStore()
+    store.write("q", {"rating": "Buy", "decision_id": "different", **_record_source(prov)})
+    before = dict(store.read("q"))
+
+    result = commit_rating("Buy", prov, store, decision_id="q")
+    assert result.rating == RATING_REVIEW and result.review_required is True
+    assert result.is_tradeable is False
+    assert ReasonCode.CORRUPT_RECORD in result.reason_codes
+    assert store.read("q") == before
+
+
+def test_valid_commit_and_valid_retry_still_work():
+    """Positive: a legitimate commit is tradeable and written; an identical
+    *valid* retry returns the stored source without rewriting."""
+    store = InMemoryRatingStore()
+    prov = _provenance()
+
+    first = commit_rating("**Rating**: Buy", prov, store, decision_id="ok")
+    assert first.rating == "Buy"
+    assert first.review_required is False
+    assert first.is_tradeable is True
+    written = dict(store.read("ok"))
+    assert written["rating"] == "Buy"
+    assert written["snapshot_verified"] is True
+
+    retry = commit_rating("**Rating**: Buy", _provenance(), store, decision_id="ok")
+    assert retry.rating == "Buy"
+    assert retry.review_required is False
+    assert retry.is_tradeable is True
+    assert retry.reason_codes == (ReasonCode.OK,)
+    assert retry.provenance is not None
+    assert retry.provenance.fingerprint() == prov.fingerprint()
+    assert store.read("ok") == written  # not rewritten

@@ -38,18 +38,30 @@ contract without Part 5 reaching into their code.
     snapshot against the real market data source and setting
     `snapshot_verified=True` only then. Part 5 cannot re-verify the underlying
     market data.
-- **Re-commit policy (serial idempotency):**
+- **Re-commit policy (serial idempotency):** the **request provenance is
+  validated first**; an unverified/invalid request is refused even if its
+  fingerprint matches a stored record. Then:
   - same rating **and** same source fingerprint -> return the **originally
     persisted provenance**, `reason_codes == ("ok",)`.
   - different rating, or different source -> `CONFLICT` (`review_required`),
     nothing written.
-  - corrupt stored record -> `PERSISTED_OUT_OF_SET` (rating out of the set) or
-    `CORRUPT_RECORD` (other damage such as missing source fields), nothing
-    overwritten. The two are kept distinct so the cause is accurate.
+  - **any corrupt stored record fails closed**: `rating == REVIEW`,
+    `review_required is True`, `is_tradeable is False`, with an accurate reason.
+    `PERSISTED_OUT_OF_SET` for an out-of-set rating; `CORRUPT_RECORD` for other
+    damage (missing/malformed source, unverified flag, or `decision_id` not
+    matching the queried id). Nothing is overwritten. A corrupt **Buy** record is
+    never surfaced as a tradeable Buy.
   - blank `decision_id` -> refused (no shared default key).
-- **Persistence content:** each record stores rating + the full source fields
-  (`snapshot_id, manifest_id, model, prompt_version, config_version`) so a retry
-  can reconstruct provenance and a corruption check can be specific.
+- **Persistence content & verification boundary:** each record stores rating +
+  the full source fields (`snapshot_id, manifest_id, model, prompt_version,
+  config_version`) **and the persisted `snapshot_verified` flag**. On read/retry
+  the source is reconstructed **only if** all fields are present, they pass the
+  same structural validation as a live commit, **and** the record's
+  `snapshot_verified is True`. A record's existence alone never proves its
+  source was verified. Who verifies: Part 1 (the trusted source layer) sets
+  `snapshot_verified=True` on commit after checking the real market data; Part 5
+  persists that flag, re-validates structure, and refuses anything it cannot
+  trust — it does not itself re-verify the market data.
 - **Concurrency:** only *serial* idempotency is promised here. Atomicity under
   concurrent writers is the store's responsibility (Part 3); see the store
   contract in `contracts/rating.py` and `docs/part5-integration.md`.

@@ -126,3 +126,11 @@ entries:
       - tradingagents/tests/req/test_rating_invariant.py
       - scripts/generate_security_fixtures.py
       - scripts/security_regression.py
+
+  - change_id: "part5-rating-failclosed"
+    date: "2026-11-18"
+    agent_session: "opencode-part5-security-rating"
+    summary: "Part 5 rating fail-closed fixes: corrupt persisted records now always return REVIEW / review_required=True / is_tradeable=False (previously a corrupt Buy record could surface as tradeable); persisted provenance is reconstructed only when complete, structurally valid, and snapshot_verified is True (flag persisted; boundary documented); re-commit validates the request provenance before idempotency/conflict so an unverified same-source retry is refused; decision_id mismatch treated as corruption. New real tests assert rating/review_required/is_tradeable and no-write for each refusal. Human (陈妍妍) approved the new scenarios before implementation. No Part 1/3 changes."
+    files_changed:
+      - tradingagents/tradingagents/rating_authority.py
+      - tradingagents/tests/req/test_rating_invariant.py

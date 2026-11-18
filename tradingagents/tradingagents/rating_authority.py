@@ -137,53 +137,61 @@ _RECORD_SOURCE_FIELDS = (
 
 
 def _provenance_from_record(record: dict) -> Provenance | None:
-    """Rebuild the :class:`Provenance` a stored record came from, or ``None``.
+    """Rebuild and *validate* the :class:`Provenance` a stored record came from.
 
-    The record persists every source field needed to reconstruct provenance, so
-    a retry can return the *originally committed* source rather than the
-    request's. A record missing any source field cannot be reconstructed.
+    Returns ``None`` unless the record carries every source field, those fields
+    pass the same structural validation a live commit requires, AND the record
+    is marked as verified. Reconstructing provenance is not a matter of mere
+    non-emptiness, and a record whose existence alone does not prove its source
+    was verified (``snapshot_verified`` must be persisted as ``True``).
     """
     if not record:
         return None
     if any(not record.get(field) for field in _RECORD_SOURCE_FIELDS):
         return None
-    return Provenance(
+    verified = record.get("snapshot_verified")
+    if verified is not True:
+        # The recorded verification status is not a trustworthy True; do not
+        # assume it. (Part 1 is the authority that sets this on commit.)
+        return None
+    candidate = Provenance(
         snapshot_id=record["snapshot_id"],
         manifest_id=record["manifest_id"],
         model=record["model"],
         prompt_version=record["prompt_version"],
         config_version=record["config_version"],
-        # The flag is not part of source identity; a stored record is by
-        # definition one we accepted (verified) when committed.
         snapshot_verified=True,
     )
+    # Structural re-validation: invalid ids/versions are corrupt, not trusted.
+    if not validate_provenance(candidate).ok:
+        return None
+    return candidate
 
 
-def _classify_existing(record: dict | None) -> tuple[str, RatingResult | None]:
-    """Classify an existing record for re-commit handling.
+def _classify_existing(
+    record: dict | None, decision_id: str
+) -> tuple[str, RatingResult | None]:
+    """Classify an existing record for re-commit / read-back handling.
 
-    Returns ``("absent", None)`` when nothing is stored, or one of
-    ``("intact", result)`` / ``("corrupt", result)`` handling the stored rating
-    and provenance precisely.
+    Returns ``("absent", None)`` when nothing is stored, else
+    ``("intact", None)`` or ``("corrupt", result)``. **Every corrupt outcome is
+    fail-closed:** ``rating == REVIEW``, ``review_required is True`` and
+    ``is_tradeable is False``, with an accurate reason code. A corrupt record is
+    never reported as a tradeable tier and is never overwritten here.
     """
     if not record:
         return "absent", None
     value = record.get("rating")
+    # The record must belong to the id we queried; a mismatch is corruption.
+    stored_id = record.get("decision_id")
+    if stored_id is not None and stored_id != decision_id:
+        return "corrupt", coerce_review(ReasonCode.CORRUPT_RECORD)
     if value not in ALLOWED_RATINGS:
         # Out-of-set rating is specifically a persisted-out-of-set corruption.
-        return "corrupt", coerce_review(
-            ReasonCode.PERSISTED_OUT_OF_SET,
-            provenance=_provenance_from_record(record),
-        )
+        return "corrupt", coerce_review(ReasonCode.PERSISTED_OUT_OF_SET)
     if _provenance_from_record(record) is None:
-        # Missing/unreadable source fields: corrupt, but not "rating out of set".
-        return "corrupt", RatingResult(
-            rating=value,
-            reason_codes=(ReasonCode.CORRUPT_RECORD,),
-            provenance=None,
-            review_required=(value == REVIEW),
-            decision_id=record.get("decision_id"),
-        )
+        # Source missing / malformed / not verified: corrupt. Always REVIEW.
+        return "corrupt", coerce_review(ReasonCode.CORRUPT_RECORD)
     return "intact", None
 
 
@@ -231,7 +239,7 @@ def commit_rating(
         return coerce_review(ReasonCode.INVALID_PROVENANCE, provenance=provenance)
 
     record = store.read(decision_id)
-    state, corrupt_result = _classify_existing(record)
+    state, corrupt_result = _classify_existing(record, decision_id)
     if state == "corrupt":
         assert corrupt_result is not None
         return corrupt_result
@@ -240,9 +248,15 @@ def commit_rating(
         stored_rating = record["rating"]
         stored_prov = _provenance_from_record(record)
         assert stored_prov is not None
-        request_fp = provenance.fingerprint() if provenance is not None else None
+        # Validate THIS request's provenance before any idempotency/conflict
+        # decision: an unverified/invalid request is never a success, even when
+        # its fingerprint matches the stored source.
+        request_check = validate_provenance(provenance)
+        if not request_check.ok:
+            return coerce_review(request_check.reason, provenance=provenance)
+        assert provenance is not None
         # Same rating AND same source -> the original commit, returned as-is.
-        if stored_rating == resolve_rating(candidate) and request_fp == stored_prov.fingerprint():
+        if stored_rating == resolve_rating(candidate) and provenance.fingerprint() == stored_prov.fingerprint():
             return RatingResult(
                 rating=stored_rating,
                 reason_codes=(ReasonCode.OK,),
@@ -279,6 +293,9 @@ def commit_rating(
         "model": provenance.model if provenance else None,
         "prompt_version": provenance.prompt_version if provenance else None,
         "config_version": provenance.config_version if provenance else None,
+        # Persist the verification status so read-back/retry can trust it rather
+        # than inferring "verified" from the record's mere existence.
+        "snapshot_verified": bool(provenance and provenance.snapshot_verified),
     }
     store.write(decision_id, record)
 
@@ -300,13 +317,10 @@ def read_committed_rating(store: Store, *, decision_id: str) -> RatingResult:
     record = store.read(decision_id)
     if record is None:
         return coerce_review(ReasonCode.CORRUPT_RECORD)  # nothing to read back
-    state, corrupt_result = _classify_existing(record)
+    state, corrupt_result = _classify_existing(record, decision_id)
     if state == "corrupt":
         assert corrupt_result is not None
-        # Out-of-set rating -> PERSISTED_OUT_OF_SET; other damage -> CORRUPT_RECORD.
-        if ReasonCode.PERSISTED_OUT_OF_SET in corrupt_result.reason_codes:
-            return corrupt_result
-        return coerce_review(ReasonCode.CORRUPT_RECORD)
+        return corrupt_result  # already fail-closed (REVIEW/True/False)
     return RatingResult(
         rating=record["rating"],
         reason_codes=(ReasonCode.OK,),

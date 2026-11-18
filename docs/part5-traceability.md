@@ -13,8 +13,8 @@ Test-approval: `docs/approvals/chg-2026-11-18-part5-security-rating.json`
 | INV003-03 provenance required | `rating_authority.validate_provenance` | `::test_requires_provenance`, `::test_requires_provenance_rejects_free_text_source` |
 | INV003-04 adversarial text | `_candidate_to_rating` (structured/parse), shared parser | `::test_adversarial_text_cannot_flip` |
 | INV003-05 missing snapshot | `validate_provenance` (missing + unverified) | `::test_missing_snapshot_review` |
-| INV003-06 persisted revalidation | write gate + `read_committed_rating` | `::test_persisted_revalidation` |
-| INV003-07 idempotent commit | `commit_rating` per `decision_id` | `::test_idempotent_commit` |
+| INV003-06 persisted revalidation (fail closed) | `_classify_existing` + `read_committed_rating`; corrupt -> REVIEW/non-tradeable | `::test_persisted_revalidation`, `::test_corrupt_record_is_classified_accurately`, `::test_corrupt_source_eventually_rejected_on_retry_and_readback`, `::test_decision_id_mismatch_is_rejected` |
+| INV003-07 idempotent commit (request-validated) | `commit_rating` validates request provenance before idempotency/conflict; returns persisted source | `::test_idempotent_commit`, `::test_retry_returns_persisted_source`, `::test_unverified_same_source_retry_is_rejected`, `::test_valid_commit_and_valid_retry_still_work` |
 
 Preserved parser API: `agents/rating.py` `extract_rating/parse_rating/run_rating`
 unchanged; authority reuses `extract_rating`.

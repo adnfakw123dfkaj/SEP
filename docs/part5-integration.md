@@ -40,12 +40,19 @@ Failure semantics:
 - Provenance missing/invalid/unverified -> `REVIEW`, nothing written.
 - Candidate with no readable call -> `REVIEW`, nothing written.
 - Out-of-set candidate -> `REVIEW`, nothing written.
-- Same `decision_id` + same rating + same source -> returns the **originally
-  persisted provenance** (idempotent retry; not a new claim).
+- Re-commit validates the **request** provenance first: an unverified/invalid
+  request is refused (REVIEW) even if it matches a stored record.
+- Same `decision_id` + same rating + same (valid) source -> returns the
+  **originally persisted provenance** (idempotent retry; not a new claim).
 - Different rating OR different source for an existing id -> `CONFLICT`
   (`review_required`), nothing written.
-- Corrupt stored record -> `PERSISTED_OUT_OF_SET` (rating out of set) or
-  `CORRUPT_RECORD` (other damage), nothing overwritten.
+- Corrupt stored record **fails closed**: `REVIEW` / `review_required=True` /
+  `is_tradeable=False`; `PERSISTED_OUT_OF_SET` (rating out of set) or
+  `CORRUPT_RECORD` (missing/malformed source, unverified flag, or `decision_id`
+  mismatch), nothing overwritten.
+- Records persist `snapshot_verified`; read/retry trusts the source only if all
+  fields are present, structurally valid, and `snapshot_verified is True` (Part 1
+  sets that flag after real verification).
 - Blank `decision_id` -> refused, nothing written (no shared default key).
 - **Serial idempotency only:** atomic concurrent commit is the store's (Part 3)
   responsibility; the store contract is `read(id)`/`write(id, record)`.
