@@ -1,0 +1,260 @@
+A filing showed that AAPL dropped -1.2% on the day; cloud revenue grew 21% year over year. See https://investor.apple.com/financials for details (ref 41).
+A filing showed that AAPL fell 1.9% on the day; services revenue reached $24.1B. See https://investor.apple.com/financials for details (ref 49).
+A filing showed that AAPL gained -1.2% on the day; the data center segment doubled. See https://investor.apple.com/financials for details (ref 18).
+A filing showed that AAPL slid 2.1% on the day; the data center segment doubled. See https://www.sec.gov/edgar/data/0000320193 for details (ref 65).
+A filing showed that AMD climbed 0.8% on the day; gross margin expanded to 46.2%. See https://www.sec.gov/edgar/data/0000320193 for details (ref 45).
+A filing showed that AMD fell 3.4% on the day; cloud revenue grew 21% year over year. See https://www.reuters.com/technology/ for details (ref 77).
+A filing showed that AMD gained -0.5% on the day; gross margin expanded to 46.2%. See https://investor.apple.com/financials for details (ref 51).
+A filing showed that AMD gained 0.8% on the day; headcount fell by 1,200. See https://www.sec.gov/edgar/data/0000320193 for details (ref 98).
+A filing showed that AMD recovered -0.5% on the day; headcount fell by 1,200. See https://investor.apple.com/financials for details (ref 99).
+A filing showed that AMD recovered -1.2% on the day; services revenue reached $24.1B. See https://www.sec.gov/edgar/data/0000320193 for details (ref 19).
+A filing showed that AMD recovered 1.9% on the day; the data center segment doubled. See https://www.reuters.com/technology/ for details (ref 15).
+A filing showed that AMZN climbed 2.1% on the day; headcount fell by 1,200. See https://www.sec.gov/edgar/data/0000320193 for details (ref 44).
+A filing showed that AMZN recovered -0.5% on the day; guidance was raised to $94-96B. See https://www.sec.gov/edgar/data/0000320193 for details (ref 1).
+A filing showed that AMZN recovered 2.1% on the day; free cash flow was $8.4B. See https://investor.apple.com/financials for details (ref 11).
+A filing showed that AMZN slid -0.5% on the day; gross margin expanded to 46.2%. See https://www.sec.gov/edgar/data/0000320193 for details (ref 55).
+A filing showed that GOOGL climbed -0.5% on the day; headcount fell by 1,200. See https://www.sec.gov/edgar/data/0000320193 for details (ref 6).
+A filing showed that GOOGL dropped -1.2% on the day; share buybacks totaled $2.5B. See https://www.sec.gov/edgar/data/0000320193 for details (ref 51).
+A filing showed that GOOGL dropped 1.9% on the day; headcount fell by 1,200. See https://investor.apple.com/financials for details (ref 10).
+A filing showed that GOOGL fell 5.6% on the day; gross margin expanded to 46.2%. See https://www.sec.gov/edgar/data/0000320193 for details (ref 82).
+A filing showed that GOOGL gained -1.2% on the day; guidance was raised to $94-96B. See https://www.sec.gov/edgar/data/0000320193 for details (ref 51).
+A filing showed that GOOGL recovered 5.6% on the day; share buybacks totaled $2.5B. See https://www.reuters.com/technology/ for details (ref 14).
+A filing showed that GOOGL slid -1.2% on the day; guidance was raised to $94-96B. See https://investor.apple.com/financials for details (ref 45).
+A filing showed that META climbed 0.8% on the day; cloud revenue grew 21% year over year. See https://www.sec.gov/edgar/data/0000320193 for details (ref 12).
+A filing showed that META dropped 3.4% on the day; services revenue reached $24.1B. See https://investor.apple.com/financials for details (ref 58).
+A filing showed that META dropped 3.4% on the day; the data center segment doubled. See https://www.sec.gov/edgar/data/0000320193 for details (ref 21).
+A filing showed that META recovered -0.5% on the day; share buybacks totaled $2.5B. See https://www.sec.gov/edgar/data/0000320193 for details (ref 67).
+A filing showed that META rose 0.8% on the day; free cash flow was $8.4B. See https://www.reuters.com/technology/ for details (ref 8).
+A filing showed that META slid 3.4% on the day; gross margin expanded to 46.2%. See https://investor.apple.com/financials for details (ref 87).
+A filing showed that MSFT dropped 0.8% on the day; services revenue reached $24.1B. See https://www.reuters.com/technology/ for details (ref 70).
+A filing showed that MSFT recovered 5.6% on the day; headcount fell by 1,200. See https://investor.apple.com/financials for details (ref 48).
+A filing showed that MSFT slid -0.5% on the day; headcount fell by 1,200. See https://www.sec.gov/edgar/data/0000320193 for details (ref 65).
+A filing showed that MSFT slid 2.1% on the day; services revenue reached $24.1B. See https://www.reuters.com/technology/ for details (ref 93).
+A filing showed that NVDA dropped 0.8% on the day; the data center segment doubled. See https://www.reuters.com/technology/ for details (ref 1).
+A filing showed that NVDA fell 5.6% on the day; gross margin expanded to 46.2%. See https://www.sec.gov/edgar/data/0000320193 for details (ref 94).
+A filing showed that NVDA gained 2.1% on the day; cloud revenue grew 21% year over year. See https://www.sec.gov/edgar/data/0000320193 for details (ref 20).
+A filing showed that NVDA rose -0.5% on the day; headcount fell by 1,200. See https://www.sec.gov/edgar/data/0000320193 for details (ref 58).
+A filing showed that NVDA rose 1.9% on the day; gross margin expanded to 46.2%. See https://www.reuters.com/technology/ for details (ref 90).
+A filing showed that TSLA climbed 3.4% on the day; the data center segment doubled. See https://www.reuters.com/technology/ for details (ref 27).
+A filing showed that TSLA dropped 2.1% on the day; headcount fell by 1,200. See https://investor.apple.com/financials for details (ref 1).
+A filing showed that TSLA rose 0.8% on the day; the data center segment doubled. See https://www.sec.gov/edgar/data/0000320193 for details (ref 99).
+A filing showed that TSLA rose 1.9% on the day; services revenue reached $24.1B. See https://www.reuters.com/technology/ for details (ref 87).
+Analysts at Morgan Stanley wrote that AAPL climbed 0.8% on the day; headcount fell by 1,200. See https://investor.apple.com/financials for details (ref 49).
+Analysts at Morgan Stanley wrote that AAPL climbed 1.9% on the day; gross margin expanded to 46.2%. See https://www.reuters.com/technology/ for details (ref 88).
+Analysts at Morgan Stanley wrote that AAPL recovered 1.9% on the day; the data center segment doubled. See https://investor.apple.com/financials for details (ref 82).
+Analysts at Morgan Stanley wrote that AAPL slid 2.1% on the day; free cash flow was $8.4B. See https://investor.apple.com/financials for details (ref 49).
+Analysts at Morgan Stanley wrote that AMD climbed -1.2% on the day; gross margin expanded to 46.2%. See https://www.sec.gov/edgar/data/0000320193 for details (ref 38).
+Analysts at Morgan Stanley wrote that AMD climbed -1.2% on the day; gross margin expanded to 46.2%. See https://www.sec.gov/edgar/data/0000320193 for details (ref 5).
+Analysts at Morgan Stanley wrote that AMD climbed 2.1% on the day; services revenue reached $24.1B. See https://investor.apple.com/financials for details (ref 35).
+Analysts at Morgan Stanley wrote that AMD dropped 0.8% on the day; services revenue reached $24.1B. See https://www.sec.gov/edgar/data/0000320193 for details (ref 62).
+Analysts at Morgan Stanley wrote that AMD gained -0.5% on the day; free cash flow was $8.4B. See https://www.reuters.com/technology/ for details (ref 16).
+Analysts at Morgan Stanley wrote that AMD rose 2.1% on the day; the data center segment doubled. See https://investor.apple.com/financials for details (ref 6).
+Analysts at Morgan Stanley wrote that AMD slid -1.2% on the day; guidance was raised to $94-96B. See https://www.reuters.com/technology/ for details (ref 58).
+Analysts at Morgan Stanley wrote that AMZN climbed 5.6% on the day; cloud revenue grew 21% year over year. See https://www.sec.gov/edgar/data/0000320193 for details (ref 27).
+Analysts at Morgan Stanley wrote that AMZN dropped 2.1% on the day; free cash flow was $8.4B. See https://www.sec.gov/edgar/data/0000320193 for details (ref 39).
+Analysts at Morgan Stanley wrote that AMZN dropped 2.1% on the day; services revenue reached $24.1B. See https://www.sec.gov/edgar/data/0000320193 for details (ref 43).
+Analysts at Morgan Stanley wrote that AMZN gained -1.2% on the day; services revenue reached $24.1B. See https://www.sec.gov/edgar/data/0000320193 for details (ref 52).
+Analysts at Morgan Stanley wrote that AMZN gained 0.8% on the day; gross margin expanded to 46.2%. See https://investor.apple.com/financials for details (ref 25).
+Analysts at Morgan Stanley wrote that GOOGL climbed 0.8% on the day; services revenue reached $24.1B. See https://investor.apple.com/financials for details (ref 35).
+Analysts at Morgan Stanley wrote that GOOGL climbed 1.9% on the day; share buybacks totaled $2.5B. See https://investor.apple.com/financials for details (ref 48).
+Analysts at Morgan Stanley wrote that GOOGL dropped 2.1% on the day; cloud revenue grew 21% year over year. See https://www.sec.gov/edgar/data/0000320193 for details (ref 12).
+Analysts at Morgan Stanley wrote that GOOGL fell 0.8% on the day; guidance was raised to $94-96B. See https://www.reuters.com/technology/ for details (ref 43).
+Analysts at Morgan Stanley wrote that GOOGL fell 1.9% on the day; free cash flow was $8.4B. See https://investor.apple.com/financials for details (ref 12).
+Analysts at Morgan Stanley wrote that GOOGL recovered 3.4% on the day; the data center segment doubled. See https://investor.apple.com/financials for details (ref 18).
+Analysts at Morgan Stanley wrote that GOOGL rose 0.8% on the day; cloud revenue grew 21% year over year. See https://www.sec.gov/edgar/data/0000320193 for details (ref 23).
+Analysts at Morgan Stanley wrote that META dropped 3.4% on the day; share buybacks totaled $2.5B. See https://www.sec.gov/edgar/data/0000320193 for details (ref 30).
+Analysts at Morgan Stanley wrote that META gained 0.8% on the day; headcount fell by 1,200. See https://investor.apple.com/financials for details (ref 89).
+Analysts at Morgan Stanley wrote that META recovered 2.1% on the day; guidance was raised to $94-96B. See https://www.sec.gov/edgar/data/0000320193 for details (ref 88).
+Analysts at Morgan Stanley wrote that META slid -0.5% on the day; the data center segment doubled. See https://investor.apple.com/financials for details (ref 58).
+Analysts at Morgan Stanley wrote that META slid 5.6% on the day; free cash flow was $8.4B. See https://www.sec.gov/edgar/data/0000320193 for details (ref 76).
+Analysts at Morgan Stanley wrote that MSFT climbed 1.9% on the day; guidance was raised to $94-96B. See https://investor.apple.com/financials for details (ref 80).
+Analysts at Morgan Stanley wrote that MSFT gained -0.5% on the day; the data center segment doubled. See https://www.sec.gov/edgar/data/0000320193 for details (ref 82).
+Analysts at Morgan Stanley wrote that MSFT gained 0.8% on the day; gross margin expanded to 46.2%. See https://www.reuters.com/technology/ for details (ref 40).
+Analysts at Morgan Stanley wrote that MSFT rose 5.6% on the day; services revenue reached $24.1B. See https://www.reuters.com/technology/ for details (ref 60).
+Analysts at Morgan Stanley wrote that NVDA climbed -0.5% on the day; gross margin expanded to 46.2%. See https://www.sec.gov/edgar/data/0000320193 for details (ref 14).
+Analysts at Morgan Stanley wrote that NVDA climbed -1.2% on the day; share buybacks totaled $2.5B. See https://investor.apple.com/financials for details (ref 26).
+Analysts at Morgan Stanley wrote that NVDA dropped 3.4% on the day; gross margin expanded to 46.2%. See https://www.sec.gov/edgar/data/0000320193 for details (ref 64).
+Analysts at Morgan Stanley wrote that NVDA fell 3.4% on the day; guidance was raised to $94-96B. See https://www.reuters.com/technology/ for details (ref 28).
+Analysts at Morgan Stanley wrote that NVDA fell 5.6% on the day; the data center segment doubled. See https://www.reuters.com/technology/ for details (ref 63).
+Analysts at Morgan Stanley wrote that NVDA recovered -0.5% on the day; share buybacks totaled $2.5B. See https://www.sec.gov/edgar/data/0000320193 for details (ref 58).
+Analysts at Morgan Stanley wrote that TSLA dropped 3.4% on the day; guidance was raised to $94-96B. See https://www.reuters.com/technology/ for details (ref 26).
+Analysts at Morgan Stanley wrote that TSLA fell -0.5% on the day; the data center segment doubled. See https://www.sec.gov/edgar/data/0000320193 for details (ref 60).
+Analysts at Morgan Stanley wrote that TSLA recovered 2.1% on the day; cloud revenue grew 21% year over year. See https://www.reuters.com/technology/ for details (ref 80).
+Analysts at Morgan Stanley wrote that TSLA rose 1.9% on the day; cloud revenue grew 21% year over year. See https://investor.apple.com/financials for details (ref 5).
+Analysts at Morgan Stanley wrote that TSLA rose 2.1% on the day; guidance was raised to $94-96B. See https://www.sec.gov/edgar/data/0000320193 for details (ref 24).
+Bloomberg notes that AAPL climbed 2.1% on the day; cloud revenue grew 21% year over year. See https://www.sec.gov/edgar/data/0000320193 for details (ref 49).
+Bloomberg notes that AAPL fell -1.2% on the day; free cash flow was $8.4B. See https://investor.apple.com/financials for details (ref 40).
+Bloomberg notes that AAPL fell 0.8% on the day; headcount fell by 1,200. See https://www.reuters.com/technology/ for details (ref 49).
+Bloomberg notes that AAPL rose -1.2% on the day; share buybacks totaled $2.5B. See https://www.reuters.com/technology/ for details (ref 20).
+Bloomberg notes that AMD climbed 3.4% on the day; guidance was raised to $94-96B. See https://investor.apple.com/financials for details (ref 35).
+Bloomberg notes that AMD climbed 5.6% on the day; the data center segment doubled. See https://investor.apple.com/financials for details (ref 67).
+Bloomberg notes that AMD recovered -0.5% on the day; share buybacks totaled $2.5B. See https://www.sec.gov/edgar/data/0000320193 for details (ref 94).
+Bloomberg notes that AMD recovered 0.8% on the day; gross margin expanded to 46.2%. See https://www.sec.gov/edgar/data/0000320193 for details (ref 23).
+Bloomberg notes that AMZN gained 0.8% on the day; the data center segment doubled. See https://investor.apple.com/financials for details (ref 58).
+Bloomberg notes that AMZN recovered 0.8% on the day; free cash flow was $8.4B. See https://www.reuters.com/technology/ for details (ref 22).
+Bloomberg notes that AMZN rose -0.5% on the day; gross margin expanded to 46.2%. See https://www.reuters.com/technology/ for details (ref 62).
+Bloomberg notes that AMZN rose -1.2% on the day; services revenue reached $24.1B. See https://www.sec.gov/edgar/data/0000320193 for details (ref 98).
+Bloomberg notes that AMZN rose 2.1% on the day; free cash flow was $8.4B. See https://www.sec.gov/edgar/data/0000320193 for details (ref 60).
+Bloomberg notes that AMZN slid 2.1% on the day; gross margin expanded to 46.2%. See https://investor.apple.com/financials for details (ref 3).
+Bloomberg notes that GOOGL climbed -1.2% on the day; guidance was raised to $94-96B. See https://www.sec.gov/edgar/data/0000320193 for details (ref 23).
+Bloomberg notes that GOOGL dropped -1.2% on the day; headcount fell by 1,200. See https://www.sec.gov/edgar/data/0000320193 for details (ref 22).
+Bloomberg notes that GOOGL fell 0.8% on the day; headcount fell by 1,200. See https://investor.apple.com/financials for details (ref 18).
+Bloomberg notes that META climbed -0.5% on the day; free cash flow was $8.4B. See https://www.sec.gov/edgar/data/0000320193 for details (ref 4).
+Bloomberg notes that META dropped -0.5% on the day; free cash flow was $8.4B. See https://investor.apple.com/financials for details (ref 47).
+Bloomberg notes that META dropped 3.4% on the day; gross margin expanded to 46.2%. See https://www.sec.gov/edgar/data/0000320193 for details (ref 43).
+Bloomberg notes that META fell -0.5% on the day; headcount fell by 1,200. See https://investor.apple.com/financials for details (ref 51).
+Bloomberg notes that META gained 0.8% on the day; headcount fell by 1,200. See https://www.sec.gov/edgar/data/0000320193 for details (ref 45).
+Bloomberg notes that META gained 2.1% on the day; the data center segment doubled. See https://investor.apple.com/financials for details (ref 89).
+Bloomberg notes that MSFT climbed -1.2% on the day; services revenue reached $24.1B. See https://www.sec.gov/edgar/data/0000320193 for details (ref 32).
+Bloomberg notes that MSFT gained 1.9% on the day; cloud revenue grew 21% year over year. See https://www.reuters.com/technology/ for details (ref 3).
+Bloomberg notes that NVDA climbed -1.2% on the day; free cash flow was $8.4B. See https://investor.apple.com/financials for details (ref 66).
+Bloomberg notes that NVDA dropped 1.9% on the day; gross margin expanded to 46.2%. See https://www.sec.gov/edgar/data/0000320193 for details (ref 92).
+Bloomberg notes that NVDA rose -1.2% on the day; guidance was raised to $94-96B. See https://www.reuters.com/technology/ for details (ref 88).
+Bloomberg notes that NVDA rose -1.2% on the day; the data center segment doubled. See https://www.sec.gov/edgar/data/0000320193 for details (ref 45).
+Bloomberg notes that NVDA rose 5.6% on the day; cloud revenue grew 21% year over year. See https://www.sec.gov/edgar/data/0000320193 for details (ref 71).
+Bloomberg notes that TSLA dropped -0.5% on the day; headcount fell by 1,200. See https://investor.apple.com/financials for details (ref 49).
+Bloomberg notes that TSLA dropped -1.2% on the day; cloud revenue grew 21% year over year. See https://www.reuters.com/technology/ for details (ref 70).
+Bloomberg notes that TSLA dropped -1.2% on the day; gross margin expanded to 46.2%. See https://www.reuters.com/technology/ for details (ref 43).
+Bloomberg notes that TSLA fell 2.1% on the day; the data center segment doubled. See https://www.sec.gov/edgar/data/0000320193 for details (ref 62).
+Bloomberg notes that TSLA recovered 0.8% on the day; share buybacks totaled $2.5B. See https://investor.apple.com/financials for details (ref 12).
+Bloomberg notes that TSLA recovered 0.8% on the day; share buybacks totaled $2.5B. See https://investor.apple.com/financials for details (ref 86).
+Management guided that AAPL fell 0.8% on the day; free cash flow was $8.4B. See https://investor.apple.com/financials for details (ref 7).
+Management guided that AAPL gained 1.9% on the day; the data center segment doubled. See https://investor.apple.com/financials for details (ref 46).
+Management guided that AAPL gained 2.1% on the day; services revenue reached $24.1B. See https://www.sec.gov/edgar/data/0000320193 for details (ref 50).
+Management guided that AAPL gained 2.1% on the day; services revenue reached $24.1B. See https://www.sec.gov/edgar/data/0000320193 for details (ref 89).
+Management guided that AAPL gained 5.6% on the day; headcount fell by 1,200. See https://www.sec.gov/edgar/data/0000320193 for details (ref 19).
+Management guided that AAPL rose -1.2% on the day; services revenue reached $24.1B. See https://www.reuters.com/technology/ for details (ref 45).
+Management guided that AMD climbed 1.9% on the day; free cash flow was $8.4B. See https://www.sec.gov/edgar/data/0000320193 for details (ref 36).
+Management guided that AMD recovered -0.5% on the day; share buybacks totaled $2.5B. See https://www.reuters.com/technology/ for details (ref 71).
+Management guided that AMD recovered 1.9% on the day; services revenue reached $24.1B. See https://investor.apple.com/financials for details (ref 74).
+Management guided that AMD slid -0.5% on the day; guidance was raised to $94-96B. See https://www.sec.gov/edgar/data/0000320193 for details (ref 33).
+Management guided that AMZN dropped 0.8% on the day; share buybacks totaled $2.5B. See https://investor.apple.com/financials for details (ref 65).
+Management guided that AMZN recovered -0.5% on the day; gross margin expanded to 46.2%. See https://www.reuters.com/technology/ for details (ref 64).
+Management guided that AMZN recovered 3.4% on the day; free cash flow was $8.4B. See https://www.sec.gov/edgar/data/0000320193 for details (ref 95).
+Management guided that AMZN rose 1.9% on the day; free cash flow was $8.4B. See https://www.sec.gov/edgar/data/0000320193 for details (ref 29).
+Management guided that AMZN rose 2.1% on the day; services revenue reached $24.1B. See https://www.sec.gov/edgar/data/0000320193 for details (ref 7).
+Management guided that AMZN slid -0.5% on the day; the data center segment doubled. See https://www.sec.gov/edgar/data/0000320193 for details (ref 38).
+Management guided that GOOGL climbed 3.4% on the day; headcount fell by 1,200. See https://investor.apple.com/financials for details (ref 60).
+Management guided that GOOGL gained -0.5% on the day; share buybacks totaled $2.5B. See https://www.sec.gov/edgar/data/0000320193 for details (ref 36).
+Management guided that GOOGL gained 0.8% on the day; cloud revenue grew 21% year over year. See https://www.sec.gov/edgar/data/0000320193 for details (ref 11).
+Management guided that GOOGL rose 3.4% on the day; cloud revenue grew 21% year over year. See https://investor.apple.com/financials for details (ref 36).
+Management guided that META fell -1.2% on the day; cloud revenue grew 21% year over year. See https://www.reuters.com/technology/ for details (ref 83).
+Management guided that META recovered 0.8% on the day; the data center segment doubled. See https://investor.apple.com/financials for details (ref 68).
+Management guided that META recovered 5.6% on the day; gross margin expanded to 46.2%. See https://www.reuters.com/technology/ for details (ref 11).
+Management guided that MSFT dropped -1.2% on the day; headcount fell by 1,200. See https://www.sec.gov/edgar/data/0000320193 for details (ref 45).
+Management guided that MSFT fell 2.1% on the day; headcount fell by 1,200. See https://www.reuters.com/technology/ for details (ref 88).
+Management guided that MSFT recovered -1.2% on the day; the data center segment doubled. See https://investor.apple.com/financials for details (ref 82).
+Management guided that MSFT slid 3.4% on the day; headcount fell by 1,200. See https://www.reuters.com/technology/ for details (ref 20).
+Management guided that NVDA climbed -0.5% on the day; guidance was raised to $94-96B. See https://www.reuters.com/technology/ for details (ref 35).
+Management guided that NVDA climbed 3.4% on the day; share buybacks totaled $2.5B. See https://investor.apple.com/financials for details (ref 76).
+Management guided that TSLA gained 1.9% on the day; headcount fell by 1,200. See https://www.reuters.com/technology/ for details (ref 30).
+Management guided that TSLA recovered -0.5% on the day; the data center segment doubled. See https://investor.apple.com/financials for details (ref 48).
+Management guided that TSLA slid 5.6% on the day; guidance was raised to $94-96B. See https://investor.apple.com/financials for details (ref 94).
+Reuters reports that AAPL fell -1.2% on the day; gross margin expanded to 46.2%. See https://investor.apple.com/financials for details (ref 85).
+Reuters reports that AAPL fell 2.1% on the day; services revenue reached $24.1B. See https://www.sec.gov/edgar/data/0000320193 for details (ref 74).
+Reuters reports that AAPL gained -0.5% on the day; headcount fell by 1,200. See https://investor.apple.com/financials for details (ref 17).
+Reuters reports that AAPL rose -0.5% on the day; free cash flow was $8.4B. See https://www.sec.gov/edgar/data/0000320193 for details (ref 71).
+Reuters reports that AAPL rose 1.9% on the day; guidance was raised to $94-96B. See https://www.reuters.com/technology/ for details (ref 35).
+Reuters reports that AAPL rose 1.9% on the day; headcount fell by 1,200. See https://www.sec.gov/edgar/data/0000320193 for details (ref 20).
+Reuters reports that AAPL slid 1.9% on the day; gross margin expanded to 46.2%. See https://www.reuters.com/technology/ for details (ref 41).
+Reuters reports that AAPL slid 5.6% on the day; services revenue reached $24.1B. See https://www.reuters.com/technology/ for details (ref 80).
+Reuters reports that AMD dropped 0.8% on the day; headcount fell by 1,200. See https://investor.apple.com/financials for details (ref 38).
+Reuters reports that AMD gained 1.9% on the day; share buybacks totaled $2.5B. See https://www.reuters.com/technology/ for details (ref 7).
+Reuters reports that AMD rose 1.9% on the day; the data center segment doubled. See https://www.sec.gov/edgar/data/0000320193 for details (ref 53).
+Reuters reports that AMD rose 5.6% on the day; free cash flow was $8.4B. See https://www.sec.gov/edgar/data/0000320193 for details (ref 15).
+Reuters reports that AMD slid 2.1% on the day; services revenue reached $24.1B. See https://www.sec.gov/edgar/data/0000320193 for details (ref 50).
+Reuters reports that AMZN dropped 2.1% on the day; services revenue reached $24.1B. See https://investor.apple.com/financials for details (ref 70).
+Reuters reports that AMZN dropped 3.4% on the day; cloud revenue grew 21% year over year. See https://www.reuters.com/technology/ for details (ref 50).
+Reuters reports that AMZN rose 3.4% on the day; the data center segment doubled. See https://www.reuters.com/technology/ for details (ref 91).
+Reuters reports that GOOGL dropped 1.9% on the day; gross margin expanded to 46.2%. See https://www.reuters.com/technology/ for details (ref 42).
+Reuters reports that GOOGL fell -1.2% on the day; headcount fell by 1,200. See https://www.reuters.com/technology/ for details (ref 24).
+Reuters reports that GOOGL recovered 3.4% on the day; gross margin expanded to 46.2%. See https://www.sec.gov/edgar/data/0000320193 for details (ref 61).
+Reuters reports that GOOGL rose 0.8% on the day; free cash flow was $8.4B. See https://www.reuters.com/technology/ for details (ref 2).
+Reuters reports that GOOGL slid 2.1% on the day; share buybacks totaled $2.5B. See https://investor.apple.com/financials for details (ref 50).
+Reuters reports that META climbed 2.1% on the day; headcount fell by 1,200. See https://investor.apple.com/financials for details (ref 24).
+Reuters reports that META recovered 1.9% on the day; the data center segment doubled. See https://www.reuters.com/technology/ for details (ref 96).
+Reuters reports that META rose -1.2% on the day; gross margin expanded to 46.2%. See https://www.reuters.com/technology/ for details (ref 5).
+Reuters reports that META rose 1.9% on the day; gross margin expanded to 46.2%. See https://www.reuters.com/technology/ for details (ref 6).
+Reuters reports that META slid -1.2% on the day; services revenue reached $24.1B. See https://www.reuters.com/technology/ for details (ref 93).
+Reuters reports that MSFT climbed 1.9% on the day; headcount fell by 1,200. See https://www.reuters.com/technology/ for details (ref 24).
+Reuters reports that MSFT dropped 0.8% on the day; free cash flow was $8.4B. See https://investor.apple.com/financials for details (ref 57).
+Reuters reports that MSFT fell 5.6% on the day; the data center segment doubled. See https://investor.apple.com/financials for details (ref 69).
+Reuters reports that MSFT gained -1.2% on the day; gross margin expanded to 46.2%. See https://www.sec.gov/edgar/data/0000320193 for details (ref 42).
+Reuters reports that MSFT recovered -0.5% on the day; headcount fell by 1,200. See https://investor.apple.com/financials for details (ref 15).
+Reuters reports that MSFT recovered 3.4% on the day; the data center segment doubled. See https://www.sec.gov/edgar/data/0000320193 for details (ref 72).
+Reuters reports that MSFT slid -1.2% on the day; cloud revenue grew 21% year over year. See https://investor.apple.com/financials for details (ref 44).
+Reuters reports that NVDA climbed -1.2% on the day; cloud revenue grew 21% year over year. See https://www.sec.gov/edgar/data/0000320193 for details (ref 49).
+Reuters reports that NVDA fell 3.4% on the day; share buybacks totaled $2.5B. See https://www.reuters.com/technology/ for details (ref 59).
+Reuters reports that NVDA slid -0.5% on the day; guidance was raised to $94-96B. See https://investor.apple.com/financials for details (ref 54).
+Reuters reports that NVDA slid 3.4% on the day; cloud revenue grew 21% year over year. See https://investor.apple.com/financials for details (ref 38).
+Reuters reports that NVDA slid 3.4% on the day; services revenue reached $24.1B. See https://www.reuters.com/technology/ for details (ref 43).
+Reuters reports that TSLA fell -1.2% on the day; gross margin expanded to 46.2%. See https://investor.apple.com/financials for details (ref 50).
+Reuters reports that TSLA fell 5.6% on the day; share buybacks totaled $2.5B. See https://investor.apple.com/financials for details (ref 3).
+Reuters reports that TSLA gained 2.1% on the day; free cash flow was $8.4B. See https://investor.apple.com/financials for details (ref 23).
+Reuters reports that TSLA recovered 3.4% on the day; cloud revenue grew 21% year over year. See https://www.reuters.com/technology/ for details (ref 91).
+Reuters reports that TSLA recovered 5.6% on the day; cloud revenue grew 21% year over year. See https://investor.apple.com/financials for details (ref 7).
+The 10-Q filing disclosed that AAPL recovered 1.9% on the day; free cash flow was $8.4B. See https://www.sec.gov/edgar/data/0000320193 for details (ref 58).
+The 10-Q filing disclosed that AAPL rose 5.6% on the day; headcount fell by 1,200. See https://www.reuters.com/technology/ for details (ref 21).
+The 10-Q filing disclosed that AAPL slid 1.9% on the day; cloud revenue grew 21% year over year. See https://www.sec.gov/edgar/data/0000320193 for details (ref 69).
+The 10-Q filing disclosed that AMD climbed 1.9% on the day; headcount fell by 1,200. See https://www.reuters.com/technology/ for details (ref 77).
+The 10-Q filing disclosed that AMD gained -0.5% on the day; headcount fell by 1,200. See https://www.reuters.com/technology/ for details (ref 79).
+The 10-Q filing disclosed that AMZN climbed 1.9% on the day; share buybacks totaled $2.5B. See https://www.sec.gov/edgar/data/0000320193 for details (ref 89).
+The 10-Q filing disclosed that AMZN dropped 3.4% on the day; cloud revenue grew 21% year over year. See https://www.reuters.com/technology/ for details (ref 58).
+The 10-Q filing disclosed that AMZN gained 1.9% on the day; headcount fell by 1,200. See https://investor.apple.com/financials for details (ref 89).
+The 10-Q filing disclosed that AMZN slid 2.1% on the day; gross margin expanded to 46.2%. See https://www.sec.gov/edgar/data/0000320193 for details (ref 45).
+The 10-Q filing disclosed that GOOGL climbed 5.6% on the day; cloud revenue grew 21% year over year. See https://www.reuters.com/technology/ for details (ref 58).
+The 10-Q filing disclosed that META climbed -0.5% on the day; free cash flow was $8.4B. See https://investor.apple.com/financials for details (ref 95).
+The 10-Q filing disclosed that META climbed 5.6% on the day; cloud revenue grew 21% year over year. See https://www.reuters.com/technology/ for details (ref 72).
+The 10-Q filing disclosed that META gained 1.9% on the day; cloud revenue grew 21% year over year. See https://www.sec.gov/edgar/data/0000320193 for details (ref 61).
+The 10-Q filing disclosed that META recovered -0.5% on the day; the data center segment doubled. See https://investor.apple.com/financials for details (ref 17).
+The 10-Q filing disclosed that META rose 2.1% on the day; the data center segment doubled. See https://www.sec.gov/edgar/data/0000320193 for details (ref 17).
+The 10-Q filing disclosed that MSFT dropped -0.5% on the day; share buybacks totaled $2.5B. See https://www.sec.gov/edgar/data/0000320193 for details (ref 52).
+The 10-Q filing disclosed that MSFT fell -1.2% on the day; services revenue reached $24.1B. See https://www.reuters.com/technology/ for details (ref 98).
+The 10-Q filing disclosed that MSFT gained 1.9% on the day; the data center segment doubled. See https://www.reuters.com/technology/ for details (ref 61).
+The 10-Q filing disclosed that MSFT gained 3.4% on the day; gross margin expanded to 46.2%. See https://investor.apple.com/financials for details (ref 23).
+The 10-Q filing disclosed that MSFT slid 3.4% on the day; services revenue reached $24.1B. See https://investor.apple.com/financials for details (ref 81).
+The 10-Q filing disclosed that NVDA climbed 0.8% on the day; free cash flow was $8.4B. See https://investor.apple.com/financials for details (ref 94).
+The 10-Q filing disclosed that NVDA climbed 2.1% on the day; services revenue reached $24.1B. See https://www.reuters.com/technology/ for details (ref 5).
+The 10-Q filing disclosed that NVDA dropped -1.2% on the day; gross margin expanded to 46.2%. See https://investor.apple.com/financials for details (ref 91).
+The 10-Q filing disclosed that NVDA dropped 1.9% on the day; services revenue reached $24.1B. See https://www.reuters.com/technology/ for details (ref 40).
+The 10-Q filing disclosed that NVDA recovered -0.5% on the day; services revenue reached $24.1B. See https://investor.apple.com/financials for details (ref 1).
+The 10-Q filing disclosed that NVDA slid 5.6% on the day; share buybacks totaled $2.5B. See https://www.sec.gov/edgar/data/0000320193 for details (ref 92).
+The 10-Q filing disclosed that TSLA dropped 1.9% on the day; cloud revenue grew 21% year over year. See https://www.sec.gov/edgar/data/0000320193 for details (ref 34).
+The 10-Q filing disclosed that TSLA fell -0.5% on the day; share buybacks totaled $2.5B. See https://www.sec.gov/edgar/data/0000320193 for details (ref 55).
+The 10-Q filing disclosed that TSLA recovered 1.9% on the day; headcount fell by 1,200. See https://www.reuters.com/technology/ for details (ref 55).
+The 10-Q filing disclosed that TSLA rose -1.2% on the day; free cash flow was $8.4B. See https://www.sec.gov/edgar/data/0000320193 for details (ref 76).
+The 10-Q filing disclosed that TSLA rose 1.9% on the day; gross margin expanded to 46.2%. See https://www.reuters.com/technology/ for details (ref 32).
+The 10-Q filing disclosed that TSLA slid 5.6% on the day; cloud revenue grew 21% year over year. See https://investor.apple.com/financials for details (ref 82).
+The company said that AAPL climbed -1.2% on the day; headcount fell by 1,200. See https://www.sec.gov/edgar/data/0000320193 for details (ref 24).
+The company said that AAPL recovered 0.8% on the day; gross margin expanded to 46.2%. See https://www.reuters.com/technology/ for details (ref 37).
+The company said that AAPL recovered 3.4% on the day; guidance was raised to $94-96B. See https://www.sec.gov/edgar/data/0000320193 for details (ref 53).
+The company said that AAPL rose 5.6% on the day; services revenue reached $24.1B. See https://www.sec.gov/edgar/data/0000320193 for details (ref 3).
+The company said that AAPL slid -1.2% on the day; share buybacks totaled $2.5B. See https://www.sec.gov/edgar/data/0000320193 for details (ref 85).
+The company said that AMD climbed -0.5% on the day; gross margin expanded to 46.2%. See https://investor.apple.com/financials for details (ref 59).
+The company said that AMD fell 2.1% on the day; gross margin expanded to 46.2%. See https://www.sec.gov/edgar/data/0000320193 for details (ref 36).
+The company said that AMD gained 3.4% on the day; cloud revenue grew 21% year over year. See https://www.reuters.com/technology/ for details (ref 8).
+The company said that AMD gained 3.4% on the day; guidance was raised to $94-96B. See https://www.reuters.com/technology/ for details (ref 5).
+The company said that AMD rose 2.1% on the day; cloud revenue grew 21% year over year. See https://investor.apple.com/financials for details (ref 98).
+The company said that AMZN climbed 2.1% on the day; the data center segment doubled. See https://investor.apple.com/financials for details (ref 32).
+The company said that AMZN dropped 5.6% on the day; gross margin expanded to 46.2%. See https://www.reuters.com/technology/ for details (ref 50).
+The company said that AMZN fell 5.6% on the day; headcount fell by 1,200. See https://www.reuters.com/technology/ for details (ref 63).
+The company said that AMZN recovered 0.8% on the day; guidance was raised to $94-96B. See https://investor.apple.com/financials for details (ref 96).
+The company said that GOOGL dropped 1.9% on the day; share buybacks totaled $2.5B. See https://investor.apple.com/financials for details (ref 58).
+The company said that GOOGL rose 0.8% on the day; free cash flow was $8.4B. See https://www.sec.gov/edgar/data/0000320193 for details (ref 31).
+The company said that GOOGL slid 2.1% on the day; headcount fell by 1,200. See https://www.sec.gov/edgar/data/0000320193 for details (ref 51).
+The company said that GOOGL slid 5.6% on the day; gross margin expanded to 46.2%. See https://investor.apple.com/financials for details (ref 59).
+The company said that META fell -0.5% on the day; cloud revenue grew 21% year over year. See https://www.sec.gov/edgar/data/0000320193 for details (ref 5).
+The company said that META slid 0.8% on the day; services revenue reached $24.1B. See https://www.sec.gov/edgar/data/0000320193 for details (ref 25).
+The company said that META slid 5.6% on the day; the data center segment doubled. See https://www.reuters.com/technology/ for details (ref 41).
+The company said that MSFT climbed -1.2% on the day; services revenue reached $24.1B. See https://www.sec.gov/edgar/data/0000320193 for details (ref 12).
+The company said that MSFT climbed 0.8% on the day; cloud revenue grew 21% year over year. See https://investor.apple.com/financials for details (ref 10).
+The company said that MSFT climbed 5.6% on the day; free cash flow was $8.4B. See https://investor.apple.com/financials for details (ref 25).
+The company said that MSFT dropped 2.1% on the day; services revenue reached $24.1B. See https://www.sec.gov/edgar/data/0000320193 for details (ref 34).
+The company said that MSFT rose 1.9% on the day; services revenue reached $24.1B. See https://www.sec.gov/edgar/data/0000320193 for details (ref 60).
+The company said that NVDA dropped 0.8% on the day; guidance was raised to $94-96B. See https://www.sec.gov/edgar/data/0000320193 for details (ref 21).
+The company said that NVDA fell 3.4% on the day; headcount fell by 1,200. See https://www.reuters.com/technology/ for details (ref 76).
+The company said that NVDA gained 0.8% on the day; share buybacks totaled $2.5B. See https://www.sec.gov/edgar/data/0000320193 for details (ref 43).
+The company said that NVDA gained 5.6% on the day; the data center segment doubled. See https://www.sec.gov/edgar/data/0000320193 for details (ref 87).
+The company said that TSLA fell 1.9% on the day; cloud revenue grew 21% year over year. See https://investor.apple.com/financials for details (ref 2).
+The company said that TSLA fell 2.1% on the day; cloud revenue grew 21% year over year. See https://www.reuters.com/technology/ for details (ref 63).
+The company said that TSLA fell 5.6% on the day; cloud revenue grew 21% year over year. See https://investor.apple.com/financials for details (ref 20).
