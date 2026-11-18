@@ -32,6 +32,7 @@ permissions:
 jobs:
   # Gate 1 — test approval: tests approved before implementation began.
   gate-test-approval:
+    name: G1 test approval
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -59,6 +60,7 @@ jobs:
 
   # Gate 2 — static analysis: always-on lint/type/dep; heavy checks on safety paths.
   gate-static-analysis:
+    name: G2 static analysis
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -122,6 +124,7 @@ jobs:
 
   # Gate 3 — schema: requirements registry validates against its schema.
   gate-schema:
+    name: G3 schema
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -141,6 +144,7 @@ jobs:
 
   # Gate 4 — semantic evaluation: on prompt/model change, replay the fixed set.
   gate-semantic-eval:
+    name: G4 semantic eval
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -169,6 +173,7 @@ jobs:
 
   # Gate 5 — regression: full prior suite; any regression blocks.
   gate-regression:
+    name: G5 regression
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -218,6 +223,7 @@ jobs:
 
   # Gate 6 — AI-use log: code/prompt change requires a log update.
   gate-ai-use-log:
+    name: G6 AI-use log
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -245,6 +251,7 @@ jobs:
 
   # Gate 7 — ownership: a claimed Part's tests must not skip or fail.
   gate-ownership:
+    name: G7 ownership
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

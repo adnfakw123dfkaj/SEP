@@ -65,15 +65,37 @@ branches.
 
 ## Branch protection (set in GitHub, not a file)
 
-On `master`:
-- Require status checks to pass before merging; required: the seven gate jobs from
-  `ci.yml` (`gates / gate-*`), plus `test`, `lint`, `gate-selftests`.
-- Require at least one approving review.
+Set this as a **Ruleset** (Settings → Rules → Rulesets → New branch ruleset) on
+`master`. Status checks only appear in the picker **after they have run once**, so
+open one PR first (e.g. from `luochen`) to register them.
+
+The `gates` job in `ci.yml` calls the reusable `gates.yml`, so GitHub reports each
+gate as **`<caller> / <gate name>`**. With the explicit job names, the required
+checks are:
+
+- `gates / G1 test approval`
+- `gates / G2 static analysis`
+- `gates / G3 schema`
+- `gates / G4 semantic eval`
+- `gates / G5 regression`
+- `gates / G6 AI-use log`
+- `gates / G7 ownership`
+- `gate self-tests`  (the standalone job that proves the gate logic)
+
+Recommended ruleset settings:
+
+- **Require a pull request before merging** (1 approval).
+- **Require status checks to pass** → add the eight checks above; enable
+  **Require branches to be up to date before merging**.
+- **Block force pushes** and **restrict deletions**.
 - For a change touching a safety-relevant path
   (`tradingagents/{agents,memory,dataflows,security,contracts,graph}/`, `scripts/gates/`),
   require a human review plus a linked architecture decision record.
-- Restrict who can push to `master`; changes to `.github/workflows/**` and
-  `scripts/gates/**` require a gate-owner approval.
+- Changes to `.github/workflows/**` and `scripts/gates/**` require a gate-owner
+  approval.
+- Keep the `tests (py…)`, `ruff`, `clean-install smoke` matrix/standalone jobs
+  **optional** — G5 already runs the full suite. (Each matrix cell is a separate
+  check name like `tests (py3.12)`, so requiring "tests" would add four.)
 
 ## Regression baseline
 
