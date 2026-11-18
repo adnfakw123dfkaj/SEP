@@ -154,15 +154,32 @@ def check_dependencies() -> bool:
     informational, not blocking — auditing the whole interpreter environment
     surfaces pre-existing CVEs in transitive deps that no single PR can fix, and
     would otherwise block every PR.
+
+    The package lives under ``tradingagents/tradingagents`` (the project dir is
+    ``tradingagents/``, the package inside it is also ``tradingagents/``). We add
+    the project dir to ``sys.path`` explicitly so the check does not depend on the
+    caller's working directory (from the repo root, ``tradingagents`` would resolve
+    to the project directory, not the package).
     """
+    import sys
+
+    project_dir = REPO / "tradingagents"           # holds the package + pyproject
+    if not (project_dir / "tradingagents" / "__init__.py").is_file():
+        return False
+    added = str(project_dir)
+    injected = added not in sys.path
+    if injected:
+        sys.path.insert(0, added)
     try:
         import importlib
 
-        for mod in ("tradingagents",):
-            importlib.import_module(mod)
+        module = importlib.import_module("tradingagents")
+        return bool(getattr(module, "__version__", None))
     except Exception:  # noqa: BLE001 — any import failure is a broken dependency
         return False
-    return True
+    finally:
+        if injected and added in sys.path:
+            sys.path.remove(added)
 
 
 _CHECKS = {
