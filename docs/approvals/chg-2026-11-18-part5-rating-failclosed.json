@@ -1,0 +1,8 @@
+{
+  "change_id": "chg-2026-11-18-part5-rating-failclosed",
+  "tests": [
+    "tradingagents/tests/req/test_rating_invariant.py"
+  ],
+  "approved_by": "陈妍妍",
+  "approved_at": "2026-11-18T08:03:58+00:00"
+}
