@@ -1,0 +1,1190 @@
+schema_version: "1.0"
+
+document:
+  id: "SEP-REQ-TRADINGAGENTS-001"
+  title: "TradingAgents 增强需求规格（最终实施版）"
+  version: "1.0.1"
+  date: "2026-11-16"
+  status: "approved-for-planning"
+  language: "zh-CN"
+  scope: |
+    基于 adnfakw123dfkaj/SEP 仓库中的 tradingagents 子项目，对 TradingAgents v0.7.1
+    进行增强。本期按“完成项目优先”保留 14 条需求，分为 6 个高度解耦的 Part；
+    不重写核心框架，不实现真实券商下单。
+  source:
+    repository: "https://github.com/adnfakw123dfkaj/SEP.git"
+    subproject: "tradingagents"
+    baseline: "TradingAgents v0.7.1"
+    human_readable: "docs/req/requirements-final.md"
+    implementation_plans: "docs/req/plans/"
+  acceptance_rule: |
+    每条需求必须同时具备可机器校验的 fit criterion 与可行实现方案；否则不进入
+    requirements，列入 discarded。fit criterion 必须给出 metric、threshold 和 verification。
+
+methodology:
+  elicitation: "Osborne brainstorming：先发散、不批评，再按影响、可行性、可测试性、架构显著性和风险收敛。"
+  convergence_criteria:
+    - "直接改善 P1–P6 中的至少一个痛点"
+    - "能在现有代码与课程周期内实现"
+    - "能写出 metric + threshold + verification"
+    - "有明确的架构或证据影响"
+    - "风险可控，不引入不可验收的外部依赖"
+  type_enum:
+    - functional
+    - invariant
+    - quality
+    - performance
+    - cost
+    - governance
+    - security
+  priority_enum:
+    - must
+    - should
+    - could
+    - wont
+  priority_definitions:
+    must: "本期必须完成；缺失则项目不能验收。"
+    should: "重要；时间不足时按顺序裁剪，并记录原因。"
+    could: "本期不做，或仅在 Must/Should 全部完成后考虑。"
+    wont: "本期明确不做；见 out_of_scope/discarded。"
+  part_enum:
+    - 1
+    - 2
+    - 3
+    - 4
+    - 5
+    - 6
+
+measurement_definitions:
+  p95: "30 次测量的第 95 百分位；15 次冷缓存 + 15 次热缓存，除非条目另有说明。"
+  token_count: "provider 返回的输入 + 输出 token，包含重试；不包含本地工具解析。"
+  rate: "0 到 1 之间的比例；threshold 使用小数表示。"
+  run: "一次单 ticker、单 trade_date、单 profile 的执行。"
+  machine_verification: "每个 fit criterion 的 verification 必须给出可执行命令或脚本；退出码为 0 且报告达到 threshold 才算通过。"
+
+type_coverage:
+  functional: 5
+  invariant: 4
+  quality: 2
+  performance: 1
+  cost: 1
+  governance: 0
+  security: 1
+
+type_coverage_notes:
+  governance:
+    count: 0
+    status: "intentionally_zero"
+    reason: "本期按完成项目优先舍弃了人工复核、哈希链审计、告警、CI 审批闸门等 GOV-* 需求。"
+    merged_into:
+      - "REQ-FR-004"
+      - "REQ-INV-001"
+    recommended_action: "如果课程明确要求至少一条治理需求，恢复 REQ-GOV-001（运行 provenance 记录）并分配给 Part 3。"
+
+assumptions:
+  - "Python >= 3.11，沿用现有 pyproject.toml 依赖。"
+  - "优先支持美股；港股/A 股不在本期验收范围。"
+  - "参考环境为 4 vCPU / 16 GB RAM，到 provider 的网络延迟 <= 100 ms。"
+  - "Yahoo、SEC、StockTwits 可访问；Reddit 可能返回 403，必须支持降级。"
+  - "性能与成本测试使用 DeepSeek 或等价 OpenAI-compatible provider；provider 价格表可配置。"
+  - "代码修改全部通过 OpenCode 会话完成，并保留会话记录作为 agentic software engineering 证据。"
+  - "确定性测试使用固定 fixture 或录制数据；真实网络测试标记为 integration。"
+
+parts:
+  - id: 1
+    name: "配置、档位与输入闸门"
+    owner_role: "组员 A（待确认）"
+    requirements:
+      - "REQ-FR-001"
+      - "REQ-FR-002"
+    modules:
+      - "tradingagents/profiles.py"
+      - "tradingagents/preflight.py"
+      - "tradingagents/default_config.py"
+      - "cli/"
+      - "graph/setup.py"
+      - "graph/trading_graph.py"
+  - id: 2
+    name: "结构化辩论"
+    owner_role: "组员 B（待确认）"
+    requirements:
+      - "REQ-FR-003"
+      - "REQ-QUAL-001"
+    modules:
+      - "tradingagents/agents/debate/"
+      - "tradingagents/agents/researchers/"
+      - "tradingagents/contracts/debate.py"
+  - id: 3
+    name: "证据链、报告与记录"
+    owner_role: "组员 C（待确认）"
+    requirements:
+      - "REQ-FR-004"
+      - "REQ-QUAL-002"
+      - "REQ-INV-001"
+    modules:
+      - "tradingagents/evidence/"
+      - "tradingagents/records/"
+      - "tradingagents/contracts/manifest.py"
+      - "tradingagents/contracts/evidence.py"
+      - "tradingagents/reporting.py"
+      - "tradingagents/report_html.py"
+  - id: 4
+    name: "数据韧性与时点完整性"
+    owner_role: "组员 D（待确认）"
+    requirements:
+      - "REQ-FR-005"
+      - "REQ-INV-002"
+    modules:
+      - "tradingagents/cache/"
+      - "tradingagents/resilience.py"
+      - "tradingagents/contracts/cache.py"
+      - "tradingagents/graph/checkpointer.py"
+      - "tradingagents/dataflows/date_window.py"
+  - id: 5
+    name: "安全与评级权威"
+    owner_role: "组员 E（待确认）"
+    requirements:
+      - "REQ-INV-003"
+      - "REQ-SEC-001"
+      - "REQ-INV-004"
+    modules:
+      - "tradingagents/contracts/rating.py"
+      - "tradingagents/agents/rating.py"
+      - "tradingagents/security/"
+      - "tradingagents/llm_clients/api_key_env.py"
+  - id: 6
+    name: "性能与成本"
+    owner_role: "组员 F（待确认）"
+    requirements:
+      - "REQ-PER-001"
+      - "REQ-COST-001"
+    modules:
+      - "tradingagents/contracts/llm_event.py"
+      - "tradingagents/cost/"
+      - "scripts/bench_latency.py"
+      - "scripts/token_audit.py"
+
+requirements:
+
+  - id: "REQ-FR-001"
+    title: "运行档位与默认值缩减"
+    type: "functional"
+    subtype: null
+    priority: "must"
+    part: 1
+    part_name: "配置、档位与输入闸门"
+    status: "new"
+    statement: |
+      系统应提供 Quick、Standard、Deep 三种运行档位。每个档位固定分析师集合、
+      辩论轮数、风控轮数、最大工具轮数、模型分层、token 预算、超时和缓存 TTL。
+      用户可用 --profile 覆盖，但运行清单必须记录档位和所有覆盖项。
+    rationale: |
+      当前默认四分析师全跑、工具轮次上限高；实测 1 个分析师约 7 分钟、2 个约 9 分钟，
+      4 个更慢。档位化让“快/标准/深”变成可测试的配置矩阵，是延迟和成本目标的前提。
+    implementation:
+      summary: "在配置层定义三套 profile，在图构建层按 profile 选择分析师与轮数，在 CLI 和 manifest 中暴露并记录。"
+      steps:
+        - "新增 tradingagents/profiles.py：ProfileConfig dataclass + 三套预设。"
+        - "default_config.py 读取 run_profile，保留 TRADINGAGENTS_* 覆盖。"
+        - "cli/main.py 增加 --profile，交互式 CLI 提供默认档位。"
+        - "graph/setup.py、graph/analyst_execution.py 按 profile 选择分析师和轮数。"
+        - "非法覆盖（如 Quick 选 4 个分析师）启动前拒绝。"
+        - "RunManifest 写入 profile 与覆盖项。"
+      modules:
+        - "tradingagents/profiles.py"
+        - "tradingagents/default_config.py"
+        - "cli/main.py"
+        - "graph/setup.py"
+        - "graph/analyst_execution.py"
+        - "tradingagents/contracts/profile.py"
+    fit_criterion:
+      - metric: "profile_matrix_match_rate"
+        threshold: "== 1.0"
+        verification: "pytest tests/req/test_profiles.py::test_profile_matrix"
+      - metric: "manifest_profile_coverage"
+        threshold: "== 1.0"
+        verification: "pytest tests/req/test_profiles.py::test_manifest_profile"
+      - metric: "invalid_profile_override_rejection_rate"
+        threshold: "== 1.0"
+        verification: "pytest tests/req/test_profiles.py::test_invalid_override"
+    tradeoff: |
+      Quick 减少分析师和工具轮次，换取速度和成本，但降低覆盖面；报告必须标注
+      “未运行”的分析师并下调置信度。Standard/Deep 覆盖更全，但延迟和 token 更高。
+    dependencies:
+      - "REQ-FR-004"
+      - "REQ-COST-001"
+      - "REQ-PER-001"
+    tags:
+      - "P1"
+      - "P2"
+      - "config"
+
+  - id: "REQ-FR-002"
+    title: "预检 ticker 与数据可用性"
+    type: "functional"
+    subtype: null
+    priority: "should"
+    part: 1
+    part_name: "配置、档位与输入闸门"
+    status: "new"
+    statement: |
+      在代理图运行前，系统应校验 ticker 能解析为真实工具，且核心价格数据在分析日期
+      附近可取得；失败时返回明确错误并停止，不启动分析师，不消耗 LLM token。
+    rationale: |
+      无效或无数 ticker 会浪费分析师和辩论的 token；预检成本低、收益直接，并可把
+      “invalid ticker”与“data unavailable”区分开。
+    implementation:
+      summary: "新增 preflight 模块，复用 symbols/identity 解析和短窗口价格查询，在 CLI 构图前调用。"
+      steps:
+        - "新增 tradingagents/preflight.py：validate_request(ticker, trade_date, profile) -> PreflightResult。"
+        - "复用 dataflows/symbols.py 和 resolve_instrument_identity。"
+        - "用短窗口价格查询判断数据可用性。"
+        - "CLI 在构建图之前调用；失败时输出 invalid ticker / no data 两种明确结果。"
+        - "结果缓存 7 天（身份）/ 15 分钟（价格可用性）。"
+      modules:
+        - "tradingagents/preflight.py"
+        - "tradingagents/contracts/preflight.py"
+        - "tradingagents/dataflows/symbols.py"
+        - "cli/main.py"
+    fit_criterion:
+      - metric: "analyst_node_calls_on_invalid_input"
+        threshold: "== 0"
+        verification: "pytest tests/req/test_preflight.py::test_no_analyst_calls"
+      - metric: "valid_ticker_preflight_pass_rate"
+        threshold: "== 1.0"
+        verification: "pytest tests/req/test_preflight.py::test_valid_tickers --tickers 50"
+      - metric: "preflight_failure_llm_tokens"
+        threshold: "== 0"
+        verification: "pytest tests/req/test_preflight.py::test_zero_llm_tokens"
+      - metric: "preflight_cached_p95_seconds"
+        threshold: "<= 2"
+        verification: "python scripts/bench_preflight.py --assert-p95 2"
+    tradeoff: |
+      预检可能拒绝真实但交投清淡或供应商暂时不可用的工具；用“invalid”与
+      “data unavailable”区分，并允许第二次供应商回退。
+    dependencies:
+      - "REQ-FR-001"
+    tags:
+      - "P1"
+      - "P5"
+      - "preflight"
+
+  - id: "REQ-FR-003"
+    title: "结构化辩论协议与收敛早停"
+    type: "functional"
+    subtype: null
+    priority: "must"
+    part: 2
+    part_name: "结构化辩论"
+    status: "new"
+    statement: |
+      研究辩论的每一轮应使用结构化记录，至少包含 claim、stance、evidence_refs、
+      assumptions、rebuttal_to、confidence、open_questions、requested_evidence 和 round。
+      系统应校验字段；缺失/无效时重试一次，仍失败则标记 invalid 并降级到主持人总结。
+      辩论在达到最大轮数或满足收敛条件时停止。
+    rationale: |
+      当前多空辩论是自由文本，缺少统一字段和证据引用，难以比较、评估和审计。
+      项目 brief 明确点出“讨论相当随意”，这是本期最核心的增强之一。
+    implementation:
+      summary: "新增 debate 包：DebateTurn schema、提示模板、确定性校验、收敛早停、transcript 导出。"
+      steps:
+        - "新增 tradingagents/agents/debate/：schemas.py、prompts.py、validator.py、convergence.py。"
+        - "修改 bull_researcher.py / bear_researcher.py，只调用 debate 适配层。"
+        - "graph/conditional_logic.py 调用 convergence.should_stop()。"
+        - "每轮保存结构化 turn，并导出 JSON transcript。"
+        - "格式失败重试一次；仍失败由 manager 自由文本总结，并标记质量指标不可用。"
+      modules:
+        - "tradingagents/agents/debate/"
+        - "tradingagents/agents/researchers/"
+        - "tradingagents/contracts/debate.py"
+        - "tradingagents/graph/conditional_logic.py"
+    fit_criterion:
+      - metric: "debate_turn_schema_valid_rate"
+        threshold: "== 1.0"
+        verification: "pytest tests/req/test_debate_protocol.py::test_schema_valid --runs 30"
+      - metric: "max_rounds_enforced_rate"
+        threshold: "== 1.0"
+        verification: "pytest tests/req/test_debate_protocol.py::test_max_rounds"
+      - metric: "early_stop_decision_correct_rate"
+        threshold: "== 1.0"
+        verification: "pytest tests/req/test_debate_protocol.py::test_convergence_fixtures"
+      - metric: "transcript_export_schema_valid_rate"
+        threshold: "== 1.0"
+        verification: "pytest tests/req/test_debate_protocol.py::test_export_schema"
+    tradeoff: |
+      结构化输出提高可评估性，但增加输出 token，并可能限制模型自由推理；用一次重试和
+      主持人总结兜底。若格式失败率过高，回退自由文本，但不假装 QUAL-001 已通过。
+    dependencies:
+      - "REQ-QUAL-001"
+      - "REQ-SEC-001"
+    tags:
+      - "P3"
+      - "debate"
+
+  - id: "REQ-QUAL-001"
+    title: "辩论质量代理指标"
+    type: "quality"
+    subtype: null
+    priority: "must"
+    part: 2
+    part_name: "结构化辩论"
+    status: "new"
+    statement: |
+      结构化辩论必须满足可机器检查的质量代理指标：每轮至少有一个 evidence_ref 或
+      显式 no_new_evidence；反驳必须指向有效先前轮次；无证据断言比例 <=5%；
+      重复主张比例 <=10%。
+    rationale: |
+      “更有效/不随意”不能直接机器校验。用证据覆盖、反驳覆盖、无证据断言率、
+      重复主张率四个确定性指标，把主观要求变成可验收标准。
+    implementation:
+      summary: "新增 debate/quality.py，解析 turns、校验引用、用规范化文本 + 相似度检测重复主张。"
+      steps:
+        - "实现 evidence coverage：每轮有无 evidence_ref 或 no_new_evidence。"
+        - "实现 rebuttal coverage：rebuttal_to 是否指向有效 turn。"
+        - "实现 unsupported claim rate：无引用断言占比。"
+        - "实现 duplicate claim rate：规范化文本 + 相似度阈值。"
+        - "对 golden fixtures 和 30 份 transcript 运行，输出指标报告。"
+      modules:
+        - "tradingagents/agents/debate/quality.py"
+        - "tests/req/test_debate_quality.py"
+        - "tests/fixtures/debate/"
+    fit_criterion:
+      - metric: "turns_with_evidence_or_no_new_evidence_rate"
+        threshold: "== 1.0"
+        verification: "pytest tests/req/test_debate_quality.py::test_evidence_coverage --transcripts 30"
+      - metric: "rebuttal_coverage"
+        threshold: ">= 0.90"
+        verification: "pytest tests/req/test_debate_quality.py::test_rebuttal_coverage --transcripts 30"
+      - metric: "unsupported_claim_rate"
+        threshold: "<= 0.05"
+        verification: "pytest tests/req/test_debate_quality.py::test_unsupported_claim_rate --transcripts 30"
+      - metric: "duplicate_claim_rate"
+        threshold: "<= 0.10"
+        verification: "pytest tests/req/test_debate_quality.py::test_duplicate_claim_rate --transcripts 30"
+    tradeoff: |
+      这些是代理指标，不代表“说服力”或“洞察力”；可能奖励结构化而牺牲创造性。
+      它们是必要非充分条件，本期不引入人工盲评。
+    dependencies:
+      - "REQ-FR-003"
+    tags:
+      - "P3"
+      - "quality"
+      - "proxy-metric"
+
+  - id: "REQ-FR-004"
+    title: "证据链报告与运行清单"
+    type: "functional"
+    subtype: null
+    priority: "must"
+    part: 3
+    part_name: "证据链、报告与记录"
+    status: "partial"
+    statement: |
+      报告中的每个实质性事实或数字断言应带 evidence_ref。每次运行应生成 manifest.json，
+      至少包含 run_id、ticker、date、profile、analysts、models、provider、prompt/config
+      版本、vendor 版本、cache hits、按 agent 的 token 用量、费用估算、fallback/security
+      事件、最终评级、时间戳和状态。
+    rationale: |
+      当前报告没有强制每个断言可追溯，也没有统一运行清单；审计、回放、成本归因和
+      问题定位困难。manifest 也是延迟/成本验收的证据载体。
+    implementation:
+      summary: "新增 EvidenceRef/RunManifest 契约、引用注册表、报告脚注和 manifest writer。"
+      steps:
+        - "新增 contracts/evidence.py 和 contracts/manifest.py。"
+        - "新增 evidence/registry.py：工具 call_id、snapshot hash、news/social id。"
+        - "工具调用返回 call_id + snapshot_hash；报告渲染脚注。"
+        - "manifest_writer 在最终节点写出 JSON；各 Part 只填自己的字段。"
+        - "校验器：数字断言必须有引用；缺失时阻断或标记 unsupported。"
+      modules:
+        - "tradingagents/contracts/evidence.py"
+        - "tradingagents/contracts/manifest.py"
+        - "tradingagents/evidence/"
+        - "tradingagents/reporting.py"
+        - "tradingagents/report_html.py"
+    fit_criterion:
+      - metric: "numeric_claims_with_evidence_ref_rate"
+        threshold: "== 1.0"
+        verification: "pytest tests/req/test_evidence_manifest.py::test_numeric_refs --reports 30"
+      - metric: "qualitative_claims_with_evidence_ref_rate"
+        threshold: ">= 0.95"
+        verification: "pytest tests/req/test_evidence_manifest.py::test_qualitative_refs --reports 30"
+      - metric: "manifest_schema_valid_rate"
+        threshold: "== 1.0"
+        verification: "pytest tests/req/test_evidence_manifest.py::test_manifest_schema --runs 30"
+      - metric: "manifest_token_sum_relative_error"
+        threshold: "<= 0.05"
+        verification: "pytest tests/req/test_evidence_manifest.py::test_token_sum"
+      - metric: "manifest_replay_success_rate"
+        threshold: "== 1.0"
+        verification: "pytest tests/req/test_evidence_manifest.py::test_replay"
+    tradeoff: |
+      引用和 manifest 增加输出 token、渲染时间和存储；用“实质断言”而非“每句话”
+      作为引用单位。manifest 只存结构化元数据，不复制原始数据。
+    dependencies:
+      - "REQ-INV-003"
+      - "REQ-COST-001"
+      - "REQ-FR-001"
+      - "REQ-FR-003"
+    tags:
+      - "P4"
+      - "evidence"
+
+  - id: "REQ-QUAL-002"
+    title: "报告数字忠实度与引用支持"
+    type: "quality"
+    subtype: null
+    priority: "should"
+    part: 3
+    part_name: "证据链、报告与记录"
+    status: "partial"
+    statement: |
+      报告中的数字断言必须与 verified market snapshot 一致；至少 95% 的引用指向真实来源；
+      无证据断言比例 <=5%；报告必须通过结构化 Schema 校验。
+    rationale: |
+      LLM 报告可能产生幻觉或数字错误。当前报告有数据一致性说明，但没有系统化、
+      可机器校验的忠实度门槛。
+    implementation:
+      summary: "新增 fidelity 检查器：数字断言抽取、snapshot 比对、引用支持检查、Schema 校验。"
+      steps:
+        - "实现 numeric_claim_extractor，抽取价格、指标、涨跌幅等数字断言。"
+        - "与 verified snapshot 比对，计算矛盾率。"
+        - "实现 citation_support_checker，验证 evidence_refs 是否存在。"
+        - "用 JSON Schema 校验报告结构化和必填字段。"
+        - "在 CI 中对 30 份报告运行，保存报告和失败样例。"
+      modules:
+        - "tradingagents/evidence/fidelity.py"
+        - "tests/req/test_report_faithfulness.py"
+    fit_criterion:
+      - metric: "numeric_claim_contradiction_rate"
+        threshold: "<= 0.02"
+        verification: "pytest tests/req/test_report_faithfulness.py::test_numeric --reports 30"
+      - metric: "citation_support_rate"
+        threshold: ">= 0.95"
+        verification: "pytest tests/req/test_report_faithfulness.py::test_citations --reports 30"
+      - metric: "unsupported_claim_rate"
+        threshold: "<= 0.05"
+        verification: "pytest tests/req/test_report_faithfulness.py::test_unsupported --reports 30"
+      - metric: "report_schema_valid_rate"
+        threshold: "== 1.0"
+        verification: "pytest tests/req/test_report_faithfulness.py::test_schema --reports 30"
+      - metric: "numeric_claim_detection_recall"
+        threshold: ">= 0.95"
+        verification: "pytest tests/req/test_report_faithfulness.py::test_extractor_recall"
+    tradeoff: |
+      自动抽取可能漏检/误判；本期不引入人工盲评作为硬门槛。高影响场景通过降低阈值
+      或人工抽查兜底，但不把人工评审写进验收。
+    dependencies:
+      - "REQ-FR-004"
+    tags:
+      - "P4"
+      - "quality"
+      - "faithfulness"
+
+  - id: "REQ-INV-001"
+    title: "原子且幂等的决策记录"
+    type: "invariant"
+    subtype: null
+    priority: "should"
+    part: 3
+    part_name: "证据链、报告与记录"
+    status: "partial"
+    statement: |
+      决策记录（state JSON + 报告树 + manifest）作为一个原子单元写入；中断的写入要么
+      留下先前的完整记录，要么留下新的完整记录，绝不留下残缺记录。相同
+      (ticker, trade_date, run_signature) 的重跑不得在记忆日志中追加第二条决策条目。
+    rationale: |
+      残缺记录是静默数据丢失；重复记录会污染回测和审计。其他小组的分析把 D-04/D-05、
+      幂等性列为缺陷；这是一个中等成本、高价值的 invariant。
+    implementation:
+      summary: "新增 records 包：staging + 原子 rename + 完整集合 hash；记忆日志按幂等键 append。"
+      steps:
+        - "新增 tradingagents/records/atomic.py：staging 目录 + 原子 rename + fsync。"
+        - "记录完整集合的 hash，校验通过后才提交。"
+        - "record_id = hash(ticker, trade_date, run_signature)。"
+        - "记忆日志 append 前检查幂等键；不同 signature 产生独立版本。"
+        - "故障注入测试：写入中途 kill 进程。"
+      modules:
+        - "tradingagents/records/atomic.py"
+        - "tradingagents/records/idempotency.py"
+        - "tradingagents/memory/"
+        - "tests/req/test_records.py"
+    fit_criterion:
+      - metric: "partial_record_count"
+        threshold: "== 0"
+        verification: "pytest tests/req/test_records.py::test_fault_injection --trials 100"
+      - metric: "duplicate_log_entries_for_same_key"
+        threshold: "== 0"
+        verification: "pytest tests/req/test_records.py::test_idempotent_append"
+      - metric: "record_hash_validation_rate"
+        threshold: "== 1.0"
+        verification: "pytest tests/req/test_records.py::test_record_hash"
+    tradeoff: |
+      staging + rename 增加 I/O；幂等键过严会抑制合法重跑，因此明确把 run_signature
+      纳入 key，并单独定义“最新决策”投影。
+    dependencies:
+      - "REQ-FR-004"
+    tags:
+      - "P4"
+      - "records"
+      - "zero-tolerance"
+
+  - id: "REQ-FR-005"
+    title: "缓存、检查点与降级"
+    type: "functional"
+    subtype: null
+    priority: "must"
+    part: 4
+    part_name: "数据韧性与时点完整性"
+    status: "partial"
+    statement: |
+      Standard/Deep 默认启用节点级 checkpoint；中断后从最后成功节点恢复，已完成节点的
+      LLM 调用不得重复。数据请求按数据类 TTL 缓存并记录 provenance；数据源不可用时
+      优先使用未过期缓存，否则标记 unavailable 并降低置信度；不得编造数据。LLM 失败时
+      有限重试，仍失败则降级到更便宜模型或返回 REVIEW。
+    rationale: |
+      长运行失败会浪费时间和 token；重复运行重复抓取相同数据；Reddit/StockTwits 不稳定。
+      缓存和恢复是“慢”和“token-burning”的直接缓解。
+    implementation:
+      summary: "新增 cache 控制器、TTL 策略、FallbackRouter；复用 checkpoint，工具调用幂等化。"
+      steps:
+        - "新增 tradingagents/cache/：TTL 控制器、provenance、按数据类策略。"
+        - "复用 graph/checkpointer.py 和 LangGraph checkpoint。"
+        - "新增 tradingagents/resilience.py：重试 -> 新鲜缓存 -> 标记不可用并降置信度 -> REVIEW。"
+        - "工具调用按参数 + 数据版本幂等去重。"
+        - "manifest 记录 fallback_events。"
+      modules:
+        - "tradingagents/cache/"
+        - "tradingagents/resilience.py"
+        - "tradingagents/contracts/cache.py"
+        - "tradingagents/graph/checkpointer.py"
+    fit_criterion:
+      - metric: "resume_reuse_rate"
+        threshold: ">= 0.90"
+        verification: "pytest tests/req/test_checkpoint_resume.py::test_resume"
+      - metric: "duplicate_completed_node_llm_calls"
+        threshold: "== 0"
+        verification: "pytest tests/req/test_checkpoint_resume.py::test_no_duplicate_calls"
+      - metric: "cache_hit_rate"
+        threshold: ">= 0.70"
+        verification: "pytest tests/req/test_cache.py::test_hit_rate"
+      - metric: "stale_cache_use_count"
+        threshold: "== 0"
+        verification: "pytest tests/req/test_cache.py::test_no_stale"
+      - metric: "fabricated_data_placeholder_count"
+        threshold: "== 0"
+        verification: "pytest tests/req/test_fallback.py::test_no_fabrication"
+      - metric: "typed_fallback_event_coverage"
+        threshold: "== 1.0"
+        verification: "pytest tests/req/test_fallback.py::test_typed_events"
+    tradeoff: |
+      checkpoint/缓存增加存储和调试复杂度；TTL 过旧会引入 stale-data 风险。按数据类设
+      TTL，并在历史运行中禁止使用未来缓存。
+    dependencies:
+      - "REQ-FR-001"
+      - "REQ-FR-004"
+    tags:
+      - "P1"
+      - "P5"
+      - "resilience"
+
+  - id: "REQ-INV-002"
+    title: "时点完整性（无前视）"
+    type: "invariant"
+    subtype: null
+    priority: "should"
+    part: 4
+    part_name: "数据韧性与时点完整性"
+    status: "existing-partial"
+    statement: |
+      任何日期晚于分析日期的数据项不得进入任何代理输入。覆盖价格、技术指标、新闻、
+      基本面、内部人、社交和记忆教训。历史窗口内丢弃无日期项；社交来源在历史运行中
+      返回“不可用”而非实时帖子。
+    rationale: |
+      前视会让回测和评估失效。系统已有 date_window 的部分实现，但需要把它固化为
+      回归不变量，防止新数据源或新路径绕过。
+    implementation:
+      summary: "建立数据路径清单，对每条路径加日期过滤/测试；用属性测试注入未来数据。"
+      steps:
+        - "列数据路径清单：价格、技术指标、新闻、宏观、基本面、内部人、社交、记忆。"
+        - "对每个路径增加历史窗口测试。"
+        - "用属性测试/固定 fixtures 注入未来日期，断言 prompt 中不出现。"
+        - "manifest 记录每个数据源的 as-of 日期。"
+      modules:
+        - "tradingagents/dataflows/date_window.py"
+        - "tests/req/test_point_in_time.py"
+        - "tests/fixtures/future_data/"
+    fit_criterion:
+      - metric: "future_dated_items_in_prompt"
+        threshold: "== 0"
+        verification: "pytest tests/req/test_point_in_time.py::test_no_future_items"
+      - metric: "dated_tool_test_coverage"
+        threshold: "== 1.0"
+        verification: "pytest tests/req/test_point_in_time.py::test_tool_coverage"
+      - metric: "historical_social_unavailable_rate"
+        threshold: "== 1.0"
+        verification: "pytest tests/req/test_point_in_time.py::test_social_unavailable"
+      - metric: "property_test_pass_rate"
+        threshold: "== 1.0"
+        verification: "pytest tests/req/test_point_in_time.py::test_property_dates --dates 100"
+    tradeoff: |
+      历史日期下扣留社交/基本面会降低信号和置信度；接受这一点，因为数据泄漏会让
+      评估失真。
+    dependencies:
+      - "REQ-FR-005"
+    tags:
+      - "P5"
+      - "point-in-time"
+      - "zero-tolerance"
+
+  - id: "REQ-INV-003"
+    title: "确定性评级权威"
+    type: "invariant"
+    subtype: null
+    priority: "must"
+    part: 5
+    part_name: "安全与评级权威"
+    status: "existing-partial"
+    statement: |
+      最终提交的评级只能由确定性校验组件产生，且只能是 Buy、Overweight、Hold、
+      Underweight、Sell、REVIEW 之一。LLM 输出仅为建议。提交前必须存在 verified
+      market snapshot ID、evidence manifest、model/prompt/config 版本；任一缺失则
+      不得提交，状态为 REVIEW。持久化评级值也必须落在该允许集合内。
+    rationale: |
+      AI 不能是最终权威；自由文本可能覆盖结构化评级；持久化值可能被写坏。
+      这是零容忍不变量。
+    implementation:
+      summary: "rating.py 使用枚举和确定性校验器；trading_graph 增加 commit gate；持久化前再次校验。"
+      steps:
+        - "在 agents/rating.py 使用枚举和确定性校验器；定义 RatingResult 契约。"
+        - "在 graph/trading_graph.py 增加 commit gate；越界值记录为 REVIEW。"
+        - "校验 snapshot ID、manifest、版本 pin。"
+        - "持久化前再次校验允许集合。"
+        - "模糊/变异测试注入“not a Sell”等对抗文本。"
+      modules:
+        - "tradingagents/contracts/rating.py"
+        - "tradingagents/agents/rating.py"
+        - "tradingagents/graph/trading_graph.py"
+        - "tests/req/test_rating_invariant.py"
+    fit_criterion:
+      - metric: "invalid_rating_escapes"
+        threshold: "== 0"
+        verification: "pytest tests/req/test_rating_invariant.py::test_fuzz --cases 10000"
+      - metric: "committed_rating_allowed_set_rate"
+        threshold: "== 1.0"
+        verification: "pytest tests/req/test_rating_invariant.py::test_allowed_set"
+      - metric: "commit_with_missing_provenance_count"
+        threshold: "== 0"
+        verification: "pytest tests/req/test_rating_invariant.py::test_requires_provenance"
+      - metric: "adversarial_text_rating_change_count"
+        threshold: "== 0"
+        verification: "pytest tests/req/test_rating_invariant.py::test_adversarial_text"
+    tradeoff: |
+      确定性权威降低模型自由度，REVIEW 会增加后续处理；接受，因为不可审计的评级
+      是安全失败。
+    dependencies:
+      - "REQ-FR-004"
+    tags:
+      - "P4"
+      - "authority"
+      - "zero-tolerance"
+
+  - id: "REQ-SEC-001"
+    title: "不可信输入/输出安全"
+    type: "security"
+    subtype: null
+    priority: "must"
+    part: 5
+    part_name: "安全与评级权威"
+    status: "partial"
+    statement: |
+      新闻、社交帖子和用户输入在进入 prompt 前必须消毒；模型输出在成为状态前必须通过
+      结构/取值校验；可疑或无效内容被丢弃/记录，不能影响最终评级；不得出现越权工具
+      调用或“角色偏离”。
+    rationale: |
+      智能体读取外部文本并调用工具，提示注入可能导致错误评级或越权动作。
+      仅靠 prompt 写“不要听信”不构成防御。
+    implementation:
+      summary: "新增 security 包：sanitize、output validator、工具调用 guard、security log。"
+      steps:
+        - "新增 tradingagents/security/：sanitize.py、validate_output.py、security_log.py。"
+        - "Sanitizer：控制字符/指令模式清理、定界符包裹、长度上限。"
+        - "Output validator：JSON Schema、枚举、引用检查。"
+        - "工具调用 guard：只允许当前角色绑定的工具；越权调用拒绝并记录。"
+        - "可疑内容直接丢弃/记录（本期不做完整隔离队列/复核 UI）。"
+      modules:
+        - "tradingagents/security/"
+        - "tradingagents/agents/post_screen.py"
+        - "tests/security/test_prompt_injection.py"
+        - "scripts/security_regression.py"
+    fit_criterion:
+      - metric: "injection_block_or_drop_rate"
+        threshold: ">= 0.99"
+        verification: "python scripts/security_regression.py --injections 200 --assert-block-rate 0.99"
+      - metric: "benign_false_positive_rate"
+        threshold: "<= 0.05"
+        verification: "python scripts/security_regression.py --benign 200 --assert-fp 0.05"
+      - metric: "injected_influence_on_rating_count"
+        threshold: "== 0"
+        verification: "python scripts/security_regression.py --assert-influence 0"
+      - metric: "unauthorized_tool_calls"
+        threshold: "== 0"
+        verification: "pytest tests/security/test_prompt_injection.py::test_no_unauthorized_tool_calls"
+      - metric: "security_event_log_coverage"
+        threshold: "== 1.0"
+        verification: "pytest tests/security/test_prompt_injection.py::test_log_coverage"
+    tradeoff: |
+      强消毒可能误伤正常语义；用 5% 误报上限和日志抽查控制。本期丢弃完整 quarantine
+      queue/reviewer，以降低复杂度。
+    dependencies:
+      - "REQ-INV-003"
+    tags:
+      - "P6"
+      - "security"
+      - "prompt-injection"
+
+  - id: "REQ-INV-004"
+    title: "密钥不泄露"
+    type: "invariant"
+    subtype: null
+    priority: "must"
+    part: 5
+    part_name: "安全与评级权威"
+    status: "existing-partial"
+    statement: |
+      API key、访问令牌和凭据不得出现在日志、报告、manifest、prompt、模型上下文或
+      错误消息中。系统只能从环境变量或密钥存储读取密钥，并在持久化前脱敏。
+    rationale: |
+      密钥泄露是灾难性事件，也会污染课程会话记录。当前 .env 已改为
+      ${SEP_API_KEY} 引用环境变量；需要把它固化为可测试的不变量。
+    implementation:
+      summary: "新增 redaction 模块；日志 filter、报告/manifest scrub、prompt allowlist；CI secret scan。"
+      steps:
+        - "新增 security/redaction.py：日志 filter、报告/manifest 写入前 scrub、prompt allowlist。"
+        - "CI 增加 gitleaks 或等价 secret scan。"
+        - "合成密钥测试：把假 key 注入日志/错误/报告，断言全部被脱敏。"
+        - "异常处理层统一脱敏第三方 SDK 错误。"
+      modules:
+        - "tradingagents/security/redaction.py"
+        - "tradingagents/llm_clients/api_key_env.py"
+        - "tests/security/test_secret_redaction.py"
+    fit_criterion:
+      - metric: "secret_findings_in_artifacts"
+        threshold: "== 0"
+        verification: "pytest tests/security/test_secret_redaction.py::test_artifacts"
+      - metric: "synthetic_secret_redaction_rate"
+        threshold: "== 1.0"
+        verification: "pytest tests/security/test_secret_redaction.py::test_redaction"
+      - metric: "ci_secret_scan_findings"
+        threshold: "== 0"
+        verification: "gitleaks detect --no-git --source ."
+      - metric: "secret_occurrences_in_model_payload"
+        threshold: "== 0"
+        verification: "pytest tests/security/test_secret_redaction.py::test_prompt_payload"
+    tradeoff: |
+      脱敏可能让错误信息变短；接受，因为保密性优先。只针对密钥模式和已登记 env 名，
+      避免过度误伤。
+    dependencies:
+      - "REQ-FR-004"
+    tags:
+      - "P6"
+      - "security"
+      - "zero-tolerance"
+
+  - id: "REQ-PER-001"
+    title: "分档端到端延迟"
+    type: "performance"
+    subtype: null
+    priority: "must"
+    part: 6
+    part_name: "性能与成本"
+    status: "new"
+    statement: |
+      在参考环境（4 vCPU / 16 GB RAM，provider 网络延迟 <=100 ms）上，端到端 p95
+      延迟应满足：Quick <=300 秒、Standard <=720 秒、Deep <=1800 秒。冷/热缓存各至少
+      15 次；p99 <=1.2 × p95；基准失败/超时率 <=1%；Quick/Standard 相对基线改善 >=30%。
+    rationale: |
+      当前 1 个分析师约 425 秒、2 个约 550 秒，速度是核心痛点。没有量化目标就无法
+      判断档位、缓存、早停和模型分层是否有效。
+    implementation:
+      summary: "新增 bench_latency.py；复用档位、缓存/checkpoint、早停和模型分层，输出 p50/p95/p99。"
+      steps:
+        - "实现 scripts/bench_latency.py，记录硬件、网络、provider、模型、缓存状态。"
+        - "对 Quick/Standard/Deep 各运行 15 次冷缓存 + 15 次热缓存。"
+        - "输出 p50/p95/p99、失败率、阶段耗时。"
+        - "与 Phase 0 基线比较，计算改善比例。"
+      modules:
+        - "scripts/bench_latency.py"
+        - "tradingagents/profiles.py"
+        - "tradingagents/cache/"
+        - "tradingagents/graph/"
+    fit_criterion:
+      - metric: "quick_p95_end_to_end_seconds"
+        threshold: "<= 300"
+        verification: "python scripts/bench_latency.py --profile quick --cold 15 --warm 15 --assert-p95 300"
+      - metric: "standard_p95_end_to_end_seconds"
+        threshold: "<= 720"
+        verification: "python scripts/bench_latency.py --profile standard --cold 15 --warm 15 --assert-p95 720"
+      - metric: "deep_p95_end_to_end_seconds"
+        threshold: "<= 1800"
+        verification: "python scripts/bench_latency.py --profile deep --cold 15 --warm 15 --assert-p95 1800"
+      - metric: "p99_over_p95_ratio"
+        threshold: "<= 1.2"
+        verification: "python scripts/bench_latency.py --assert-p99-ratio 1.2"
+      - metric: "benchmark_failure_rate"
+        threshold: "<= 0.01"
+        verification: "python scripts/bench_latency.py --assert-failure-rate 0.01"
+      - metric: "quick_standard_improvement_vs_baseline"
+        threshold: ">= 0.30"
+        verification: "python scripts/bench_latency.py --baseline reports/baseline.json --assert-improvement 0.30"
+    tradeoff: |
+      更快可能需要减少分析师/工具轮次/上下文，降低覆盖；必须与 REQ-QUAL-001/002
+      同时通过，不能单独以速度换质量。
+    dependencies:
+      - "REQ-FR-001"
+      - "REQ-FR-003"
+      - "REQ-FR-005"
+    tags:
+      - "P1"
+      - "latency"
+      - "benchmark"
+
+  - id: "REQ-COST-001"
+    title: "分档 token 预算与成本报告"
+    type: "cost"
+    subtype: null
+    priority: "must"
+    part: 6
+    part_name: "性能与成本"
+    status: "new"
+    statement: |
+      单次运行 p95 token 用量（输入 + 输出，含重试）应满足：Quick <=25,000、
+      Standard <=60,000、Deep <=150,000。系统应估算 token、按预算选择直接/摘要/
+      便宜模型/审批路径；实际用量按 agent/model/tool 拆分记录；100% 运行输出
+      token/费用报告；超预算不得静默继续。
+    rationale: |
+      应用被描述为 token-burning，当前产物不汇总 token/费用。没有预算和成本报告，
+      无法控制成本，也无法验证优化效果。
+    implementation:
+      summary: "新增 cost 包：estimator、budget、router、monitor；LLMCallEvent 由 provider adapter 产出。"
+      steps:
+        - "实现 estimate_tokens()：基于 tokenizer/历史统计。"
+        - "按 profile 定义 BudgetPolicy 和允许路径。"
+        - "实现 CostRouter：直接、摘要、便宜模型、审批。"
+        - "Summarizer 压缩上下文但保留受保护证据。"
+        - "CostMonitor 记录 provider usage 和估算费用；manifest 汇总。"
+        - "scripts/token_audit.py 输出 p95、按 agent 拆分、费用、超预算事件。"
+      modules:
+        - "tradingagents/contracts/llm_event.py"
+        - "tradingagents/cost/"
+        - "scripts/token_audit.py"
+        - "tradingagents/llm_clients/"
+    fit_criterion:
+      - metric: "quick_p95_tokens"
+        threshold: "<= 25000"
+        verification: "python scripts/token_audit.py --profile quick --runs 30 --assert-p95 25000"
+      - metric: "standard_p95_tokens"
+        threshold: "<= 60000"
+        verification: "python scripts/token_audit.py --profile standard --runs 30 --assert-p95 60000"
+      - metric: "deep_p95_tokens"
+        threshold: "<= 150000"
+        verification: "python scripts/token_audit.py --profile deep --runs 30 --assert-p95 150000"
+      - metric: "token_report_coverage"
+        threshold: "== 1.0"
+        verification: "python scripts/token_audit.py --runs 30 --assert-report-coverage 1.0"
+      - metric: "silent_over_budget_runs"
+        threshold: "== 0"
+        verification: "python scripts/token_audit.py --runs 30 --assert-silent-over-budget 0"
+      - metric: "cost_estimate_relative_error"
+        threshold: "<= 0.05"
+        verification: "python scripts/token_audit.py --assert-cost-error 0.05"
+      - metric: "routed_run_quality_floor_pass_rate"
+        threshold: "== 1.0"
+        verification: "python scripts/token_audit.py --assert-routed-quality 1.0"
+    tradeoff: |
+      token 上限可能截断上下文、降低深度；用质量门禁保护，超预算优先摘要/便宜模型，
+      仍不达标则审批加预算。Quick 的成本优势以覆盖面为代价。
+    dependencies:
+      - "REQ-FR-001"
+      - "REQ-FR-004"
+      - "REQ-PER-001"
+    tags:
+      - "P2"
+      - "token"
+      - "cost"
+
+priority_summary:
+  must:
+    - "REQ-FR-001"
+    - "REQ-FR-003"
+    - "REQ-QUAL-001"
+    - "REQ-FR-004"
+    - "REQ-FR-005"
+    - "REQ-INV-003"
+    - "REQ-SEC-001"
+    - "REQ-INV-004"
+    - "REQ-PER-001"
+    - "REQ-COST-001"
+  should:
+    - "REQ-FR-002"
+    - "REQ-QUAL-002"
+    - "REQ-INV-001"
+    - "REQ-INV-002"
+  could: []
+  wont:
+    - "WONT-001"
+    - "WONT-002"
+    - "WONT-003"
+    - "WONT-004"
+    - "WONT-005"
+    - "WONT-006"
+    - "WONT-007"
+    - "WONT-008"
+    - "WONT-009"
+    - "WONT-010"
+    - "WONT-011"
+    - "WONT-012"
+    - "WONT-013"
+
+tradeoff_summary: |
+  Must 项优先保证安全、可审计、速度和成本可测；Should 项提升输入校验、报告忠实度、
+  记录完整性和时点完整性。Could 为空。Won't 项明确不做，避免范围蔓延。
+  速度与质量、成本与覆盖、审计与存储之间存在显式取舍，均通过质量门禁和降级策略控制。
+
+traceability:
+  P1_slow:
+    - "REQ-FR-001"
+    - "REQ-FR-002"
+    - "REQ-FR-005"
+    - "REQ-PER-001"
+  P2_token_burning:
+    - "REQ-FR-001"
+    - "REQ-FR-004"
+    - "REQ-COST-001"
+  P3_casual_debate:
+    - "REQ-FR-003"
+    - "REQ-QUAL-001"
+  P4_evidence_audit:
+    - "REQ-FR-004"
+    - "REQ-QUAL-002"
+    - "REQ-INV-001"
+    - "REQ-INV-003"
+  P5_data_resilience:
+    - "REQ-FR-002"
+    - "REQ-FR-005"
+    - "REQ-INV-002"
+  P6_security_governance:
+    - "REQ-INV-003"
+    - "REQ-SEC-001"
+    - "REQ-INV-004"
+
+out_of_scope:
+  - "WONT-001"
+  - "WONT-002"
+  - "WONT-003"
+  - "WONT-004"
+  - "WONT-005"
+  - "WONT-006"
+  - "WONT-007"
+  - "WONT-008"
+  - "WONT-009"
+  - "WONT-010"
+  - "WONT-011"
+  - "WONT-012"
+  - "WONT-013"
+
+wont_items:
+  - id: "WONT-001"
+    title: "自动交易/真实下单"
+    category: "out_of_scope"
+    reason: "超出课程范围，合规和资金风险高，无法在无真实账户/监管许可的前提下验收。"
+    disposition: "wont"
+  - id: "WONT-002"
+    title: "模型微调/强化学习"
+    category: "out_of_scope"
+    reason: "课程周期内不可行，且收益提升无法在无统计显著样本的情况下稳定验收。"
+    disposition: "wont"
+  - id: "WONT-003"
+    title: "全市场覆盖"
+    category: "out_of_scope"
+    reason: "本期优先美股；港股/A 股的数据和交易规则会显著扩大范围。"
+    disposition: "wont"
+  - id: "WONT-004"
+    title: "完整人工复核/隔离队列"
+    category: "discarded"
+    reason: "需要 UI/队列/复核人/SLA，运营成本过高；本期只做丢弃/记录和 REVIEW。"
+    disposition: "wont"
+  - id: "WONT-005"
+    title: "哈希链审计与 12 个月保留"
+    category: "discarded"
+    reason: "审计工程量大；本期保留原子/幂等记录和 manifest provenance。"
+    disposition: "wont"
+  - id: "WONT-006"
+    title: "阻塞式 CI 审批闸门"
+    category: "discarded"
+    reason: "需要测试审批流程、AI 使用日志 schema 和分支保护，过重。"
+    disposition: "wont"
+  - id: "WONT-007"
+    title: "完整 MCP 工具平面"
+    category: "discarded"
+    reason: "新组件维护成本高；本期只在 REQ-SEC-001 中加越权工具调用 guard。"
+    disposition: "wont"
+  - id: "WONT-008"
+    title: "提示词版本库"
+    category: "discarded"
+    reason: "工程量大；本期 manifest 只记录 config_hash/prompt_version 字符串。"
+    disposition: "wont"
+  - id: "WONT-009"
+    title: "人工盲评语义质量"
+    category: "discarded"
+    reason: "不可稳定机器校验；本期用 REQ-QUAL-001/002 的确定性代理指标。"
+    disposition: "wont"
+  - id: "WONT-010"
+    title: "REVIEW 率硬阈值"
+    category: "discarded"
+    reason: "可能诱导放宽校验；缺少基线；与完成项目目标冲突。"
+    disposition: "wont"
+  - id: "WONT-011"
+    title: "决策质量回测代理"
+    category: "discarded"
+    reason: "没有可机器校验的 fit criterion；回测 alpha 不稳定。"
+    disposition: "wont"
+  - id: "WONT-012"
+    title: "复杂 Web 前端"
+    category: "out_of_scope"
+    reason: "本期 CLI + 报告产物足够，不做前端平台。"
+    disposition: "wont"
+  - id: "WONT-013"
+    title: "生产级告警/看门狗"
+    category: "discarded"
+    reason: "需要告警通道和运维；课程演示不需要。"
+    disposition: "wont"
+
+discarded:
+  - id: "REQ-FR-01-other"
+    source: "other-doc"
+    requirement: "完整意图分类（偏题/模糊分类）"
+    reason: "需要额外 LLM/分类器，增加延迟和成本；本期用 REQ-FR-002 预检覆盖最关键的 ticker 有效性。"
+    disposition: "replaced-by REQ-FR-002"
+  - id: "REQ-FR-03-other"
+    source: "other-doc"
+    requirement: "模糊请求澄清/人工路径"
+    reason: "需要 UI/队列/人工 SLA，课程周期内过重。"
+    disposition: "discarded"
+  - id: "ARCH-EA-02-other"
+    source: "other-doc"
+    requirement: "MCP 工具平面/工具白名单"
+    reason: "新组件、维护成本高；本期只在 REQ-SEC-001 里加越权工具调用 guard。"
+    disposition: "partial-replaced-by REQ-SEC-001"
+  - id: "ARCH-EA-03-other"
+    source: "other-doc"
+    requirement: "提示词版本化产物"
+    reason: "价值高但工程量大；本期 manifest 只记录 config_hash/prompt_version 字符串。"
+    disposition: "merged-into REQ-FR-004"
+  - id: "SEC-03-other"
+    source: "other-doc"
+    requirement: "隔离队列 + 复核人"
+    reason: "需要队列、负责人、SLA；本期改为丢弃/记录，不影响评级。"
+    disposition: "partial-replaced-by REQ-SEC-001"
+  - id: "GOV-01-other"
+    source: "other-doc"
+    requirement: "完整 provenance 记录"
+    reason: "大部分并入 REQ-FR-004 manifest。"
+    disposition: "merged-into REQ-FR-004"
+  - id: "GOV-02-other"
+    source: "other-doc"
+    requirement: "哈希链、12 个月保留"
+    reason: "审计工程量大；本期只做原子 + 幂等记录。"
+    disposition: "discarded"
+  - id: "GOV-03-other"
+    source: "other-doc"
+    requirement: "操作者告警/看门狗"
+    reason: "需要告警通道和运维；课程演示不需要。"
+    disposition: "discarded"
+  - id: "GOV-04-other"
+    source: "other-doc"
+    requirement: "阻塞式 CI 审批闸门"
+    reason: "需要测试审批流程、AI 使用日志 schema、分支保护；过重。"
+    disposition: "discarded"
+  - id: "QUAL-03-other"
+    source: "other-doc"
+    requirement: "多评审语义评估"
+    reason: "人工/LLM judge 不可稳定机器校验；本期用 REQ-QUAL-002 的确定性检查。"
+    disposition: "replaced-by REQ-QUAL-002"
+  - id: "QUAL-04-other"
+    source: "other-doc"
+    requirement: "REVIEW 率 <=2%"
+    reason: "可能诱导放宽校验；缺少基线；与完成项目目标冲突。"
+    disposition: "discarded"
+  - id: "UNCLEAR-01-other"
+    source: "other-doc"
+    requirement: "决策质量回测代理"
+    reason: "没有可机器校验的 fit criterion；回测 alpha 不稳定。"
+    disposition: "discarded"
+  - id: "GOV-002-old"
+    source: "old-yaml"
+    requirement: "人工复核检查点"
+    reason: "依赖人力和 SLA，过重。"
+    disposition: "discarded"
+  - id: "ARCH-EA-01-old"
+    source: "old-yaml"
+    requirement: "Provider 适配器边界"
+    reason: "已存在；保留导入守卫测试，不单列需求。"
+    disposition: "existing-not-counted"
+  - id: "ARCH-EA-02-old"
+    source: "old-yaml"
+    requirement: "决策与解释路径分离"
+    reason: "作为设计原则保留，不单列需求。"
+    disposition: "design-principle"
+  - id: "QUAL-003-old"
+    source: "old-yaml"
+    requirement: "报告可读性/清晰度"
+    reason: "跨中英文自动指标不可靠，不能机器验收。"
+    disposition: "discarded"
+  - id: "QUAL-004-old"
+    source: "old-yaml"
+    requirement: "辩论更有说服力"
+    reason: "主观，无稳定机器指标。"
+    disposition: "discarded"
+  - id: "FR-009-old"
+    source: "old-yaml"
+    requirement: "每句话必须引用"
+    reason: "输出 token 成本过高；改为实质断言引用。"
+    disposition: "replaced-by REQ-FR-004"
+  - id: "QUAL-005-old"
+    source: "old-yaml"
+    requirement: "零数字错误"
+    reason: "无法保证检测完整；保留 REQ-QUAL-002 的 <=2% 阈值。"
+    disposition: "replaced-by REQ-QUAL-002"
+  - id: "PER-002-old"
+    source: "old-yaml"
+    requirement: "无限重试直到成功"
+    reason: "违反成本/延迟/可用性。"
+    disposition: "discarded"
+  - id: "GOV-003-old"
+    source: "old-yaml"
+    requirement: "所有运行强制人工复核"
+    reason: "运营成本过高。"
+    disposition: "discarded"
+
+open_questions:
+  - "实际开发周期是 4 周、3 周还是更短？本 YAML 按 4 周计划；少于 2 周需按最终文档 6.3 节裁剪 Should。"
+  - "六人如何对应 Part 1–6？当前用组员 A–F 占位，Part 3/5 工作量偏大。"
+  - "课程是否明确要求至少一条治理/人工复核需求？当前 governance 类型为 0；如需要，建议恢复 REQ-GOV-001（运行 provenance）并分配给 Part 3。"
+  - "参考环境是否统一为 4 vCPU / 16 GB RAM？"
+  - "Quick/Standard/Deep 的 token 上限是否需要根据实际 provider 价格再校准？"
+  - "Reddit 403 是否通过代理/镜像解决，还是保留不可用降级？"
+  - "是否需要在最终演示中保留人工复核/完整审计？"
+
+change_log:
+  - version: "0.1.0"
+    date: "2026-11-16"
+    change: "初稿：奥斯本头脑风暴、需求分类、15 条需求与验收计划。"
+  - version: "0.2.0"
+    date: "2026-11-16"
+    change: "改为机器可校验 YAML；增加 metric/threshold/verification、MoSCoW、显式 tradeoff 和 discarded 清单。"
+  - version: "1.0.0"
+    date: "2026-11-16"
+    change: "按最终实施文档同步为 14 条需求、6 个 Part；更新优先级、类型覆盖、舍弃清单、traceability 和开放问题。"
+  - version: "1.0.1"
+    date: "2026-11-16"
+    change: "将 priority_summary.wont 和 out_of_scope 改为 WONT-* ID；新增 wont_items 结构化清单；type_coverage_notes 结构化。"

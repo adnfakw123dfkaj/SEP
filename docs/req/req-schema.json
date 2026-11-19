@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://adnfakw123dfkaj.github.io/SEP/req-schema.json",
+  "title": "TradingAgents requirements registry",
+  "description": "Schema the Gate 3 (schema gate) validates docs/req/requirements.yaml against (v1.0.1 shape).",
+  "type": "object",
+  "required": ["requirements"],
+  "properties": {
+    "requirements": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/entry" }
+    }
+  },
+  "$defs": {
+    "fitCriterion": {
+      "type": "object",
+      "required": ["metric", "threshold", "verification"],
+      "properties": {
+        "metric": { "type": "string", "minLength": 1 },
+        "threshold": { "type": "string", "minLength": 1 },
+        "verification": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": false
+    },
+    "entry": {
+      "type": "object",
+      "required": ["id", "type", "priority", "statement", "fit_criterion"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^(REQ-(FR|INV|QUAL|PER|COST|GOV|SEC|UNCLEAR)|ARCH-EA)-[0-9]{3}$"
+        },
+        "title": { "type": "string" },
+        "type": {
+          "type": "string",
+          "enum": [
+            "functional", "invariant", "quality", "performance",
+            "cost", "governance", "security", "unclear", "architectural_constraint"
+          ]
+        },
+        "subtype": { "type": ["string", "null"] },
+        "priority": { "type": "string", "enum": ["must", "should", "could", "wont"] },
+        "part": { "type": "integer", "minimum": 1, "maximum": 6 },
+        "status": { "type": "string" },
+        "statement": { "type": "string", "minLength": 1 },
+        "rationale": { "type": "string" },
+        "implementation": { "type": "object" },
+        "fit_criterion": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/fitCriterion" }
+        },
+        "tradeoff": { "type": "string" },
+        "dependencies": { "type": "array", "items": { "type": "string" } },
+        "tags": { "type": "array", "items": { "type": "string" } }
+      },
+      "additionalProperties": true
+    }
+  }
+}

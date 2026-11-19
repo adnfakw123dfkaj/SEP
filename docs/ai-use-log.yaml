@@ -1,0 +1,146 @@
+# AI-use log (Gate 6).
+#
+# Append-only. Every PR that changes production code (*.py outside tests/docs/
+# .github) or a prompt must add an entry here whose change_id matches the PR's
+# head SHA. Gate 6 blocks a code/prompt change with no new entry.
+#
+# Entry fields:
+#   change_id      the PR head SHA (or a stable change id)
+#   date           ISO-8601 date of the change
+#   agent_session  short label of the AI coding session (for course evidence)
+#   summary        what the agent produced and what the human changed/approved
+#   files_changed  the production files touched (allowlist, no keys/paths)
+entries:
+  - change_id: "bootstrap"
+    date: "2026-11-17"
+    agent_session: "gate-framework-bootstrap"
+    summary: "Initial blocking-gate framework: six gate scripts, reusable workflow, layer-1 stub, registry and schema."
+    files_changed:
+      - scripts/gates/common.py
+      - scripts/gates/run.py
+      - scripts/gates/collect_context.py
+      - scripts/gates/check_test_approval.py
+      - scripts/gates/check_static_analysis.py
+      - scripts/gates/check_schema.py
+      - scripts/gates/check_semantic_eval.py
+      - scripts/gates/check_regression.py
+      - scripts/gates/check_ai_use_log.py
+      - .github/workflows/gates.yml
+      - .github/workflows/ci.yml
+      - .github/workflows/branch-check.yml
+
+  - change_id: "gate-fixes-static-and-aiuse"
+    date: "2026-11-17"
+    agent_session: "gate-issues-report-response"
+    summary: "Address colleague gate issues: G2 now runs the safety-path checks (contract/security/api_surface/permission) via run_static_checks.py; G6 no longer requires change_id==head SHA and excludes test files from 'production code'; schema aligned to the canonical requirements.yaml. Human reviewed and approved."
+    files_changed:
+      - scripts/gates/run_static_checks.py
+      - scripts/gates/check_ai_use_log.py
+      - scripts/gates/check_schema.py
+      - .github/workflows/gates.yml
+
+  - change_id: "part6-cost-control"
+    date: "2026-11-17"
+    agent_session: "opencode-part6"
+    summary: "Implemented Part 6 cost/performance library, callback capture, offline CLI scripts, and 81 tests. Human reviewed the test plan, approved implementation, and will review the gate results."
+    files_changed:
+      - tradingagents/tradingagents/contracts/__init__.py
+      - tradingagents/tradingagents/contracts/cost.py
+      - tradingagents/tradingagents/contracts/llm_event.py
+      - tradingagents/tradingagents/cost/__init__.py
+      - tradingagents/tradingagents/cost/agent_context.py
+      - tradingagents/tradingagents/cost/audit.py
+      - tradingagents/tradingagents/cost/benchmark.py
+      - tradingagents/tradingagents/cost/budget.py
+      - tradingagents/tradingagents/cost/callback.py
+      - tradingagents/tradingagents/cost/cli.py
+      - tradingagents/tradingagents/cost/enforcement.py
+      - tradingagents/tradingagents/cost/estimator.py
+      - tradingagents/tradingagents/cost/monitor.py
+      - tradingagents/tradingagents/cost/pricing.py
+      - tradingagents/tradingagents/cost/report.py
+      - tradingagents/tradingagents/cost/router.py
+      - tradingagents/tradingagents/cost/runner.py
+      - tradingagents/scripts/bench_latency.py
+      - tradingagents/scripts/smoke_cost_tracking.py
+      - tradingagents/scripts/token_audit.py
+  - change_id: "gate-ci-robustness"
+    date: "2026-11-17"
+    agent_session: "gate-ci-audit"
+    summary: "Fix local-passes-remote-blocks: collect_context no longer crashes when the base ref (master) is absent (uses origin/master, GITHUB_BASE_REF); AI-use log parsed as YAML not JSON; static security check skips test fixtures; gate self-tests install pyyaml. Human reviewed."
+    files_changed:
+      - scripts/gates/collect_context.py
+      - scripts/gates/run_static_checks.py
+      - .github/workflows/ci.yml
+
+  - change_id: "gate-full-audit"
+    date: "2026-11-17"
+    agent_session: "gate-audit-g1-g7"
+    summary: "Full G1-G7 audit via fresh-clone CI simulation (no local master). Fixes: pip-audit no longer blocks on pre-existing transitive CVEs (dependencies check now = declared deps importable; audit informational); G4 check() metrics defaults None so an omitted metrics key does not crash run.py; security check skips test fixtures. Verified all gates pass when satisfied and block violations. Human reviewed."
+    files_changed:
+      - scripts/gates/run_static_checks.py
+      - scripts/gates/check_semantic_eval.py
+      - scripts/gates/run.py
+      - .github/workflows/gates.yml
+
+  - change_id: "gate-report-306893d-response"
+    date: "2026-11-17"
+    agent_session: "gate-bug-report-audit"
+    summary: "Respond to gate-bug-report-306893d.md: G4/G6 already fixed in f23a90d (verified). Hardened G4 workflow to always write metrics; ownership job runs -m 'not integration' so integration tests never affect G7; docstring fixes. Baseline re-recorded (no drift). Human reviewed."
+    files_changed:
+      - .github/workflows/gates.yml
+      - scripts/gates/run.py
+      - scripts/gates/collect_context.py
+
+  - change_id: "g5-param-id-normalization"
+    date: "2026-11-17"
+    agent_session: "g5-baseline-id-fix"
+    summary: "Fix G5 false 'deletion' when baseline and current disagree on parameterized test-id escaping (pytest version difference). check_regression now normalises \n/\t/\\ escaping on both sides before matching, while still catching real deletions and regressions. Human reviewed."
+    files_changed:
+      - scripts/gates/check_regression.py
+
+  - change_id: "g5-autoid-normalization"
+    date: "2026-11-17"
+    agent_session: "g5-textN-fix"
+    summary: "Fix G5 when pytest names parameters with auto ids (text6) instead of full text: check_regression bridges same-base/same-count auto-id params; test_rating_integrity parametrize blocks given explicit stable ids so nodeids are version-independent. Baseline re-recorded. Human reviewed."
+    files_changed:
+      - scripts/gates/check_regression.py
+      - tradingagents/tests/test_rating_integrity.py
+
+  - change_id: "gate-ci-yaml-and-permission-fix"
+    date: "2026-11-17"
+    agent_session: "gate-ci-failure-fix"
+    summary: "Fix live CI failures: gate-test-approval and gate-ai-use-log jobs install pyyaml; collect_context parses YAML with a built-in fallback so a missing pyyaml never crashes; run_static_checks.check_permission is now a workflow-permission property check (no approval file required for gate-infra changes). Human reviewed."
+    files_changed:
+      - .github/workflows/gates.yml
+      - scripts/gates/collect_context.py
+      - scripts/gates/run_static_checks.py
+
+  - change_id: "part3-evidence-records"
+    date: "2026-11-17"
+    agent_session: "part3-implementation"
+    summary: "Part 3 (REQ-FR-004/QUAL-002/INV-001): add EvidenceRef + RunManifest contracts, evidence registry and fidelity checks, records atomic write + idempotent store; claim part3 in ownership; implement the Part 3 requirement tests. Human reviewed."
+    files_changed:
+      - tradingagents/tradingagents/contracts/evidence.py
+      - tradingagents/tradingagents/contracts/manifest.py
+      - tradingagents/tradingagents/contracts/__init__.py
+      - tradingagents/tradingagents/evidence/registry.py
+      - tradingagents/tradingagents/evidence/fidelity.py
+      - tradingagents/tradingagents/evidence/__init__.py
+      - tradingagents/tradingagents/records/atomic.py
+      - tradingagents/tradingagents/records/idempotency.py
+      - tradingagents/tradingagents/records/__init__.py
+
+  - change_id: "g2-dependencies-disk-check"
+    date: "2026-11-18"
+    agent_session: "g2-dependencies-fix"
+    summary: "Fix Gate 2 dependencies check failing in CI: it imported 'tradingagents', which from the repo root resolves to the project directory as a namespace package and gets cached, shadowing the real package. check_dependencies now inspects tradingagents/tradingagents/__init__.py on disk (parses, declares __version__), cwd- and import-cache-independent. Human reviewed."
+    files_changed:
+      - scripts/gates/run_static_checks.py
+
+  - change_id: "g1-gate-infra-test-exemption"
+    date: "2026-11-18"
+    agent_session: "g1-approval-coverage-fix"
+    summary: "Fix Gate 1 false block: a gate-infrastructure test (tests/gates/) was required to be listed in a test-approval record even though it is gate tooling, not an application test. test_changed now excludes paths under _GATE_INFRA_PREFIXES, matching how scripts/gates/ is excluded from code_changed. App tests still require approval. Human reviewed."
+    files_changed:
+      - scripts/gates/check_test_approval.py

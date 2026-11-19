@@ -1,0 +1,32 @@
+# Layer 1 — branch self-check (warn-only). THE THIN STUB.
+#
+# This is the ONLY workflow a feature branch needs. It contains no gate rules:
+# it calls the reusable `gates` workflow that lives on master, in warn-only mode,
+# so the branch evaluates the latest master rules without copying or maintaining
+# them. A warning-only failure never blocks the branch or anyone else; the
+# blocking decision is made later at the PR (ci.yml, layer 2).
+#
+# A branch that does not carry this stub is still checked at PR time — this stub
+# only gives earlier, local feedback.
+
+name: branch-check
+
+on:
+  push:
+    branches-ignore: [master]
+  workflow_dispatch:
+
+concurrency:
+  group: branch-check-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  self-check:
+    # Rules always come from master, never from the pushed branch's copy.
+    uses: adnfakw123dfkaj/SEP/.github/workflows/gates.yml@master
+    with:
+      layer: warn-only
+      base_ref: master
