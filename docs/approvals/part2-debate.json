@@ -1,0 +1,9 @@
+{
+  "change_id": "part2-debate",
+  "tests": [
+    "tradingagents/tests/req/test_debate_protocol.py",
+    "tradingagents/tests/req/test_debate_quality.py"
+  ],
+  "approved_by": "wsk",
+  "approved_at": "2026-11-20T01:17:58+08:00"
+}
