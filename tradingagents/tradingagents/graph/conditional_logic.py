@@ -12,6 +12,20 @@ class ConditionalLogic:
     def should_continue_debate(self, state: AgentState) -> str:
         """Determine if debate should continue."""
 
+        from tradingagents.agents.debate.convergence import should_stop
+
+        debate = state["investment_debate_state"]
+        turns = debate.get("turns", [])
+        if debate.get("enable_structured_debate", True) and turns:
+            stopped = should_stop(turns, self.max_debate_rounds)
+            latest = turns[-1]
+            status = latest.get("status") if isinstance(latest, dict) else latest.status
+            # 无效发言直接转交现有主持人；它不属于收敛早停。
+            if stopped or status == "invalid":
+                return "Research Manager"
+            speaker = latest.get("speaker") if isinstance(latest, dict) else latest.speaker
+            return "Bear Researcher" if speaker == "bull" else "Bull Researcher"
+
         if (
             state["investment_debate_state"]["count"] >= 2 * self.max_debate_rounds
         ):  # max_debate_rounds turns each for bull and bear

@@ -1,0 +1,150 @@
+{
+  "convergent": {
+    "transcript_id": "golden-convergent",
+    "turns": [
+      {
+        "turn_id": "convergent-1",
+        "round": 1,
+        "speaker": "bull",
+        "claim": "示例价格趋势支持增长观点。",
+        "stance": "bullish",
+        "evidence_refs": [
+          "market:price"
+        ],
+        "assumptions": [],
+        "rebuttal_to": null,
+        "confidence": 0.7,
+        "open_questions": [],
+        "requested_evidence": [],
+        "no_new_evidence": false,
+        "status": "ok"
+      },
+      {
+        "turn_id": "convergent-2",
+        "round": 2,
+        "speaker": "bear",
+        "claim": "示例估值仍有下行风险。",
+        "stance": "bearish",
+        "evidence_refs": [
+          "fundamentals:valuation"
+        ],
+        "assumptions": [],
+        "rebuttal_to": "convergent-1",
+        "confidence": 0.7,
+        "open_questions": [],
+        "requested_evidence": [],
+        "no_new_evidence": false,
+        "status": "ok"
+      },
+      {
+        "turn_id": "convergent-3",
+        "round": 3,
+        "speaker": "bull",
+        "claim": "没有新增证据，维持原有多方立场。",
+        "stance": "bullish",
+        "evidence_refs": [],
+        "assumptions": [],
+        "rebuttal_to": "convergent-2",
+        "confidence": 0.7,
+        "open_questions": [],
+        "requested_evidence": [],
+        "no_new_evidence": true,
+        "status": "ok"
+      },
+      {
+        "turn_id": "convergent-4",
+        "round": 4,
+        "speaker": "bear",
+        "claim": "没有新增证据，维持原有空方立场。",
+        "stance": "bearish",
+        "evidence_refs": [],
+        "assumptions": [],
+        "rebuttal_to": "convergent-3",
+        "confidence": 0.7,
+        "open_questions": [],
+        "requested_evidence": [],
+        "no_new_evidence": true,
+        "status": "ok"
+      }
+    ],
+    "quality_available": true
+  },
+  "non_convergent": {
+    "transcript_id": "golden-non-convergent",
+    "turns": [
+      {
+        "turn_id": "non-convergent-1",
+        "round": 1,
+        "speaker": "bull",
+        "claim": "示例价格趋势支持增长观点。",
+        "stance": "bullish",
+        "evidence_refs": [
+          "market:price"
+        ],
+        "assumptions": [],
+        "rebuttal_to": null,
+        "confidence": 0.7,
+        "open_questions": [],
+        "requested_evidence": [],
+        "no_new_evidence": false,
+        "status": "ok"
+      },
+      {
+        "turn_id": "non-convergent-2",
+        "round": 2,
+        "speaker": "bear",
+        "claim": "示例估值仍有下行风险。",
+        "stance": "bearish",
+        "evidence_refs": [
+          "fundamentals:valuation"
+        ],
+        "assumptions": [],
+        "rebuttal_to": "non-convergent-1",
+        "confidence": 0.7,
+        "open_questions": [],
+        "requested_evidence": [],
+        "no_new_evidence": false,
+        "status": "ok"
+      },
+      {
+        "turn_id": "non-convergent-3",
+        "round": 3,
+        "speaker": "bull",
+        "claim": "新增的示例需求证据进一步支持增长观点。",
+        "stance": "bullish",
+        "evidence_refs": [
+          "news:demand"
+        ],
+        "assumptions": [],
+        "rebuttal_to": "non-convergent-2",
+        "confidence": 0.7,
+        "open_questions": [],
+        "requested_evidence": [],
+        "no_new_evidence": false,
+        "status": "ok"
+      },
+      {
+        "turn_id": "non-convergent-4",
+        "round": 4,
+        "speaker": "bear",
+        "claim": "新增需求证据改变了判断，立场转为中性。",
+        "stance": "neutral",
+        "evidence_refs": [
+          "news:demand"
+        ],
+        "assumptions": [],
+        "rebuttal_to": "non-convergent-3",
+        "confidence": 0.7,
+        "open_questions": [],
+        "requested_evidence": [],
+        "no_new_evidence": false,
+        "status": "ok"
+      }
+    ],
+    "quality_available": true
+  },
+  "expected_should_stop": {
+    "convergent": true,
+    "non_convergent": false
+  }
+}

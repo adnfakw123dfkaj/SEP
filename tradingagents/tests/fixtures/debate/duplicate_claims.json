@@ -1,0 +1,65 @@
+{
+  "transcript": {
+    "transcript_id": "golden-duplicate-claims",
+    "turns": [
+      {
+        "turn_id": "duplicate-1",
+        "round": 1,
+        "speaker": "bull",
+        "claim": "示例价格趋势支持增长观点。",
+        "stance": "bullish",
+        "evidence_refs": [
+          "market:price"
+        ],
+        "assumptions": [],
+        "rebuttal_to": null,
+        "confidence": 0.7,
+        "open_questions": [],
+        "requested_evidence": [],
+        "no_new_evidence": false,
+        "status": "ok"
+      },
+      {
+        "turn_id": "duplicate-2",
+        "round": 2,
+        "speaker": "bear",
+        "claim": "示例估值证据提示价格包含过高预期。",
+        "stance": "bearish",
+        "evidence_refs": [
+          "fundamentals:valuation"
+        ],
+        "assumptions": [],
+        "rebuttal_to": "duplicate-1",
+        "confidence": 0.7,
+        "open_questions": [],
+        "requested_evidence": [],
+        "no_new_evidence": false,
+        "status": "ok"
+      },
+      {
+        "turn_id": "duplicate-3",
+        "round": 3,
+        "speaker": "bull",
+        "claim": "示例价格趋势支持增长观点。",
+        "stance": "bullish",
+        "evidence_refs": [
+          "market:price"
+        ],
+        "assumptions": [],
+        "rebuttal_to": "duplicate-2",
+        "confidence": 0.7,
+        "open_questions": [],
+        "requested_evidence": [],
+        "no_new_evidence": true,
+        "status": "ok"
+      }
+    ],
+    "quality_available": true
+  },
+  "expected_duplicate_pairs": [
+    [
+      "duplicate-1",
+      "duplicate-3"
+    ]
+  ]
+}

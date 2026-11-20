@@ -144,3 +144,23 @@ entries:
     summary: "Fix Gate 1 false block: a gate-infrastructure test (tests/gates/) was required to be listed in a test-approval record even though it is gate tooling, not an application test. test_changed now excludes paths under _GATE_INFRA_PREFIXES, matching how scripts/gates/ is excluded from code_changed. App tests still require approval. Human reviewed."
     files_changed:
       - scripts/gates/check_test_approval.py
+
+  - change_id: "part2-debate"
+    date: "2026-11-20"
+    agent_session: "part2-debate-implementation"
+    summary: "完成 REQ-FR-003 结构化辩论协议和 REQ-QUAL-001 确定性质量指标，并经过人工审核。"
+    files_changed:
+      - tradingagents/tradingagents/contracts/debate.py
+      - tradingagents/tradingagents/agents/debate/__init__.py
+      - tradingagents/tradingagents/agents/debate/schemas.py
+      - tradingagents/tradingagents/agents/debate/prompts.py
+      - tradingagents/tradingagents/agents/debate/stubs.py
+      - tradingagents/tradingagents/agents/debate/validator.py
+      - tradingagents/tradingagents/agents/debate/adapter.py
+      - tradingagents/tradingagents/agents/debate/convergence.py
+      - tradingagents/tradingagents/agents/debate/export.py
+      - tradingagents/tradingagents/agents/debate/quality.py
+      - tradingagents/tradingagents/agents/researchers/bull_researcher.py
+      - tradingagents/tradingagents/agents/researchers/bear_researcher.py
+      - tradingagents/tradingagents/graph/conditional_logic.py
+      - tradingagents/tradingagents/agents/debate/README.md
