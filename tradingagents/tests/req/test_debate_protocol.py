@@ -344,7 +344,7 @@ def test_retry_then_degrade():
     ):
         calls = []
 
-        def invalid_complete(prompt):
+        def invalid_complete(prompt, calls=calls):
             calls.append(prompt)
             return SimpleNamespace(content="not json")
 

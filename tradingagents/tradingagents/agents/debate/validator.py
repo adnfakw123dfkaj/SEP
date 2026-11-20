@@ -36,7 +36,10 @@ def validate_turn(
     ids = {item.turn_id for item in previous}
     if len(ids) != len(previous) or candidate.turn_id in ids:
         raise ValueError("turn_id must be unique within a transcript")
-    if any(right.round <= left.round for left, right in zip(previous, previous[1:])):
+    if any(
+        right.round <= left.round
+        for left, right in zip(previous, previous[1:], strict=False)
+    ):
         raise ValueError("round must increase monotonically")
     if previous:
         if candidate.round <= previous[-1].round:
