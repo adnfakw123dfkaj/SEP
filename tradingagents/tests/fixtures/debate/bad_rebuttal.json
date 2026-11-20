@@ -1,0 +1,42 @@
+{
+  "transcript": {
+    "transcript_id": "golden-missing-rebuttal",
+    "turns": [
+      {
+        "turn_id": "reference-1",
+        "round": 1,
+        "speaker": "bull",
+        "claim": "示例价格证据支持多方观点。",
+        "stance": "bullish",
+        "evidence_refs": [
+          "market:price"
+        ],
+        "assumptions": [],
+        "rebuttal_to": null,
+        "confidence": 0.7,
+        "open_questions": [],
+        "requested_evidence": [],
+        "no_new_evidence": false,
+        "status": "ok"
+      },
+      {
+        "turn_id": "reference-2",
+        "round": 2,
+        "speaker": "bear",
+        "claim": "这条样本故意反驳不存在的发言。",
+        "stance": "bearish",
+        "evidence_refs": [
+          "market:price"
+        ],
+        "assumptions": [],
+        "rebuttal_to": "missing-turn",
+        "confidence": 0.7,
+        "open_questions": [],
+        "requested_evidence": [],
+        "no_new_evidence": false,
+        "status": "ok"
+      }
+    ],
+    "quality_available": true
+  }
+}

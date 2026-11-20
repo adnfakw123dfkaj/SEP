@@ -1,0 +1,46 @@
+{
+  "transcript": {
+    "transcript_id": "golden-normal",
+    "turns": [
+      {
+        "turn_id": "normal-1",
+        "round": 1,
+        "speaker": "bull",
+        "claim": "示例行情中的价格趋势支持增长观点。",
+        "stance": "bullish",
+        "evidence_refs": [
+          "market:price"
+        ],
+        "assumptions": [
+          "示例行情在分析时点可得。"
+        ],
+        "rebuttal_to": null,
+        "confidence": 0.7,
+        "open_questions": [],
+        "requested_evidence": [],
+        "no_new_evidence": false,
+        "status": "ok"
+      },
+      {
+        "turn_id": "normal-2",
+        "round": 2,
+        "speaker": "bear",
+        "claim": "示例估值证据显示增长预期可能已反映在价格中。",
+        "stance": "bearish",
+        "evidence_refs": [
+          "fundamentals:valuation"
+        ],
+        "assumptions": [],
+        "rebuttal_to": "normal-1",
+        "confidence": 0.65,
+        "open_questions": [
+          "增长预期能否持续？"
+        ],
+        "requested_evidence": [],
+        "no_new_evidence": false,
+        "status": "ok"
+      }
+    ],
+    "quality_available": true
+  }
+}
