@@ -7,7 +7,7 @@ from tradingagents.profiles import build_profile
 
 def test_profile_contracts_validate_defaults():
     for name, rounds, tools, tokens, timeout in (
-        ("quick", 1, 6, 25000, 300), ("standard", 1, 10, 60000, 720), ("deep", 2, 15, 150000, 1800)
+        ("quick", 1, 1, 25000, 300), ("standard", 1, 2, 60000, 720), ("deep", 2, 3, 150000, 1800)
     ):
         p = build_profile(name)
         assert (p.debate_rounds, p.max_tool_rounds, p.token_budget, p.timeout_s) == (rounds, tools, tokens, timeout)

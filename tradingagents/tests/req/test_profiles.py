@@ -12,7 +12,7 @@ def test_profile_matrix():
     assert quick.analysts == ("market",)
     assert standard.analysts == ("market", "news", "fundamentals")
     assert deep.analysts == ("market", "social", "news", "fundamentals")
-    assert [p.max_tool_rounds for p in (quick, standard, deep)] == [6, 10, 15]
+    assert [p.max_tool_rounds for p in (quick, standard, deep)] == [1, 2, 3]
     assert [p.token_budget for p in (quick, standard, deep)] == [25000, 60000, 150000]
 
 
@@ -35,14 +35,14 @@ def test_invalid_override():
 def test_profile_maps_to_existing_runtime_config():
     config = profile_to_runtime_config(build_profile("deep"), {"output_language": "Chinese"})
     assert config["max_debate_rounds"] == config["max_risk_discuss_rounds"] == 2
-    assert config["max_tool_rounds"] == 15 and config["output_language"] == "Chinese"
+    assert config["max_tool_rounds"] == 3 and config["output_language"] == "Chinese"
 
 
 def test_resolve_run_profile_supplies_analysts_and_runtime_config():
     config, analysts = resolve_run_profile({"run_profile": "quick"})
     assert analysts == ("market",)
     assert config["max_debate_rounds"] == config["max_risk_discuss_rounds"] == 1
-    assert config["max_tool_rounds"] == 6
+    assert config["max_tool_rounds"] == 1
 
 
 def test_resolve_run_profile_keeps_allowed_explicit_analysts_and_config():

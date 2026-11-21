@@ -51,7 +51,12 @@ def _tools_or_done(state) -> str:
     return "tools" if state["messages"][-1].tool_calls else END
 
 
-def _analyst_graph(spec, agent, max_tool_rounds: int):
+def _analyst_graph(
+    spec,
+    agent,
+    max_tool_rounds: int,
+    max_tool_output_chars: int | None = None,
+):
     """One analyst as a graph of its own: the model and its tools, on a private message history.
 
     It returns only its report, so analysts running side by side never write the
@@ -85,9 +90,13 @@ def _analyst_graph(spec, agent, max_tool_rounds: int):
 
     graph.add_node(
         "tools",
-        GuardedToolNode(list(spec.tools), role=spec.agent_node),
+        GuardedToolNode(
+            list(spec.tools),
+            role=spec.agent_node,
+            max_output_chars=max_tool_output_chars,
+        ),
     )
-    graph.add_node("wrap_up", wrap_up)
+    graph.add_node("wrap_up", with_agent_scope(spec.agent_node, wrap_up))
     graph.add_conditional_edges("agent", _tools_or_done, ["tools", END])
     graph.add_conditional_edges("tools", more_or_wrap_up, ["agent", "wrap_up"])
     graph.add_edge("wrap_up", END)
@@ -103,12 +112,14 @@ class GraphSetup:
         deep_thinking_llm: Any,
         conditional_logic: ConditionalLogic,
         max_tool_rounds: int,
+        max_tool_output_chars: int | None = None,
     ):
         """Initialize with required components."""
         self.quick_thinking_llm = quick_thinking_llm
         self.deep_thinking_llm = deep_thinking_llm
         self.conditional_logic = conditional_logic
         self.max_tool_rounds = max_tool_rounds
+        self.max_tool_output_chars = max_tool_output_chars
 
     def setup_graph(
         self, selected_analysts=("market", "social", "news", "fundamentals"), memory_node=None
@@ -163,7 +174,12 @@ class GraphSetup:
 
         for spec in plan.specs:
             workflow.add_node(spec.agent_node,
-                              _analyst_graph(spec, analyst_factories[spec.key](), self.max_tool_rounds))
+                              _analyst_graph(
+                                  spec,
+                                  analyst_factories[spec.key](),
+                                  self.max_tool_rounds,
+                                  self.max_tool_output_chars,
+                              ))
 
         workflow.add_node("Bull Researcher", bull_researcher_node)
         workflow.add_node("Bear Researcher", bear_researcher_node)

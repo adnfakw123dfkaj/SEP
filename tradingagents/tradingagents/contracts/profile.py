@@ -16,3 +16,6 @@ class ProfileConfig(BaseModel):
     token_budget: int = Field(gt=0)
     timeout_s: int = Field(gt=0)
     cache_ttl: dict[str, int]
+    max_tool_output_chars: int = Field(default=6000, gt=0)
+    report_prompt_chars: int = Field(default=4000, gt=0)
+    max_output_tokens: int = Field(default=4096, gt=0)

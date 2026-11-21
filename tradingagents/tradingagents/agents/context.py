@@ -196,9 +196,17 @@ def report_or_absent(text: str, source: str) -> str:
     an empty opponent argument used to invite an invented rebuttal (#1176).
     """
     text = (text or "").strip()
-    if text:
-        return text
-    return f"(No {source} report in this run: it is not available, not an empty finding.)"
+    if not text:
+        return f"(No {source} report in this run: it is not available, not an empty finding.)"
+    from tradingagents.dataflows.config import get_config
+
+    limit = get_config().get("report_prompt_chars")
+    if limit and len(text) > limit:
+        return (
+            text[:limit]
+            + "\n...[report truncated for prompt budget]..."
+        )
+    return text
 
 
 def get_portfolio_context_from_state(state: Mapping[str, Any]) -> str:

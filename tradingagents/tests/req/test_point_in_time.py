@@ -9,6 +9,7 @@ from datetime import UTC, datetime
 from tradingagents.dataflows.date_window import (
     as_of,
     as_of_window,
+    get_current_date,
     in_window,
     is_historical,
     withhold_live_profile,
@@ -82,4 +83,4 @@ def test_is_historical():
 
 
 def test_live_profile_served_for_current_run():
-    assert withhold_live_profile(datetime.now(UTC).strftime("%Y-%m-%d"), "AAPL") is None
+    assert withhold_live_profile(get_current_date(), "AAPL") is None

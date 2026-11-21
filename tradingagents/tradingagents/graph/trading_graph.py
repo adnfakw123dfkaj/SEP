@@ -181,6 +181,7 @@ class TradingAgentsGraph:
             self.deep_thinking_llm,
             self.conditional_logic,
             max_tool_rounds,
+            self.config.get("max_tool_output_chars"),
         )
 
         self.propagator = Propagator(
@@ -223,6 +224,25 @@ class TradingAgentsGraph:
             "enabled": bool(self.config.get("checkpoint_enabled")),
             "resumed": bool(getattr(self, "_resuming", False)),
         }
+
+    def _capture_verified_snapshot(self, ticker: str, trade_date: str) -> None:
+        """Register the deterministic market snapshot even if the model skips the tool."""
+        try:
+            from tradingagents.dataflows.vendors.yahoo.snapshot import (
+                build_verified_market_snapshot,
+            )
+            from tradingagents.evidence.context import register_tool_result
+
+            snapshot = build_verified_market_snapshot(ticker, str(trade_date))
+            register_tool_result(
+                method="get_verified_market_snapshot",
+                vendor="snapshot",
+                args=(ticker, str(trade_date)),
+                kwargs={},
+                value=snapshot,
+            )
+        except Exception as exc:  # noqa: BLE001 - verification must not block the run
+            logger.debug("Could not capture verified snapshot for %s: %s", ticker, exc)
 
     def run_signature(self, asset_type: str = "stock", portfolio=None) -> str:
         """Public stable key for checkpointing and idempotent decision records."""
@@ -676,6 +696,7 @@ class TradingAgentsGraph:
                     registry = self.last_evidence_registry
                 else:
                     with evidence_scope() as registry:
+                        self._capture_verified_snapshot(company_name, str(trade_date))
                         final_state = self.graph.invoke(graph_input, **args)
                     self.last_evidence_registry = registry
         except BudgetExceededError as exc:
@@ -747,6 +768,11 @@ class TradingAgentsGraph:
         # LangGraph carries this context into tool calls; creating it first
         # leaves the tools without the run's evidence registry.
         with evidence_scope() as registry:
+            initial = graph_input if isinstance(graph_input, dict) else {}
+            ticker = initial.get("company_of_interest")
+            trade_date = initial.get("trade_date")
+            if ticker and trade_date:
+                self._capture_verified_snapshot(ticker, str(trade_date))
             context = run_config_context(self.config)
             stream = context.run(self.graph.stream, graph_input, subgraphs=True, **args)
             try:

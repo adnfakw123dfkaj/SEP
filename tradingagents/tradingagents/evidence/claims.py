@@ -183,10 +183,20 @@ def _snapshot_values(snapshot: str) -> dict[str, float]:
     return values
 
 
+_HISTORICAL = re.compile(
+    r"\d{4}-\d{2}-\d{2}|\b(?:peak|previous|prior|historical|drawdown|since|from)\b",
+    re.IGNORECASE,
+)
+
+
 def _labeled_values(text: str) -> list[tuple[str, float]]:
     found: list[tuple[str, float]] = []
     for field, pattern in _LABELS:
         for match in re.finditer(pattern, text or "", re.IGNORECASE):
+            if field in {"close", "high", "low"}:
+                prefix = (text or "")[max(0, match.start() - 30):match.start()]
+                if _HISTORICAL.search(prefix):
+                    continue
             value = _number(match.group(1))
             if value is not None:
                 found.append((field, value))
