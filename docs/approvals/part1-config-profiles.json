@@ -1,0 +1,11 @@
+{
+  "change_id": "part1-profiles",
+  "tests": [
+    "tradingagents/tests/contracts/test_profile_contract.py",
+    "tradingagents/tests/req/test_profiles.py",
+    "tradingagents/tests/req/test_preflight.py",
+    "tradingagents/tests/req/test_profile_cli_integration.py"
+  ],
+  "approved_by": "JaxxyH",
+  "approved_at": "2026-11-20T15:00:00+08:00"
+}
