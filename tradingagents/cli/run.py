@@ -140,11 +140,14 @@ def run_analysis(checkpoint: bool | None = None, portfolio=None, flags=None):
     config = _build_run_config(selections, checkpoint)
 
     # Gate before graph construction, which instantiates the LLM clients.
-    if (flags or {}).get("profile"):
-        result = validate_request(selections["ticker"], selections["analysis_date"])
-        if not result.ok:
-            console.print(f"[red]Preflight failed for {result.ticker}: {result.reason}[/red]")
-            raise typer.Exit(code=1)
+    result = validate_request(
+        selections["ticker"],
+        selections["analysis_date"],
+        config=config,
+    )
+    if not result.ok:
+        console.print(f"[red]Preflight failed for {result.ticker}: {result.reason}[/red]")
+        raise typer.Exit(code=1)
 
     stats_handler = StatsCallbackHandler()
 

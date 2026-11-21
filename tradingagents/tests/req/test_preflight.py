@@ -39,6 +39,42 @@ def test_valid_tickers(monkeypatch, symbol):
     assert validate_request(symbol, "2026-11-20").ok
 
 
+def test_preflight_caches_identity_and_price(monkeypatch, tmp_path):
+    identity_calls, price_calls = [], []
+    monkeypatch.setattr(
+        "tradingagents.agents.context.resolve_instrument_identity",
+        lambda ticker: identity_calls.append(ticker) or {"company_name": "Apple"},
+    )
+    monkeypatch.setattr(
+        "tradingagents.dataflows.router.route_to_vendor",
+        lambda *args: price_calls.append(args) or "Close: 1.00",
+    )
+    config = {"data_cache_dir": str(tmp_path)}
+
+    assert validate_request("AAPL", "2026-11-20", config=config).ok
+    assert validate_request("AAPL", "2026-11-20", config=config).ok
+
+    assert identity_calls == ["AAPL"]
+    assert len(price_calls) == 1
+
+
+def test_preflight_does_not_cache_unavailable_data(monkeypatch, tmp_path):
+    calls = []
+    monkeypatch.setattr(
+        "tradingagents.agents.context.resolve_instrument_identity",
+        lambda ticker: {"company_name": "Apple"},
+    )
+    monkeypatch.setattr(
+        "tradingagents.dataflows.router.route_to_vendor",
+        lambda *args: calls.append(args) or "NO_DATA_AVAILABLE: no rows",
+    )
+    config = {"data_cache_dir": str(tmp_path)}
+
+    assert not validate_request("AAPL", "2026-11-20", config=config).data_available
+    assert not validate_request("AAPL", "2026-11-20", config=config).data_available
+    assert len(calls) == 2
+
+
 def test_no_analyst_calls(monkeypatch):
     """A failed preflight exits before graph construction / analyst execution."""
     import cli.run as run
@@ -52,7 +88,7 @@ def test_no_analyst_calls(monkeypatch):
     })
     from tradingagents.contracts.preflight import PreflightResult
 
-    monkeypatch.setattr(run, "validate_request", lambda *a: PreflightResult(
+    monkeypatch.setattr(run, "validate_request", lambda *a, **k: PreflightResult(
         ticker="AAPL", resolved=True, data_available=False, reason="no data"
     ))
     graph = Mock()

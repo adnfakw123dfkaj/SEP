@@ -254,3 +254,11 @@ entries:
     files_changed:
       - tradingagents/tradingagents/profiles.py
       - tradingagents/tradingagents/graph/trading_graph.py
+
+  - change_id: "phase1-preflight-cache"
+    date: "2026-11-21"
+    agent_session: "phase1-integration"
+    summary: "Phase 1 input-gate step: preflight now runs for every CLI analysis (not only named profiles), resolves instrument identity, caches identity for 7 days and successful price data for 15 minutes, never caches unavailable sentinels, and handles NO_DATA_AVAILABLE/DATA_UNAVAILABLE. Updated CLI tests to stub preflight before the graph."
+    files_changed:
+      - tradingagents/tradingagents/preflight.py
+      - tradingagents/cli/run.py

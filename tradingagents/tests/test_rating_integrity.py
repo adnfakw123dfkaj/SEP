@@ -164,6 +164,12 @@ def test_the_cli_says_when_a_run_produced_no_usable_rating(monkeypatch, tmp_path
     })
     monkeypatch.setattr(cli_run, "_build_run_config", lambda s, c: {
         "data_cache_dir": str(tmp_path / "c"), "results_dir": str(tmp_path / "r")})
+    from tradingagents.contracts.preflight import PreflightResult
+    monkeypatch.setattr(
+        cli_run,
+        "validate_request",
+        lambda *a, **k: PreflightResult(ticker="NVDA", resolved=True, data_available=True),
+    )
 
     cli_run.run_analysis()
 

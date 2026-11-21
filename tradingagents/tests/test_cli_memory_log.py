@@ -134,6 +134,12 @@ def _run_cli(monkeypatch, tmp_path, fake):
     monkeypatch.setattr(cli_run, "_build_run_config", lambda selections, checkpoint: {
         "data_cache_dir": str(tmp_path / "cache"), "results_dir": str(tmp_path / "results"),
     })
+    from tradingagents.contracts.preflight import PreflightResult
+    monkeypatch.setattr(
+        cli_run,
+        "validate_request",
+        lambda *a, **k: PreflightResult(ticker="NVDA", resolved=True, data_available=True),
+    )
     monkeypatch.setattr(m.typer, "prompt", lambda *a, **k: "N")
     cli_run.run_analysis()
     return buffer
