@@ -1,0 +1,15 @@
+{
+  "change_id": "part2-debate",
+  "tests": [
+    "tradingagents/tests/req/test_debate_protocol.py",
+    "tradingagents/tests/req/test_debate_quality.py",
+    "tradingagents/tests/contracts/test_debate_contract.py",
+    "tradingagents/tests/fixtures/debate/normal.json",
+    "tradingagents/tests/fixtures/debate/missing_fields.json",
+    "tradingagents/tests/fixtures/debate/bad_rebuttal.json",
+    "tradingagents/tests/fixtures/debate/duplicate_claims.json",
+    "tradingagents/tests/fixtures/debate/convergence.json"
+  ],
+  "approved_by": "wsk",
+  "approved_at": "2026-11-20T01:17:58+08:00"
+}

@@ -4,6 +4,7 @@ from tradingagents.agents.context import (
     opponent_argument_or_opening,
     report_or_absent,
 )
+from tradingagents.agents.debate.adapter import run_debate_turn
 
 
 def create_bear_researcher(llm):
@@ -11,6 +12,27 @@ def create_bear_researcher(llm):
         investment_debate_state = state["investment_debate_state"]
         history = investment_debate_state.get("history", "")
         bear_history = investment_debate_state.get("bear_history", "")
+
+        if investment_debate_state.get("enable_structured_debate", True):
+            turn = run_debate_turn(state, "bear", llm.invoke)
+            argument = f"Bear Analyst: {turn.model_dump_json()}"
+            return {
+                "investment_debate_state": {
+                    **investment_debate_state,
+                    "history": history + "\n" + argument,
+                    "bear_history": bear_history + "\n" + argument,
+                    "bull_history": investment_debate_state.get("bull_history", ""),
+                    "current_response": argument,
+                    "count": investment_debate_state["count"] + 1,
+                    "turns": [
+                        *investment_debate_state.get("turns", []),
+                        turn.model_dump(mode="json"),
+                    ],
+                    "quality_available": bool(
+                        investment_debate_state.get("quality_available", True)
+                    ) and turn.status == "ok",
+                }
+            }
 
         current_response = opponent_argument_or_opening(
             investment_debate_state.get("current_response", ""), "bull analyst"
@@ -55,6 +77,7 @@ Use this information to deliver a compelling bear argument, refute the bull's cl
         argument = f"Bear Analyst: {response.content}"
 
         new_investment_debate_state = {
+            **investment_debate_state,
             "history": history + "\n" + argument,
             "bear_history": bear_history + "\n" + argument,
             "bull_history": investment_debate_state.get("bull_history", ""),

@@ -82,7 +82,15 @@ def check(
     result = GateResult(gate="G1")
 
     code_changed = [p for p in changed_files if is_code_path(p)]
-    test_changed = [p for p in changed_files if is_test_path(p)]
+    # Tests that need a test-approval record. Gate-infrastructure tests
+    # (tests/gates/...) are tooling for the gate itself, not application tests,
+    # so they are reviewed like code but are not part of "tests approved before
+    # implementation" — they are excluded here just as scripts/gates/ is excluded
+    # from ``code_changed``.
+    test_changed = [
+        p for p in changed_files
+        if is_test_path(p) and not is_gate_infrastructure_path(p)
+    ]
 
     if not code_changed:
         # No production code change (tests-only, docs-only, data-only): nothing
