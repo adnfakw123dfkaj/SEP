@@ -16,11 +16,13 @@
 
 parts:
   part1:
-    owner: null
-    enabled: false
+    owner: "JaxxyH"
+    enabled: true
     tests:
+      - tradingagents/tests/contracts/test_profile_contract.py
       - tradingagents/tests/req/test_profiles.py
       - tradingagents/tests/req/test_preflight.py
+      - tradingagents/tests/req/test_profile_cli_integration.py
 
   part2:
     owner: "wsk"
