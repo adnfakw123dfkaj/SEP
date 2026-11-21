@@ -146,23 +146,38 @@ def check_permission() -> bool:
 
 
 def check_dependencies() -> bool:
-    """Declared dependencies resolve and the package imports cleanly.
+    """The ``tradingagents`` package is present and well-formed.
 
-    This is the deterministic, offline half of the dependency check: the
-    ``tradingagents`` package (and its declared deps) must be importable. A
-    vulnerability audit (pip-audit) is run separately and reported as
+    This is the deterministic, offline half of the dependency check. It inspects
+    the package on disk rather than importing it: from the repository root,
+    ``import tradingagents`` resolves to the *project directory* ``tradingagents/``
+    as a namespace package (no ``__version__``), and once cached in
+    ``sys.modules`` it shadows the real package for the rest of the process. A
+    subprocess or path hack would still race against that cache. Reading the
+    package's ``__init__.py`` (the real one inside ``tradingagents/tradingagents``)
+    and confirming it parses and declares ``__version__`` is cwd-independent and
+    immune to import-order contamination.
+
+    A vulnerability audit (pip-audit) is run separately and reported as
     informational, not blocking — auditing the whole interpreter environment
-    surfaces pre-existing CVEs in transitive deps that no single PR can fix, and
-    would otherwise block every PR.
+    surfaces pre-existing CVEs in transitive deps that no single PR can fix.
     """
-    try:
-        import importlib
-
-        for mod in ("tradingagents",):
-            importlib.import_module(mod)
-    except Exception:  # noqa: BLE001 — any import failure is a broken dependency
+    init = REPO / "tradingagents" / "tradingagents" / "__init__.py"
+    if not init.is_file():
         return False
-    return True
+    try:
+        tree = ast.parse(init.read_text(encoding="utf-8"))
+    except (SyntaxError, OSError):
+        return False
+    # The package must declare a __version__ (the build reads it).
+    for node in tree.body:
+        if isinstance(node, ast.Assign):
+            for target in node.targets:
+                if isinstance(target, ast.Name) and target.id == "__version__":
+                    return True
+        if isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name) and node.target.id == "__version__":
+            return True
+    return False
 
 
 _CHECKS = {

@@ -8,16 +8,15 @@ def test_run_all_returns_all_checks():
     assert set(results) == {"contract", "security", "api_surface", "permission", "dependencies"}
 
 
-def test_dependencies_passes_when_package_imports():
-    import importlib
-
-    try:
-        importlib.import_module("tradingagents")
-    except Exception:
-        import pytest
-
-        pytest.skip("tradingagents not installed in this environment")
+def test_dependencies_passes_when_package_is_present():
+    # The check inspects the package on disk (tradingagents/tradingagents/__init__.py
+    # declaring __version__), so it is independent of import path/cache state.
     assert sc.check_dependencies() is True
+
+
+def test_dependencies_fails_when_package_missing(tmp_path, monkeypatch):
+    monkeypatch.setattr(sc, "REPO", tmp_path)
+    assert sc.check_dependencies() is False
 
 
 def test_contract_passes_without_contract_modules():

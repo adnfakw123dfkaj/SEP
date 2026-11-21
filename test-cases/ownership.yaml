@@ -23,15 +23,15 @@ parts:
       - tradingagents/tests/req/test_preflight.py
 
   part2:
-    owner: null
-    enabled: false
+    owner: "wsk"
+    enabled: true
     tests:
       - tradingagents/tests/req/test_debate_protocol.py
       - tradingagents/tests/req/test_debate_quality.py
 
   part3:
-    owner: null
-    enabled: false
+    owner: "luochen"
+    enabled: true
     tests:
       - tradingagents/tests/req/test_evidence_manifest.py
       - tradingagents/tests/req/test_report_faithfulness.py
@@ -55,8 +55,8 @@ parts:
       - tradingagents/tests/security/test_secret_redaction.py
 
   part6:
-    owner: null
-    enabled: false
+    owner: "hhshow"
+    enabled: true
     tests:
       - tradingagents/tests/req/test_latency.py
       - tradingagents/tests/req/test_token_cost.py
