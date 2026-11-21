@@ -129,6 +129,46 @@ def _graph(tmp_path, monkeypatch, model, debug=False, **config):
 
 
 @pytest.mark.unit
+def test_finish_cost_run_populates_cost_fields(tmp_path, monkeypatch, offline):
+    from datetime import UTC, datetime
+
+    from tradingagents.contracts.llm_event import (
+        CallStatus,
+        LLMCallEvent,
+        RoutePath,
+        UsageSource,
+    )
+
+    graph = _graph(tmp_path, monkeypatch, ScriptedModel())
+    graph.start_cost_run("NVDA", TRADE_DATE, "quick")
+    graph.cost_monitor.record(
+        LLMCallEvent(
+            event_id="e1",
+            run_id="NVDA-" + TRADE_DATE,
+            call_id="c1",
+            agent_name="Market Analyst",
+            model="deepseek-flash",
+            provider="deepseek",
+            prompt_tokens=100,
+            completion_tokens=20,
+            total_tokens=120,
+            latency_ms=10,
+            status=CallStatus.SUCCESS,
+            retry_count=0,
+            route_path=RoutePath.DIRECT,
+            usage_source=UsageSource.PROVIDER,
+            timestamp=datetime.now(UTC),
+        )
+    )
+    state = {}
+    graph.finish_cost_run(state)
+
+    assert state["token_usage_by_agent"] == {"Market Analyst": 120}
+    assert state["cost_report"]["total_tokens"] == 120
+    assert state["cost_estimate"] is not None
+
+
+@pytest.mark.unit
 def test_a_run_persists_the_structured_debate_transcript(tmp_path, monkeypatch, offline):
     graph = _graph(tmp_path, monkeypatch, ScriptedModel())
 

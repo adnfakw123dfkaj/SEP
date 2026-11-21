@@ -21,6 +21,7 @@ from tradingagents.agents import (
 )
 from tradingagents.agents.analysts.turn import WRAP_UP
 from tradingagents.agents.state import AgentState
+from tradingagents.cost.agent_context import with_agent_scope
 from tradingagents.security import GuardedToolNode
 
 from .analyst_execution import build_analyst_execution_plan
@@ -61,7 +62,7 @@ def _analyst_graph(spec, agent, max_tool_rounds: int):
     """
     output = TypedDict(f"{spec.key.capitalize()}Report", {spec.report_key: str})
     graph = StateGraph(AgentState, output_schema=output)
-    graph.add_node("agent", agent)
+    graph.add_node("agent", with_agent_scope(spec.agent_node, agent))
     graph.add_edge(START, "agent")
     if not spec.tools:
         graph.add_edge("agent", END)
@@ -132,15 +133,31 @@ class GraphSetup:
             "fundamentals": lambda: create_fundamentals_analyst(self.quick_thinking_llm),
         }
 
-        bull_researcher_node = create_bull_researcher(self.quick_thinking_llm)
-        bear_researcher_node = create_bear_researcher(self.quick_thinking_llm)
-        research_manager_node = create_research_manager(self.deep_thinking_llm)
-        trader_node = create_trader(self.quick_thinking_llm)
+        bull_researcher_node = with_agent_scope(
+            "Bull Researcher", create_bull_researcher(self.quick_thinking_llm)
+        )
+        bear_researcher_node = with_agent_scope(
+            "Bear Researcher", create_bear_researcher(self.quick_thinking_llm)
+        )
+        research_manager_node = with_agent_scope(
+            "Research Manager", create_research_manager(self.deep_thinking_llm)
+        )
+        trader_node = with_agent_scope(
+            "Trader", create_trader(self.quick_thinking_llm)
+        )
 
-        aggressive_analyst = create_aggressive_debator(self.quick_thinking_llm)
-        neutral_analyst = create_neutral_debator(self.quick_thinking_llm)
-        conservative_analyst = create_conservative_debator(self.quick_thinking_llm)
-        portfolio_manager_node = create_portfolio_manager(self.deep_thinking_llm)
+        aggressive_analyst = with_agent_scope(
+            "Aggressive Analyst", create_aggressive_debator(self.quick_thinking_llm)
+        )
+        neutral_analyst = with_agent_scope(
+            "Neutral Analyst", create_neutral_debator(self.quick_thinking_llm)
+        )
+        conservative_analyst = with_agent_scope(
+            "Conservative Analyst", create_conservative_debator(self.quick_thinking_llm)
+        )
+        portfolio_manager_node = with_agent_scope(
+            "Portfolio Manager", create_portfolio_manager(self.deep_thinking_llm)
+        )
 
         workflow = StateGraph(AgentState)
 

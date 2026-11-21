@@ -12,6 +12,13 @@ from tradingagents.agents.context import build_instrument_context, resolve_instr
 from tradingagents.agents.debate.export import resolve_evidence_refs
 from tradingagents.agents.rating import is_review, run_rating
 from tradingagents.contracts import ALLOWED_RATINGS, Provenance, RunManifest
+from tradingagents.contracts.cost import Budget
+from tradingagents.cost import (
+    CostMonitor,
+    CostTrackingCallback,
+    budget_for_profile,
+    default_price_table,
+)
 from tradingagents.dataflows.config import run_config, run_config_context, set_config
 from tradingagents.dataflows.date_window import get_current_date, is_historical
 from tradingagents.dataflows.symbols import safe_ticker_component
@@ -91,7 +98,16 @@ class TradingAgentsGraph:
             if resolved_analysts is not None
             else ("market", "social", "news", "fundamentals")
         )
-        self.callbacks = callbacks or []
+        self._price_table = default_price_table()
+        self.cost_monitor = CostMonitor(self._price_table)
+        self._cost_run_id = None
+        self._cost_profile = self.config.get("run_profile", "custom")
+        self.cost_callback = CostTrackingCallback(
+            run_id="pending",
+            on_event=self._record_cost_event,
+            provider=self.config.get("llm_provider", "unknown"),
+        )
+        self.callbacks = [*(callbacks or []), self.cost_callback]
 
         set_config(self.config)
 
@@ -178,6 +194,49 @@ class TradingAgentsGraph:
     def run_signature(self, asset_type: str = "stock", portfolio=None) -> str:
         """Public stable key for checkpointing and idempotent decision records."""
         return self._run_signature(asset_type, portfolio)
+
+    def _record_cost_event(self, event) -> None:
+        self.cost_monitor.record(event)
+
+    def start_cost_run(self, ticker: str, trade_date: str, profile: str | None = None) -> None:
+        """Bind a fresh monitor and run id before a run starts."""
+        self._cost_run_id = f"{ticker}-{trade_date}"
+        self._cost_profile = profile or self.config.get("run_profile", "custom")
+        if not hasattr(self, "_price_table"):
+            self._price_table = default_price_table()
+        self.cost_monitor = CostMonitor(self._price_table)
+        if hasattr(self, "cost_callback"):
+            self.cost_callback.run_id = self._cost_run_id
+
+    def finish_cost_run(self, final_state: dict) -> None:
+        """Attach this run's token/cost report and enforce the hard budget."""
+        run_id = self._cost_run_id or (
+            f"{final_state.get('company_of_interest', 'run')}-"
+            f"{final_state.get('trade_date', 'unknown')}"
+        )
+        try:
+            budget = budget_for_profile(self._cost_profile)
+        except ValueError:
+            budget = Budget(
+                profile=self._cost_profile or "custom",
+                soft_limit=10**12,
+                hard_limit=10**12,
+            )
+        report = self.cost_monitor.report(
+            run_id,
+            budget,
+            quality_floor_pass=True,
+        )
+        final_state["token_usage_by_agent"] = report.by_agent
+        final_state["cost_estimate"] = float(report.cost)
+        final_state["cost_report"] = report.model_dump(mode="json")
+        final_state["cache_hits"] = max(
+            int(final_state.get("cache_hits", 0) or 0),
+            sum(1 for event in self.cost_monitor.events if event.cache_hit),
+        )
+        final_state["budget_exceeded"] = report.over_budget
+        if report.over_budget:
+            final_state["final_rating"] = "REVIEW"
 
     def _config_hash(self) -> str:
         """Stable hash of the settings that affect a run's output."""
@@ -525,6 +584,7 @@ class TradingAgentsGraph:
 
         # None resumes an existing checkpoint; init_agent_state starts fresh (#1249).
         graph_input = self.checkpoint_input(init_agent_state)
+        self.start_cost_run(company_name, trade_date, self.config.get("run_profile"))
         fallback_events = []
         registry = None
         with fallback_event_scope(fallback_events):
@@ -555,6 +615,7 @@ class TradingAgentsGraph:
             json.dumps(event, sort_keys=True, ensure_ascii=False)
             for event in drain_events()
         ]
+        self.finish_cost_run(final_state)
 
         self.record_decision(
             company_name,

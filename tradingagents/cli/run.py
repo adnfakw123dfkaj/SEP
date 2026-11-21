@@ -281,6 +281,12 @@ def run_analysis(checkpoint: bool | None = None, portfolio=None, flags=None):
         # The same initial state propagate() builds, with the resolved
         # instrument identity; the graph's Memory Log step settles past
         # decisions and loads their lessons alongside the analysts.
+        if hasattr(graph, "start_cost_run"):
+            graph.start_cost_run(
+                selections["ticker"],
+                selections["analysis_date"],
+                selections.get("profile"),
+            )
         init_agent_state = graph.create_run_state(
             selections["ticker"], selections["analysis_date"], selections["asset_type"], portfolio
         )
@@ -426,6 +432,8 @@ def run_analysis(checkpoint: bool | None = None, portfolio=None, flags=None):
                 json.dumps(event, sort_keys=True, ensure_ascii=False)
                 for event in drain_events()
             ]
+            if hasattr(graph, "finish_cost_run"):
+                graph.finish_cost_run(final_state)
 
             # Clean run: log the decision, then drop this run's checkpoint so a
             # later run starts fresh. A mid-stream failure skips both, keeping

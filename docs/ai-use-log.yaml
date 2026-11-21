@@ -369,3 +369,12 @@ entries:
       - tradingagents/tradingagents/agents/managers/research_manager.py
       - tradingagents/tradingagents/agents/debate/export.py
       - tradingagents/tradingagents/graph/trading_graph.py
+
+  - change_id: "phase1-part6-cost-integration"
+    date: "2026-11-21"
+    agent_session: "phase1-integration"
+    summary: "Part 6 graph integration: attach a cost-tracking callback to real LLM clients, wrap analyst/manager/risk nodes in agent scopes for attribution, start/finish a per-run cost monitor, populate manifest token/cost/cache fields, and set REVIEW when the run exceeds the profile hard budget. Added a cost-report integration test."
+    files_changed:
+      - tradingagents/tradingagents/graph/setup.py
+      - tradingagents/tradingagents/graph/trading_graph.py
+      - tradingagents/cli/run.py
