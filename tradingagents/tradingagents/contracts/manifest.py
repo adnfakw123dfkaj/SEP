@@ -57,6 +57,14 @@ class RunManifest(BaseModel):
         """Sum of per-agent token usage."""
         return sum(self.token_usage_by_agent.values())
 
+    def add_fallback_events(self, events) -> None:
+        """Append typed fallback events as compact JSON metadata for audit."""
+        from json import dumps
+
+        for event in events:
+            payload = event.model_dump(mode="json") if hasattr(event, "model_dump") else event
+            self.fallback_events.append(dumps(payload, sort_keys=True, ensure_ascii=False))
+
     @model_validator(mode="after")
     def _timestamps_parse(self) -> RunManifest:
         for key, value in self.timestamps.items():

@@ -1,6 +1,12 @@
+import json
 import logging
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 from tradingagents.dataflows.config import get_config
+from tradingagents.cache import CacheController
+from tradingagents.contracts.cache import CacheKey, TTLPolicy
+from tradingagents.resilience import FallbackRouter, FailureEvent, record_fallback_event
 from tradingagents.dataflows.errors import (
     NoMarketDataError,
     VendorNotConfiguredError,
@@ -197,10 +203,47 @@ def no_data_available(error: NoMarketDataError) -> str:
     )
 
 
+def _cacheable_result(value) -> bool:
+    """Never turn an unavailable/no-data sentinel into reusable source data."""
+    if not isinstance(value, str):
+        return True
+    return not (value.startswith("NO_DATA_AVAILABLE:")
+                or value.startswith("DATA_UNAVAILABLE:")
+                or (value.startswith("<") and "unavailable" in value.lower()))
+
+
 def route_to_vendor(method: str, *args, **kwargs):
     """Route method calls to appropriate vendor implementation with fallback support."""
     category = get_category_for_method(method)
+    config = get_config()
     vendor_config = get_vendor(category, method)
+    try:
+        cache_args = json.dumps({"args": args, "kwargs": kwargs}, sort_keys=True, default=str)
+    except (TypeError, ValueError):
+        cache_args = repr((args, kwargs))
+    as_of = next((str(value) for key, value in kwargs.items()
+                  if "date" in key.lower() and value is not None), None)
+    data_class = {
+        "core_stock_apis": "price", "technical_indicators": "technical",
+        "news_data": "news", "fundamental_data": "fundamental",
+        "macro_data": "macro", "prediction_markets": "news",
+    }.get(category, "news")
+    now_et = datetime.now(ZoneInfo("America/New_York"))
+    market_open = now_et.weekday() < 5 and (now_et.hour, now_et.minute) >= (9, 30) \
+        and (now_et.hour, now_et.minute) < (16, 0)
+    policy = TTLPolicy.for_request(data_class, market_open=market_open)
+    cache = CacheController(config["data_cache_dir"], policy)
+    impl_signature = []
+    for vendor_name, implementation in VENDOR_METHODS.get(method, {}).items():
+        implementation = implementation[0] if isinstance(implementation, list) else implementation
+        impl_signature.append((vendor_name, getattr(implementation, "__module__", ""),
+                               getattr(implementation, "__qualname__", type(implementation).__name__)))
+    cache_key = CacheKey(data_class=data_class, source=f"{method}:{vendor_config}",
+                         subject=str(args[0] if args else kwargs.get("symbol", "global")),
+                         parameters={"request": cache_args, "implementations": impl_signature}, as_of=as_of)
+    cached = cache.get(cache_key)
+    if cached is not None:
+        return cached.value
     primary_vendors = [v.strip() for v in vendor_config.split(',')]
 
     if method not in VENDOR_METHODS:
@@ -233,22 +276,33 @@ def route_to_vendor(method: str, *args, **kwargs):
         impl_func = vendor_impl[0] if isinstance(vendor_impl, list) else vendor_impl
 
         try:
-            return impl_func(*args, **kwargs)
+            result = impl_func(*args, **kwargs)
+            if _cacheable_result(result):
+                cache.set(cache_key, result, {"vendor": vendor, "method": method})
+            return result
         except VendorUnavailableError as e:
+            record_fallback_event(FailureEvent(kind="source_failure", source=vendor,
+                                               message=str(e), action="try_next_vendor"))
             logger.warning("Vendor %r unavailable for %s: %s; trying next vendor.", vendor, method, e)
             # Kept so an all-unavailable chain can say the vendor was the
             # problem, rather than reporting nothing about the symbol.
             last_unavailable = e
             continue
         except VendorNotConfiguredError as e:
+            record_fallback_event(FailureEvent(kind="source_failure", source=vendor,
+                                               message=str(e), action="try_next_vendor"))
             logger.warning("Vendor %r not configured for %s; trying next vendor.", vendor, method)
             if first_error is None:
                 first_error = e  # Surface it if no other vendor can serve the call.
             continue
         except NoMarketDataError as e:
+            record_fallback_event(FailureEvent(kind="source_failure", source=vendor,
+                                               message=str(e), action="try_next_vendor"))
             last_no_data = e  # No data here; another configured vendor may have it
             continue
         except Exception as e:
+            record_fallback_event(FailureEvent(kind="source_failure", source=vendor,
+                                               message=str(e), action="try_next_vendor"))
             # Don't let one vendor's failure crash the call when another can
             # serve it, but never swallow silently: a broken primary must be
             # visible in the logs (#989), not hidden behind a fallback's verdict.
@@ -263,8 +317,16 @@ def route_to_vendor(method: str, *args, **kwargs):
     # report the vendors as the problem, not the instrument. It must not end
     # the run either.
     if last_unavailable is not None:
+        decision = FallbackRouter().route(last_unavailable, {"cache": cache, "key": cache_key,
+                                                               "source": method})
+        if decision.available:
+            return decision.value
         return vendor_unavailable(method, last_unavailable)
     if failed is not None and last_no_data is not None:
+        decision = FallbackRouter().route(failed, {"cache": cache, "key": cache_key,
+                                                    "source": method})
+        if decision.available:
+            return decision.value
         return vendor_unavailable(method, failed)
 
     # Every vendor that answered reported "no data": the symbol is genuinely unavailable.
@@ -286,6 +348,11 @@ def route_to_vendor(method: str, *args, **kwargs):
     # enrichment categories degrade to a sentinel instead, so flavour data can't
     # abort the run.
     if first_error is not None:
+        logger.warning("No configured vendor could serve %s: %s", method, first_error)
+        decision = FallbackRouter().route(first_error, {"cache": cache, "key": cache_key,
+                                                         "source": method})
+        if decision.available:
+            return decision.value
         if category in OPTIONAL_CATEGORIES:
             logger.warning("Optional %s unavailable for %s: %s", category, method, first_error)
             return (

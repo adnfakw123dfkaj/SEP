@@ -94,6 +94,20 @@ def test_the_state_log_names_each_field_as_the_state_does(tmp_path):
 
 
 @pytest.mark.unit
+def test_run_manifest_serializes_fallback_events(tmp_path):
+    state = _state("NVDA")
+    state["fallback_events"] = [{"kind": "source_failure", "source": "news",
+                                 "message": "timeout", "action": "fresh_cache"}]
+    _bare_graph(tmp_path)._log_state("2026-09-01", state)
+
+    manifests = list(tmp_path.rglob("run_manifest_*.json"))
+    assert len(manifests) == 1
+    manifest = json.loads(manifests[0].read_text(encoding="utf-8"))
+    event = json.loads(manifest["fallback_events"][0])
+    assert event["action"] == "fresh_cache"
+
+
+@pytest.mark.unit
 def test_the_live_display_does_not_scroll_the_terminal():
     """A layout taller than the window makes rich redraw by scrolling, which
     reads as flicker; the alternate screen holds it in place (#784). The final
