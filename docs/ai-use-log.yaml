@@ -294,3 +294,12 @@ entries:
       - tradingagents/tradingagents/dataflows/router.py
       - tradingagents/tradingagents/graph/trading_graph.py
       - tradingagents/cli/run.py
+
+  - change_id: "phase1-part3-report-evidence"
+    date: "2026-11-21"
+    agent_session: "phase1-integration"
+    summary: "Part 3 report slice: carry full evidence refs into final state and CLI output, add an Evidence Index section to Markdown/HTML report trees, label the portfolio decision as the Investment Thesis so report_schema_valid applies, and test the generated report for evidence rendering and schema validity."
+    files_changed:
+      - tradingagents/tradingagents/reporting.py
+      - tradingagents/tradingagents/graph/trading_graph.py
+      - tradingagents/cli/run.py

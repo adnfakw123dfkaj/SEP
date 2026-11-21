@@ -6,6 +6,7 @@ from types import SimpleNamespace
 
 import pytest
 
+from tradingagents.evidence.fidelity import report_schema_valid
 from tradingagents.graph.trading_graph import TradingAgentsGraph
 from tradingagents.reporting import write_report_tree
 
@@ -39,6 +40,32 @@ def test_write_report_tree_creates_files(tmp_path):
     complete = out.read_text()
     assert "Trading Analysis Report: AAPL" in complete
     assert "MKT" in complete and "PM DECISION" in complete
+
+
+@pytest.mark.unit
+def test_report_renders_evidence_and_passes_schema(tmp_path):
+    state = dict(
+        _state(),
+        evidence_refs=["tool-abc"],
+        evidence=[{
+            "kind": "tool",
+            "id": "tool-abc",
+            "source": "get_stock_data:yfinance",
+            "snapshot_hash": "deadbeef",
+            "retrieved_at": "2026-11-21T10:00:00+00:00",
+        }],
+    )
+    out = write_report_tree(state, "AAPL", tmp_path, settings=SETTINGS, html=True)
+    markdown = out.read_text(encoding="utf-8")
+
+    assert "VI. Evidence" in markdown
+    assert "tool-abc" in markdown
+    assert "get_stock_data:yfinance" in markdown
+    assert "deadbeef" in markdown
+    assert report_schema_valid(markdown)
+    assert (tmp_path / "6_evidence" / "evidence.md").exists()
+    page = (tmp_path / "complete_report.html").read_text(encoding="utf-8")
+    assert "VI. Evidence" in page and "tool-abc" in page
 
 
 @pytest.mark.unit

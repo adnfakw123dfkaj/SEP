@@ -67,7 +67,7 @@ _SECTIONS = (
         ("Conservative Analyst", "conservative.md", ("risk_debate_state", "conservative_history")),
         ("Neutral Analyst", "neutral.md", ("risk_debate_state", "neutral_history")),
     )),
-    ("V. Portfolio Manager Decision", "5_portfolio", (
+    ("V. Portfolio Manager Decision — Investment Thesis", "5_portfolio", (
         ("Portfolio Manager", "decision.md", ("final_trade_decision",)),
     )),
 )
@@ -89,6 +89,31 @@ def _report_parts(final_state: dict) -> list[tuple[str, str, list[tuple[str, str
     return parts
 
 
+def _cell(value) -> str:
+    return str(value if value is not None else "").replace("|", "\\|")
+
+
+def _evidence_text(final_state: dict) -> str | None:
+    """Render the run's captured evidence refs as a report appendix."""
+    refs = final_state.get("evidence") or []
+    ids = final_state.get("evidence_refs") or []
+    if not refs and not ids:
+        return None
+    if not refs:
+        return "\n".join(f"- `{ref_id}`" for ref_id in ids)
+
+    lines = [
+        "| Ref | Source | Snapshot hash | Retrieved |",
+        "|---|---|---|---|",
+    ]
+    for ref in refs:
+        lines.append(
+            f"| `{_cell(ref.get('id'))}` | {_cell(ref.get('source'))} | "
+            f"`{_cell(ref.get('snapshot_hash'))}` | {_cell(ref.get('retrieved_at'))} |"
+        )
+    return "\n".join(lines)
+
+
 def write_report_tree(final_state: dict, ticker: str, save_path, settings: dict | None = None,
                       html: bool = True) -> Path:
     """Save a completed run's reports to ``save_path``; return the complete-report path.
@@ -102,6 +127,9 @@ def write_report_tree(final_state: dict, ticker: str, save_path, settings: dict 
     save_path = Path(save_path)
     save_path.mkdir(parents=True, exist_ok=True)
     parts = _report_parts(final_state)
+    evidence_text = _evidence_text(final_state)
+    if evidence_text:
+        parts.append(("VI. Evidence", "6_evidence", [("Evidence Index", "evidence.md", evidence_text)]))
     sections = []
     for heading, folder, written in parts:
         (save_path / folder).mkdir(exist_ok=True)

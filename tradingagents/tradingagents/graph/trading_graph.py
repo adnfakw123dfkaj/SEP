@@ -421,6 +421,11 @@ class TradingAgentsGraph:
                 self.last_evidence_registry = registry
         final_state["fallback_events"] = [event.model_dump(mode="json") for event in fallback_events]
         final_state["evidence_refs"] = registry.ids() if registry is not None else []
+        final_state["evidence"] = (
+            [ref.model_dump(mode="json") for ref in registry.all()]
+            if registry is not None
+            else []
+        )
 
         self.record_decision(company_name, trade_date, final_state)
 

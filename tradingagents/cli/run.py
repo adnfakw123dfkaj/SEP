@@ -407,6 +407,11 @@ def run_analysis(checkpoint: bool | None = None, portfolio=None, flags=None):
             final_state["fallback_events"] = [event.model_dump(mode="json") for event in fallback_events]
             registry = getattr(graph, "last_evidence_registry", None)
             final_state["evidence_refs"] = registry.ids() if registry is not None else []
+            final_state["evidence"] = (
+                [ref.model_dump(mode="json") for ref in registry.all()]
+                if registry is not None
+                else []
+            )
 
             # Clean run: log the decision, then drop this run's checkpoint so a
             # later run starts fresh. A mid-stream failure skips both, keeping
