@@ -43,6 +43,7 @@ from tradingagents.dataflows.vendors.yahoo.market import (
     get_YFin_data_online,
 )
 from tradingagents.dataflows.vendors.yahoo.news import get_global_news_yfinance, get_news_yfinance
+from tradingagents.evidence.context import register_tool_result
 from tradingagents.resilience import FailureEvent, FallbackRouter, record_fallback_event
 
 logger = logging.getLogger(__name__)
@@ -247,6 +248,14 @@ def route_to_vendor(method: str, *args, **kwargs):
                          parameters={"request": cache_args, "implementations": impl_signature}, as_of=as_of)
     cached = cache.get(cache_key)
     if cached is not None:
+        register_tool_result(
+            method=method,
+            vendor="cache",
+            args=args,
+            kwargs=kwargs,
+            value=cached.value,
+            cache_hit=True,
+        )
         return cached.value
     primary_vendors = [v.strip() for v in vendor_config.split(',')]
 
@@ -283,6 +292,13 @@ def route_to_vendor(method: str, *args, **kwargs):
             result = impl_func(*args, **kwargs)
             if _cacheable_result(result):
                 cache.set(cache_key, result, {"vendor": vendor, "method": method})
+                register_tool_result(
+                    method=method,
+                    vendor=vendor,
+                    args=args,
+                    kwargs=kwargs,
+                    value=result,
+                )
             return result
         except VendorUnavailableError as e:
             record_fallback_event(FailureEvent(kind="source_failure", source=vendor,

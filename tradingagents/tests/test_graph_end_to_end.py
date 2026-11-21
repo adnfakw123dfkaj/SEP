@@ -129,6 +129,17 @@ def _graph(tmp_path, monkeypatch, model, debug=False, **config):
 
 
 @pytest.mark.unit
+def test_a_run_captures_tool_evidence(tmp_path, monkeypatch, offline):
+    graph = _graph(tmp_path, monkeypatch, ScriptedModel())
+
+    state, _ = graph.propagate("NVDA", TRADE_DATE)
+
+    assert state["evidence_refs"]
+    assert graph.last_evidence_registry is not None
+    assert set(state["evidence_refs"]) <= set(graph.last_evidence_registry.ids())
+
+
+@pytest.mark.unit
 def test_propagate_preflight_blocks_before_the_graph_runs(tmp_path, monkeypatch):
     from tradingagents.contracts.preflight import PreflightResult
 

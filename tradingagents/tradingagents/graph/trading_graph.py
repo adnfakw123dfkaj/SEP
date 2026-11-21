@@ -15,6 +15,7 @@ from tradingagents.dataflows.config import run_config, run_config_context, set_c
 from tradingagents.dataflows.date_window import get_current_date, is_historical
 from tradingagents.dataflows.symbols import safe_ticker_component
 from tradingagents.default_config import DEFAULT_CONFIG
+from tradingagents.evidence import evidence_scope
 from tradingagents.llm_clients import create_tier_client, tier_provider
 from tradingagents.memory import TradingMemoryLog, settlement
 from tradingagents.memory.reflection import Reflector
@@ -122,6 +123,7 @@ class TradingAgentsGraph:
         self.graph = self.workflow.compile()
         self._checkpointer_ctx = None
         self._resuming = False
+        self.last_evidence_registry = None
 
     def resolve_instrument_context(self, ticker: str, asset_type: str = "stock",
                                    trade_date: str | None = None) -> str:
@@ -399,6 +401,7 @@ class TradingAgentsGraph:
         # None resumes an existing checkpoint; init_agent_state starts fresh (#1249).
         graph_input = self.checkpoint_input(init_agent_state)
         fallback_events = []
+        registry = None
         with fallback_event_scope(fallback_events):
             if self.debug:
                 # A state repeats the messages before it, so each prints once (#1027).
@@ -411,9 +414,13 @@ class TradingAgentsGraph:
                             msg.pretty_print()
                     if state is not None:
                         final_state.update(state)
+                registry = self.last_evidence_registry
             else:
-                final_state = self.graph.invoke(graph_input, **args)
+                with evidence_scope() as registry:
+                    final_state = self.graph.invoke(graph_input, **args)
+                self.last_evidence_registry = registry
         final_state["fallback_events"] = [event.model_dump(mode="json") for event in fallback_events]
+        final_state["evidence_refs"] = registry.ids() if registry is not None else []
 
         self.record_decision(company_name, trade_date, final_state)
 
@@ -439,19 +446,21 @@ class TradingAgentsGraph:
         # run's context, so the caller keeps its own between steps.
         context = run_config_context(self.config)
         stream = context.run(self.graph.stream, graph_input, subgraphs=True, **args)
-        try:
-            while (step := context.run(next, stream, None)) is not None:
-                namespace, mode, chunk = step
-                if namespace:
-                    result = chunk.get("result") if mode == "tasks" else None
-                    if isinstance(result, dict):
-                        report = {k: v for k, v in result.items() if k != "messages" and v}
-                        if result.get("messages") or report:
-                            yield result.get("messages", []), report or None
-                elif mode == "values":
-                    yield chunk.get("messages", []), chunk
-        finally:
-            context.run(stream.close)
+        with evidence_scope() as registry:
+            try:
+                while (step := context.run(next, stream, None)) is not None:
+                    namespace, mode, chunk = step
+                    if namespace:
+                        result = chunk.get("result") if mode == "tasks" else None
+                        if isinstance(result, dict):
+                            report = {k: v for k, v in result.items() if k != "messages" and v}
+                            if result.get("messages") or report:
+                                yield result.get("messages", []), report or None
+                    elif mode == "values":
+                        yield chunk.get("messages", []), chunk
+            finally:
+                context.run(stream.close)
+                self.last_evidence_registry = registry
 
     def _log_state(self, trade_date, final_state):
         """Write a run's final state to JSON under the run's own ticker."""

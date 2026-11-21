@@ -283,3 +283,14 @@ entries:
       - tradingagents/tradingagents/records/__init__.py
       - tradingagents/tradingagents/records/manifest.py
       - tradingagents/tradingagents/graph/trading_graph.py
+
+  - change_id: "phase1-part3-tool-evidence"
+    date: "2026-11-21"
+    agent_session: "phase1-integration"
+    summary: "Part 3 evidence slice: added a run-scoped EvidenceRegistry context, registered successful tool/cache results as EvidenceRefs with deterministic call_id and snapshot_hash, bound the registry in graph invoke/stream paths, and exposed captured evidence ids in final state and CLI logs. Added scope, router, and full-run evidence tests."
+    files_changed:
+      - tradingagents/tradingagents/evidence/__init__.py
+      - tradingagents/tradingagents/evidence/context.py
+      - tradingagents/tradingagents/dataflows/router.py
+      - tradingagents/tradingagents/graph/trading_graph.py
+      - tradingagents/cli/run.py

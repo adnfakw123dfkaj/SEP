@@ -7,6 +7,9 @@ until then.
 """
 
 from tradingagents.contracts import EvidenceRef, RunManifest
+from tradingagents.dataflows import router
+from tradingagents.dataflows.config import run_config
+from tradingagents.evidence import evidence_scope, register_tool_result
 from tradingagents.evidence.fidelity import (
     extract_numeric_claims,
     numeric_contradiction_rate,
@@ -79,6 +82,37 @@ def test_qualitative_refs():
     claims = [f"point {i}" for i in range(20)]
     refs = [f"r{i}" for i in range(20)]  # 100% supported here
     assert unsupported_claim_rate(claims, refs) <= 0.05
+
+
+def test_tool_result_registers_evidence_in_scope():
+    with evidence_scope() as registry:
+        ref = register_tool_result(
+            method="get_stock_data",
+            vendor="yfinance",
+            args=("AAPL",),
+            kwargs={},
+            value="Close: 1.00",
+        )
+        assert ref is not None
+        assert registry.contains(ref.id)
+        assert ref.snapshot_hash
+
+
+def test_router_registers_tool_evidence(tmp_path, monkeypatch):
+    monkeypatch.setitem(
+        router.VENDOR_METHODS["get_stock_data"],
+        "yfinance",
+        lambda *a, **k: "Close: 1.00",
+    )
+    config = {
+        "data_cache_dir": str(tmp_path),
+        "tool_vendors": {"get_stock_data": "yfinance"},
+    }
+    with run_config(config), evidence_scope() as registry:
+        assert router.route_to_vendor("get_stock_data", "AAPL", "2026-01-02") == "Close: 1.00"
+
+    assert len(registry) == 1
+    assert registry.all()[0].kind == "tool"
 
 
 def test_manifest_writer_roundtrips_atomically(tmp_path):
