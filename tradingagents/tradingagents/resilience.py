@@ -51,6 +51,51 @@ class FallbackDecision(BaseModel):
     status: str = "ok"
 
 
+class _StructuredFallback:
+    """Try the primary structured runnable, then the fallback model."""
+
+    def __init__(self, primary, fallback):
+        self.primary = primary
+        self.fallback = fallback
+
+    def invoke(self, *args, **kwargs):
+        try:
+            return self.primary.invoke(*args, **kwargs)
+        except Exception as exc:
+            record_fallback_event(FailureEvent(
+                kind="llm_failure", source="structured_output",
+                message=str(exc), action="cheaper_model",
+            ))
+            return self.fallback.invoke(*args, **kwargs)
+
+
+class FallbackLLM:
+    """Use a cheaper/fallback model when the primary model call fails."""
+
+    def __init__(self, primary, fallback):
+        self.primary = primary
+        self.fallback = fallback
+
+    def invoke(self, *args, **kwargs):
+        try:
+            return self.primary.invoke(*args, **kwargs)
+        except Exception as exc:
+            record_fallback_event(FailureEvent(
+                kind="llm_failure", source="primary_model",
+                message=str(exc), action="cheaper_model",
+            ))
+            return self.fallback.invoke(*args, **kwargs)
+
+    def with_structured_output(self, *args, **kwargs):
+        return _StructuredFallback(
+            self.primary.with_structured_output(*args, **kwargs),
+            self.fallback.with_structured_output(*args, **kwargs),
+        )
+
+    def __getattr__(self, name):
+        return getattr(self.primary, name)
+
+
 class FallbackRouter:
     def __init__(self, retry: RetryPolicy | None = None):
         self.retry = retry or RetryPolicy()

@@ -112,6 +112,18 @@ def test_run_manifest_serializes_fallback_events(tmp_path):
 
 
 @pytest.mark.unit
+def test_run_manifest_counts_cache_hits_from_evidence(tmp_path):
+    state = _state("NVDA")
+    state["evidence"] = [{"source": "get_news:cache", "id": "tool-1"}]
+    _bare_graph(tmp_path)._log_state("2026-09-01", state)
+
+    manifest = json.loads(
+        next(tmp_path.rglob("run_manifest_*.json")).read_text(encoding="utf-8")
+    )
+    assert manifest["cache_hits"] == 1
+
+
+@pytest.mark.unit
 def test_run_manifest_scrubs_secret_fields(tmp_path):
     state = _state("NVDA")
     state["security_events"] = ['{"detail": "exposed sk-abcdefghijklmnop"}']

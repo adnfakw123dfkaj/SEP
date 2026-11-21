@@ -101,8 +101,15 @@ def _build_run_config(selections: dict, checkpoint: bool | None) -> dict:
             config[key] = selections[key]
     config["output_language"] = selections.get("output_language", "English")
     # --checkpoint/--no-checkpoint overrides only when explicitly given; omitting
-    # the flag preserves TRADINGAGENTS_CHECKPOINT_ENABLED / the default (#976).
-    if checkpoint is not None:
+    # the flag preserves TRADINGAGENTS_CHECKPOINT_ENABLED. Standard/Deep enable
+    # checkpointing by default, Quick does not.
+    if checkpoint is None:
+        if (
+            selections.get("profile") in ("standard", "deep")
+            and "TRADINGAGENTS_CHECKPOINT_ENABLED" not in os.environ
+        ):
+            config["checkpoint_enabled"] = True
+    else:
         config["checkpoint_enabled"] = checkpoint
     return config
 

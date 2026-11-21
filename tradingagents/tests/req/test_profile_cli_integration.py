@@ -62,6 +62,25 @@ def test_explicit_analysts_override_quick_defaults(monkeypatch):
     assert captured["flags"]["analysts"] == "market,news"
 
 
+def test_standard_and_deep_enable_checkpoint_by_default(monkeypatch):
+    monkeypatch.delenv("TRADINGAGENTS_CHECKPOINT_ENABLED", raising=False)
+    base = {
+        "research_depth": 1,
+        "quick_think_llm": "q",
+        "deep_think_llm": "d",
+        "backend_url": None,
+        "llm_provider": "openai",
+        "output_language": "English",
+    }
+    standard = cli_run._build_run_config({**base, "profile": "standard"}, None)
+    deep = cli_run._build_run_config({**base, "profile": "deep"}, None)
+    quick = cli_run._build_run_config({**base, "profile": "quick"}, None)
+
+    assert standard["checkpoint_enabled"] is True
+    assert deep["checkpoint_enabled"] is True
+    assert quick["checkpoint_enabled"] is False
+
+
 def test_headless_run_defaults_to_standard_profile(monkeypatch):
     """With no profile, no analysts and no terminal, Standard is the default."""
     from cli.models import AnalystType

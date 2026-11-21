@@ -25,7 +25,7 @@ from tradingagents.rating_authority import commit_rating
 from tradingagents.records import FileRatingStore, write_run_manifest
 from tradingagents.records.idempotency import record_id
 from tradingagents.reporting import write_report_tree
-from tradingagents.resilience import fallback_event_scope
+from tradingagents.resilience import FallbackLLM, fallback_event_scope
 from tradingagents.security import drain_events, validate_output
 
 from .checkpointer import checkpoint_step, clear_checkpoint, get_checkpointer, thread_id
@@ -79,6 +79,12 @@ class TradingAgentsGraph:
         self.debug = debug
         self.config = dict(config or DEFAULT_CONFIG)
         self.config, resolved_analysts = resolve_run_profile(self.config, selected_analysts)
+        if (
+            config is not None
+            and "checkpoint_enabled" not in config
+            and self.config.get("run_profile") in ("standard", "deep")
+        ):
+            self.config["checkpoint_enabled"] = True
         self.selected_analysts = tuple(
             resolved_analysts
             if resolved_analysts is not None
@@ -94,6 +100,14 @@ class TradingAgentsGraph:
         extra = {"callbacks": self.callbacks} if self.callbacks else {}
         self.deep_thinking_llm = create_tier_client(self.config, "deep", **extra).get_llm()
         self.quick_thinking_llm = create_tier_client(self.config, "quick", **extra).get_llm()
+        if (
+            self.config.get("llm_fallback_to_quick", True)
+            and self.deep_thinking_llm is not self.quick_thinking_llm
+        ):
+            self.deep_thinking_llm = FallbackLLM(
+                self.deep_thinking_llm,
+                self.quick_thinking_llm,
+            )
 
         self.memory_log = TradingMemoryLog(self.config)
         rating_root = self.config.get("rating_store_dir")
@@ -642,7 +656,14 @@ class TradingAgentsGraph:
             provider=self.config.get("llm_provider", ""),
             prompt_version=self.config.get("prompt_version", ""),
             config_hash=config_hash,
-            cache_hits=int(final_state.get("cache_hits", 0) or 0),
+            cache_hits=max(
+                int(final_state.get("cache_hits", 0) or 0),
+                sum(
+                    1
+                    for ref in (final_state.get("evidence") or [])
+                    if str(ref.get("source", "")).endswith(":cache")
+                ),
+            ),
             token_usage_by_agent=dict(final_state.get("token_usage_by_agent", {}) or {}),
             cost_estimate=final_state.get("cost_estimate"),
             security_events=list(final_state.get("security_events", []) or []),

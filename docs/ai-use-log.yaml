@@ -350,3 +350,13 @@ entries:
       - tradingagents/tradingagents/reporting.py
       - tradingagents/tradingagents/security/redaction.py
       - tradingagents/cli/run.py
+
+  - change_id: "phase1-part4-complete"
+    date: "2026-11-21"
+    agent_session: "phase1-integration"
+    summary: "Completed Part 4 integration: Standard/Deep enable checkpointing by default while env/flag overrides win, manifest cache_hits count cache-backed evidence, and deep-tier LLM calls fall back to the quick model on a primary failure with a typed fallback event. Added checkpoint-default, cache-hit and LLM-fallback tests."
+    files_changed:
+      - tradingagents/cli/run.py
+      - tradingagents/tradingagents/graph/trading_graph.py
+      - tradingagents/tradingagents/default_config.py
+      - tradingagents/tradingagents/resilience.py
