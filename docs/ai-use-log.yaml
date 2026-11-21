@@ -148,7 +148,19 @@ entries:
   - change_id: "part1-ci-gate-fixes"
     date: "2026-11-21"
     agent_session: "codex-part1-ci-fixes"
-    summary: "Codex-assisted Part 1 CI follow-up: removed the test's direct click import by asserting the CLI's Typer exit type, organized preflight imports for Ruff, and recorded the Part 1 CI remediation. Changes are available for human review; no OpenCode session or prior G1 approval is claimed by this entry."
+    summary: "Full Part 1 work record across the Codex-assisted sessions on 2026-11-20 and 2026-11-21: added ProfileConfig and PreflightResult contracts; implemented Quick/Standard/Deep defaults, overrides and runtime mapping; added preflight through the existing dataflow router; wired --profile, profile analyst defaults and pre-graph preflight into the CLI; corrected profile round precedence; added profile/preflight contract, requirement and CLI integration tests plus a preflight benchmark; then addressed CI findings by removing the test's direct click import and organizing imports for Ruff. Human ran the reported local tests and reviewed the CI output."
     files_changed:
+      - tradingagents/cli/main.py
       - tradingagents/cli/run.py
+      - tradingagents/cli/selections.py
+      - tradingagents/tradingagents/default_config.py
+      - tradingagents/tradingagents/profiles.py
       - tradingagents/tradingagents/preflight.py
+      - tradingagents/tradingagents/contracts/profile.py
+      - tradingagents/tradingagents/contracts/preflight.py
+      - tradingagents/scripts/bench_preflight.py
+      - tradingagents/tests/contracts/test_profile_contract.py
+      - tradingagents/tests/req/test_profiles.py
+      - tradingagents/tests/req/test_preflight.py
+      - tradingagents/tests/req/test_profile_cli_integration.py
+      - docs/approvals/part1-profiles-preflight.json
