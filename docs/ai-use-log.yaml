@@ -394,3 +394,33 @@ entries:
     summary: "Part 6 acceptance CLI: support live graph runs when no JSONL fixture is provided, with --cold/--warm and --runs sampling, temporary cache/results isolation, formal --assert-p95/--assert-p99-ratio/--assert-failure-rate/--assert-improvement flags for latency, and formal coverage/silent-budget/cost-error/routed-quality flags for token audits. Added mocked live-mode CLI tests."
     files_changed:
       - tradingagents/tradingagents/cost/cli.py
+
+  - change_id: "phase1-final-integration"
+    date: "2026-11-22"
+    agent_session: "phase1-integration"
+    summary: "Completed Part 3 claim-level evidence and numeric contradiction, Part 4 vendor/PIT/cache/resume/fallback metrics, and the first prompt/tool-budget optimization pass. Added real cost ground truth, composite quality floor, snapshot capture, cache metrics, profile budget fields, and regression tests. Human reviewed each step and approved the final gate/push."
+    files_changed:
+      - tradingagents/cli/encoding.py
+      - tradingagents/cli/main.py
+      - tradingagents/cli/run.py
+      - tradingagents/tradingagents/agents/context.py
+      - tradingagents/tradingagents/agents/tools.py
+      - tradingagents/tradingagents/cache/__init__.py
+      - tradingagents/tradingagents/cache/metrics.py
+      - tradingagents/tradingagents/contracts/claim.py
+      - tradingagents/tradingagents/contracts/manifest.py
+      - tradingagents/tradingagents/contracts/profile.py
+      - tradingagents/tradingagents/cost/audit.py
+      - tradingagents/tradingagents/cost/cli.py
+      - tradingagents/tradingagents/cost/ground_truth.py
+      - tradingagents/tradingagents/cost/quality_floor.py
+      - tradingagents/tradingagents/dataflows/pit.py
+      - tradingagents/tradingagents/dataflows/vendor_versions.py
+      - tradingagents/tradingagents/evidence/claims.py
+      - tradingagents/tradingagents/evidence/registry.py
+      - tradingagents/tradingagents/graph/setup.py
+      - tradingagents/tradingagents/graph/trading_graph.py
+      - tradingagents/tradingagents/profiles.py
+      - tradingagents/tradingagents/reporting.py
+      - tradingagents/tradingagents/resilience.py
+      - tradingagents/tradingagents/security/tool_node.py
