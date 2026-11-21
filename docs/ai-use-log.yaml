@@ -216,3 +216,17 @@ entries:
     files_changed:
       - tradingagents/cli/run.py
       - tradingagents/tradingagents/preflight.py
+
+  - change_id: "part4-resilience"
+    date: "2026-11-21"
+    agent_session: "part4-resilience-integration"
+    summary: "Part 4 implementation by Mariana-Shi: local TTL cache, vendor-router caching, social-data caching, typed fallback events, retry/unavailable decisions, checkpoint resume coverage, point-in-time primitives, and fallback-aware run manifests. Merged during integration; approval and G1 timing limitation are recorded separately."
+    files_changed:
+      - tradingagents/cli/run.py
+      - tradingagents/tradingagents/agents/analysts/sentiment_analyst.py
+      - tradingagents/tradingagents/cache/__init__.py
+      - tradingagents/tradingagents/contracts/cache.py
+      - tradingagents/tradingagents/contracts/manifest.py
+      - tradingagents/tradingagents/dataflows/router.py
+      - tradingagents/tradingagents/graph/trading_graph.py
+      - tradingagents/tradingagents/resilience.py

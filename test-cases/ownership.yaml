@@ -40,13 +40,16 @@ parts:
       - tradingagents/tests/req/test_records.py
 
   part4:
-    owner: null
-    enabled: false
+    owner: "Mariana-Shi"
+    enabled: true
     tests:
+      - tradingagents/tests/contracts/test_cache_contract.py
       - tradingagents/tests/req/test_point_in_time.py
       - tradingagents/tests/req/test_checkpoint_resume.py
       - tradingagents/tests/req/test_cache.py
       - tradingagents/tests/req/test_fallback.py
+      - tradingagents/tests/test_cli_display.py
+      - tradingagents/tests/test_data_router_cache.py
 
   part5:
     owner: "陈妍妍"

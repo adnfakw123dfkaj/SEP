@@ -1,0 +1,14 @@
+{
+  "change_id": "part4-resilience",
+  "tests": [
+    "tradingagents/tests/contracts/test_cache_contract.py",
+    "tradingagents/tests/req/test_cache.py",
+    "tradingagents/tests/req/test_checkpoint_resume.py",
+    "tradingagents/tests/req/test_fallback.py",
+    "tradingagents/tests/req/test_point_in_time.py",
+    "tradingagents/tests/test_cli_display.py",
+    "tradingagents/tests/test_data_router_cache.py"
+  ],
+  "approved_by": "hhshow",
+  "approved_at": "2026-11-21T17:46:41+08:00"
+}
