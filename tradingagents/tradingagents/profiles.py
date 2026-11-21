@@ -1,6 +1,9 @@
 """Named run profiles and strict override handling."""
 from __future__ import annotations
 
+from collections.abc import Iterable
+from typing import Any
+
 from tradingagents.contracts.profile import ProfileConfig
 
 _COMMON_TTL = {"prices": 900, "news": 3600, "fundamentals": 86400}
@@ -45,3 +48,25 @@ def profile_to_runtime_config(profile: ProfileConfig, base: dict | None = None) 
                   run_profile=profile.name, token_budget=profile.token_budget,
                   timeout_s=profile.timeout_s, cache_ttl=profile.cache_ttl)
     return config
+
+
+def resolve_run_profile(
+    config: dict[str, Any],
+    selected_analysts: Iterable[str] | None = None,
+) -> tuple[dict[str, Any], tuple[str, ...] | None]:
+    """Resolve a named profile at the composition root.
+
+    A named profile supplies the analysts only when the caller did not choose
+    them explicitly. The CLI applies the profile config before construction; a
+    programmatic ``TradingAgentsGraph(config={"run_profile": "quick"})`` gets the
+    same profile defaults here. Explicit analysts remain an intentional override
+    and are not replaced.
+    """
+    name = config.get("run_profile")
+    if name in (None, "", "custom"):
+        return dict(config), tuple(selected_analysts) if selected_analysts is not None else None
+
+    profile = build_profile(name)
+    if selected_analysts is not None:
+        return dict(config), tuple(selected_analysts)
+    return profile_to_runtime_config(profile, config), profile.analysts

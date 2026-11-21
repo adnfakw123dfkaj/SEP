@@ -1,6 +1,10 @@
 import pytest
 
-from tradingagents.profiles import build_profile, profile_to_runtime_config
+from tradingagents.profiles import (
+    build_profile,
+    profile_to_runtime_config,
+    resolve_run_profile,
+)
 
 
 def test_profile_matrix():
@@ -32,3 +36,22 @@ def test_profile_maps_to_existing_runtime_config():
     config = profile_to_runtime_config(build_profile("deep"), {"output_language": "Chinese"})
     assert config["max_debate_rounds"] == config["max_risk_discuss_rounds"] == 2
     assert config["max_tool_rounds"] == 15 and config["output_language"] == "Chinese"
+
+
+def test_resolve_run_profile_supplies_analysts_and_runtime_config():
+    config, analysts = resolve_run_profile({"run_profile": "quick"})
+    assert analysts == ("market",)
+    assert config["max_debate_rounds"] == config["max_risk_discuss_rounds"] == 1
+    assert config["max_tool_rounds"] == 6
+
+
+def test_resolve_run_profile_keeps_explicit_analysts_and_config():
+    original = {"run_profile": "quick", "max_tool_rounds": 20}
+    config, analysts = resolve_run_profile(original, ("market", "news"))
+    assert analysts == ("market", "news")
+    assert config == original
+
+
+def test_resolve_run_profile_rejects_unknown_profile():
+    with pytest.raises(ValueError, match="unknown profile"):
+        resolve_run_profile({"run_profile": "turbo"})

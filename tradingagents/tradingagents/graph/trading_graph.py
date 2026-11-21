@@ -19,6 +19,7 @@ from tradingagents.default_config import DEFAULT_CONFIG
 from tradingagents.llm_clients import create_tier_client, tier_provider
 from tradingagents.memory import TradingMemoryLog, settlement
 from tradingagents.memory.reflection import Reflector
+from tradingagents.profiles import resolve_run_profile
 from tradingagents.reporting import write_report_tree
 from tradingagents.resilience import fallback_event_scope
 
@@ -56,7 +57,7 @@ class TradingAgentsGraph:
 
     def __init__(
         self,
-        selected_analysts=("market", "social", "news", "fundamentals"),
+        selected_analysts: tuple[str, ...] | None = None,
         debug=False,
         config: dict[str, Any] = None,
         callbacks: list | None = None,
@@ -64,13 +65,20 @@ class TradingAgentsGraph:
         """Initialize the trading agents graph and components.
 
         Args:
-            selected_analysts: List of analyst types to include
+            selected_analysts: Analyst types to include. When omitted and
+                ``run_profile`` names a preset, the profile's analyst set is used.
             debug: Whether to run in debug mode
             config: Configuration dictionary. If None, uses default config
             callbacks: Optional list of callback handlers (e.g., for tracking LLM/tool stats)
         """
         self.debug = debug
-        self.config = config or DEFAULT_CONFIG
+        self.config = dict(config or DEFAULT_CONFIG)
+        self.config, resolved_analysts = resolve_run_profile(self.config, selected_analysts)
+        self.selected_analysts = tuple(
+            resolved_analysts
+            if resolved_analysts is not None
+            else ("market", "social", "news", "fundamentals")
+        )
         self.callbacks = callbacks or []
 
         set_config(self.config)
@@ -108,11 +116,8 @@ class TradingAgentsGraph:
         )
         self.reflector = Reflector(self.quick_thinking_llm)
 
-        # Graph-shape-affecting run choices, kept for the checkpoint signature.
-        self.selected_analysts = tuple(selected_analysts)
-
         # Set up the graph: keep the workflow for recompilation with a checkpointer.
-        self.workflow = self.graph_setup.setup_graph(selected_analysts, memory_node=self._memory_step)
+        self.workflow = self.graph_setup.setup_graph(self.selected_analysts, memory_node=self._memory_step)
         self.graph = self.workflow.compile()
         self._checkpointer_ctx = None
         self._resuming = False

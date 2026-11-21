@@ -246,3 +246,11 @@ entries:
       - tradingagents/tradingagents/dataflows/router.py
       - tradingagents/tradingagents/graph/trading_graph.py
       - tradingagents/tradingagents/resilience.py
+
+  - change_id: "phase1-profile-composition"
+    date: "2026-11-21"
+    agent_session: "phase1-integration"
+    summary: "Phase 1 composition-root step: TradingAgentsGraph now resolves a named run profile when the caller omits selected analysts, applying the profile's analyst set, rounds, tool-round limit and models. Explicit analyst selections remain an intentional override. Added helper and regression tests."
+    files_changed:
+      - tradingagents/tradingagents/profiles.py
+      - tradingagents/tradingagents/graph/trading_graph.py
