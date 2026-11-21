@@ -31,6 +31,8 @@ from tradingagents.graph.analyst_execution import (
     build_analyst_execution_plan,
 )
 from tradingagents.graph.trading_graph import TradingAgentsGraph
+from tradingagents.profiles import build_profile, profile_to_runtime_config
+from tradingagents.preflight import validate_request
 
 
 def _run_directory(config: dict, ticker: str, trade_date: str) -> Path:
@@ -63,13 +65,19 @@ def _build_run_config(selections: dict, checkpoint: bool | None) -> dict:
     value on DEFAULT_CONFIG is preserved unless the user overrode it on the CLI.
     """
     config = DEFAULT_CONFIG.copy()
+    if selections.get("profile"):
+        config = profile_to_runtime_config(build_profile(selections["profile"]), config)
     # Research depth sets both round counts, but an explicit env override
     # (TRADINGAGENTS_MAX_DEBATE_ROUNDS / _MAX_RISK_ROUNDS) wins over the
     # interactive selection — leave the env-applied value in place (#977).
     rounds = (("TRADINGAGENTS_MAX_DEBATE_ROUNDS", "max_debate_rounds"),
               ("TRADINGAGENTS_MAX_RISK_ROUNDS", "max_risk_discuss_rounds"))
-    depth_was_asked = not depth_from_env()
+    depth_was_asked = not depth_from_env() and not selections.get("profile")
     for env_var, key in rounds:
+        if selections.get("profile") and not os.environ.get(env_var):
+            # Named profile values are the default; explicit environment values
+            # remain an intentional override.
+            continue
         if not os.environ.get(env_var):
             config[key] = selections["research_depth"]
         elif depth_was_asked:
@@ -110,7 +118,32 @@ def run_analysis(checkpoint: bool | None = None, portfolio=None, flags=None):
 
     selections = get_user_selections(flags)
 
+    profile_name = (flags or {}).get("profile")
+    if profile_name:
+        try:
+            profile = build_profile(profile_name)
+        except ValueError as exc:
+            console.print(f"[red]{exc}[/red]")
+            raise typer.Exit(code=1) from None
+        # Explicit --analysts wins; otherwise use profile defaults, filtered for
+        # the selected asset (fundamentals is unavailable for crypto).
+        if (flags or {}).get("analysts") is None:
+            from cli.prompts import filter_analysts_for_asset_type
+            from cli.models import AnalystType, AssetType
+            allowed = {a.value for a in filter_analysts_for_asset_type(
+                list(AnalystType), AssetType(selections["asset_type"]))}
+            analyst_keys = [a for a in profile.analysts if a in allowed]
+            selections["analysts"] = [AnalystType(a) for a in analyst_keys]
+        selections["profile"] = profile_name
+
     config = _build_run_config(selections, checkpoint)
+
+    # Gate before graph construction, which instantiates the LLM clients.
+    if (flags or {}).get("profile"):
+        result = validate_request(selections["ticker"], selections["analysis_date"])
+        if not result.ok:
+            console.print(f"[red]Preflight failed for {result.ticker}: {result.reason}[/red]")
+            raise typer.Exit(code=1)
 
     stats_handler = StatsCallbackHandler()
 
