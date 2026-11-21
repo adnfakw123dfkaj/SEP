@@ -387,3 +387,10 @@ entries:
       - tradingagents/tradingagents/cost/callback.py
       - tradingagents/tradingagents/graph/trading_graph.py
       - tradingagents/cli/run.py
+
+  - change_id: "phase1-part6-live-cli"
+    date: "2026-11-21"
+    agent_session: "phase1-integration"
+    summary: "Part 6 acceptance CLI: support live graph runs when no JSONL fixture is provided, with --cold/--warm and --runs sampling, temporary cache/results isolation, formal --assert-p95/--assert-p99-ratio/--assert-failure-rate/--assert-improvement flags for latency, and formal coverage/silent-budget/cost-error/routed-quality flags for token audits. Added mocked live-mode CLI tests."
+    files_changed:
+      - tradingagents/tradingagents/cost/cli.py

@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 
+import tradingagents.cost.cli as cost_cli
 from tradingagents.contracts.llm_event import RoutePath
 from tradingagents.cost.audit import TokenRun
 from tradingagents.cost.benchmark import LatencySample
@@ -132,6 +133,48 @@ def test_tc_p6_cli_003_token_audit_passes_with_alias(tmp_path):
     assert payload["report_coverage"] == 1.0
     assert payload["p95_tokens"] == 1000
     assert payload["currency"] == "CNY"
+
+
+def test_live_latency_mode_uses_formal_flags(monkeypatch, tmp_path):
+    samples = [
+        LatencySample(
+            profile="quick",
+            cache_state="cold" if i < 15 else "warm",
+            duration_s=60.0,
+            success=True,
+        )
+        for i in range(30)
+    ]
+    monkeypatch.setattr(cost_cli, "_run_live", lambda *a, **k: (samples, []))
+
+    out = tmp_path / "live-latency.json"
+    code = bench_latency_main([
+        "--profile", "quick", "--cold", "15", "--warm", "15",
+        "--assert-p95", "300", "--out", str(out),
+    ])
+
+    payload = json.loads(out.read_text(encoding="utf-8"))
+    assert code == 0
+    assert payload["mode"] == "live"
+    assert payload["gate_passed"] is True
+
+
+def test_live_token_mode_uses_formal_flags(monkeypatch, tmp_path):
+    runs = [_token_run(f"live-{i}") for i in range(30)]
+    monkeypatch.setattr(cost_cli, "_run_live", lambda *a, **k: ([], runs))
+
+    out = tmp_path / "live-tokens.json"
+    code = token_audit_main([
+        "--profile", "quick", "--runs", "30", "--assert-p95", "25000",
+        "--assert-report-coverage", "1.0", "--assert-silent-over-budget", "0",
+        "--assert-cost-error", "0.05", "--assert-routed-quality", "1.0",
+        "--out", str(out),
+    ])
+
+    payload = json.loads(out.read_text(encoding="utf-8"))
+    assert code == 0
+    assert payload["mode"] == "live"
+    assert payload["gate_passed"] is True
 
 
 def test_tc_p6_cli_004_token_audit_fails(tmp_path):
