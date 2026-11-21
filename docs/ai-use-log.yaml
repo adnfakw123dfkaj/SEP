@@ -116,6 +116,49 @@ entries:
       - scripts/gates/collect_context.py
       - scripts/gates/run_static_checks.py
 
+  - change_id: "part5-security-rating"
+    date: "2026-11-18"
+    agent_session: "opencode-part5-security-rating"
+    summary: "Part 5 implementation: deterministic rating authority (contracts/rating.py, rating_authority.py), security package (sanitize, validate_output, tool_guard, security_log, redaction), offline security regression script and fixtures. Replaced placeholder (require-import) Part 5 tests with real behavioural assertions. Human (陈妍妍) approved the plan and test list and reviewed the changes; approval record committed before implementation. No composition-root wiring in this change; handoff documented in docs/part5-integration.md."
+    files_changed:
+      - tradingagents/tradingagents/contracts/__init__.py
+      - tradingagents/tradingagents/contracts/rating.py
+      - tradingagents/tradingagents/rating_authority.py
+      - tradingagents/tradingagents/security/__init__.py
+      - tradingagents/tradingagents/security/redaction.py
+      - tradingagents/tradingagents/security/sanitize.py
+      - tradingagents/tradingagents/security/validate_output.py
+      - tradingagents/tradingagents/security/tool_guard.py
+      - tradingagents/tradingagents/security/security_log.py
+      - tradingagents/tests/req/test_rating_invariant.py
+      - tradingagents/tests/security/test_prompt_injection.py
+      - tradingagents/tests/security/test_secret_redaction.py
+      - scripts/security_regression.py
+      - scripts/generate_security_fixtures.py
+
+  - change_id: "part5-security-rating-acceptance-2"
+    date: "2026-11-18"
+    agent_session: "opencode-part5-security-rating"
+    summary: "Part 5 acceptance-round-2 fixes from independent review: handler-level log redaction install (register_handler/install_log_filter, no global monkeypatch) with child-propagation tests; re-commit conflict/corrupt-record semantics returning the persisted provenance and never defaulting snapshot_verified to true; injection block-rate now graded against independent fixture labels with a reverse control (detection disabled must fail) and diverse benign lines; output refs fail closed when references are missing; ADR added under docs/architecture/adr/; full sanitized session exported. Human (陈妍妍) approved the revised scenarios; approval precedes implementation. No Part 1/3 code changed; shared CI untouched."
+    files_changed:
+      - tradingagents/tradingagents/security/redaction.py
+      - tradingagents/tradingagents/security/sanitize.py
+      - tradingagents/tradingagents/security/validate_output.py
+      - tradingagents/tradingagents/rating_authority.py
+      - tradingagents/tradingagents/contracts/rating.py
+      - tradingagents/tests/security/test_secret_redaction.py
+      - tradingagents/tests/security/test_prompt_injection.py
+      - tradingagents/tests/req/test_rating_invariant.py
+      - scripts/generate_security_fixtures.py
+      - scripts/security_regression.py
+
+  - change_id: "part5-rating-failclosed"
+    date: "2026-11-18"
+    agent_session: "opencode-part5-security-rating"
+    summary: "Part 5 rating fail-closed fixes: corrupt persisted records now always return REVIEW / review_required=True / is_tradeable=False (previously a corrupt Buy record could surface as tradeable); persisted provenance is reconstructed only when complete, structurally valid, and snapshot_verified is True (flag persisted; boundary documented); re-commit validates the request provenance before idempotency/conflict so an unverified same-source retry is refused; decision_id mismatch treated as corruption. New real tests assert rating/review_required/is_tradeable and no-write for each refusal. Human (陈妍妍) approved the new scenarios before implementation. No Part 1/3 changes."
+    files_changed:
+      - tradingagents/tradingagents/rating_authority.py
+      - tradingagents/tests/req/test_rating_invariant.py
   - change_id: "part3-evidence-records"
     date: "2026-11-17"
     agent_session: "part3-implementation"
