@@ -82,6 +82,26 @@ def test_tc_p6_aud_004_cost_error(synthetic_price_table):
         assert_token_acceptance(bad, hard_limit=25_000)
 
 
+def test_quality_floor_pass_rate_covers_direct_runs(synthetic_price_table):
+    runs = [_run("r1"), _run("r2", quality_floor_pass=False)]
+
+    report = build_token_report("quick", runs, synthetic_price_table)
+
+    assert report.quality_floor_pass_rate == 0.5
+    with pytest.raises(AssertionError, match="quality floor pass rate"):
+        assert_token_acceptance(report, hard_limit=25_000)
+
+
+def test_unavailable_cost_ground_truth_fails_acceptance(synthetic_price_table):
+    runs = [_run("r1", cost_ground_truth_source="unavailable")]
+
+    report = build_token_report("quick", runs, synthetic_price_table)
+
+    assert report.cost_ground_truth_unavailable_runs == 1
+    with pytest.raises(AssertionError, match="ground truth unavailable"):
+        assert_token_acceptance(report, hard_limit=25_000)
+
+
 def test_tc_p6_aud_005_routed_quality_floor(synthetic_price_table):
     """TC-P6-AUD-005: every routed run must pass the quality floor."""
     routed = _run(route_paths=[RoutePath.SUMMARIZE], quality_floor_pass=True)

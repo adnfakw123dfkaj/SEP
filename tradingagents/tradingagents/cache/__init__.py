@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import hashlib
 import os
-import time
 from collections.abc import Callable
 from contextlib import contextmanager
 from datetime import UTC, datetime, timedelta, timezone
@@ -11,7 +10,15 @@ from pathlib import Path
 from typing import Any
 
 from tradingagents.contracts.cache import CacheEntry, CacheKey, TTLPolicy
-from tradingagents.dataflows.files import replace_file
+from tradingagents.dataflows.files import locked, replace_file
+
+from .metrics import (
+    record_hit,
+    record_miss,
+    record_stale_read,
+    record_write,
+    record_write_skipped,
+)
 
 
 class CacheController:
@@ -27,42 +34,21 @@ class CacheController:
     def _lock(self, path: Path):
         """Cross-process exclusive lock for a cache entry (Windows/POSIX)."""
         self.root.mkdir(parents=True, exist_ok=True)
-        lock_path = path.with_suffix(path.suffix + ".lock")
-        with lock_path.open("a+b") as lock_file:
-            if os.name == "nt":
-                import msvcrt
-                lock_file.seek(0, os.SEEK_END)
-                if lock_file.tell() == 0:
-                    lock_file.seek(0)
-                    lock_file.write(b"0")
-                    lock_file.flush()
-                lock_file.seek(0)
-                while True:
-                    try:
-                        msvcrt.locking(lock_file.fileno(), msvcrt.LK_NBLCK, 1)
-                        break
-                    except OSError:
-                        time.sleep(0.01)
-                try:
-                    yield
-                finally:
-                    lock_file.seek(0)
-                    msvcrt.locking(lock_file.fileno(), msvcrt.LK_UNLCK, 1)
-            else:
-                import fcntl
-                fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX)
-                try:
-                    yield
-                finally:
-                    fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
+        with locked(path):
+            yield
 
     def get(self, key: CacheKey, *, now: datetime | None = None) -> CacheEntry | None:
         path = self._path(key)
         try:
             entry = CacheEntry.model_validate_json(path.read_text(encoding="utf-8"))
         except (OSError, ValueError):
+            record_miss()
             return None
-        return entry if entry.is_fresh(now) else None
+        if entry.is_fresh(now):
+            record_hit()
+            return entry
+        record_miss()
+        return None
 
     def set(self, key: CacheKey, value: Any, provenance: dict[str, Any] | None = None,
             *, now: datetime | None = None) -> CacheEntry:
@@ -83,7 +69,10 @@ class CacheController:
                 stream.flush()
                 os.fsync(stream.fileno())
 
-        replace_file(path, write)
+        if replace_file(path, write):
+            record_write()
+        else:
+            record_write_skipped()
 
     def get_or_fetch(self, key: CacheKey, fetch_fn: Callable[[], Any],
                      provenance: dict[str, Any] | None = None) -> CacheEntry:
@@ -108,6 +97,10 @@ class CacheController:
     def get_stale(self, key: CacheKey) -> CacheEntry | None:
         """Return an expired value for explicit failure fallback only."""
         try:
-            return CacheEntry.model_validate_json(self._path(key).read_text(encoding="utf-8"))
+            entry = CacheEntry.model_validate_json(
+                self._path(key).read_text(encoding="utf-8")
+            )
         except (OSError, ValueError):
             return None
+        record_stale_read()
+        return entry

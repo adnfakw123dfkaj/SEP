@@ -69,6 +69,30 @@ def test_report_renders_evidence_and_passes_schema(tmp_path):
 
 
 @pytest.mark.unit
+def test_report_renders_claim_evidence(tmp_path):
+    state = dict(
+        _state(),
+        report_claims=[
+            {
+                "claim_id": "decision-0001",
+                "section": "decision",
+                "kind": "numeric",
+                "text": "Close 187.2",
+                "evidence_refs": ["tool-abc"],
+                "snapshot_hashes": ["deadbeef"],
+            }
+        ],
+    )
+
+    out = write_report_tree(state, "AAPL", tmp_path, settings=SETTINGS)
+    markdown = out.read_text(encoding="utf-8")
+
+    assert "VII. Claim Evidence" in markdown
+    assert "decision-0001" in markdown
+    assert (tmp_path / "7_claims" / "claims.md").exists()
+
+
+@pytest.mark.unit
 def test_save_reports_explicit_path(tmp_path):
     graph = SimpleNamespace(run_settings=lambda: SETTINGS)
     out = TradingAgentsGraph.save_reports(graph, _state(), "AAPL", save_path=tmp_path)

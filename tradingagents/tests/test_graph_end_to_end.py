@@ -30,7 +30,10 @@ TRADE_DATE = "2026-01-09"
 
 # Enough for every free-text reader: the PM's labelled rating and the trader's
 # closing proposal line.
-TEXT = "Report.\n\n**Rating**: Overweight\n\nFINAL TRANSACTION PROPOSAL: **BUY**"
+TEXT = (
+    "Report.\n\n**Rating**: Overweight\n\n**Investment Thesis**: test thesis\n\n"
+    "FINAL TRANSACTION PROPOSAL: **BUY**"
+)
 
 STRUCTURED = {
     schemas.ResearchPlan: schemas.ResearchPlan(
@@ -209,11 +212,14 @@ def test_the_guarded_llm_stops_the_real_graph_before_the_first_call(tmp_path, mo
     assert state["exit_code"] == 2
     assert state["budget_exceeded"] is True
     assert state["cost_report"]["over_budget"] is True
+    assert state["quality_floor"]["passed"] is False
+    assert state["cost_report"]["quality_floor_pass"] is False
     logged = json.loads(
         next(tmp_path.rglob(f"full_states_log_{TRADE_DATE}.json")).read_text(encoding="utf-8")
     )
     assert logged["budget_exceeded"] is True
     assert logged["cost_report"]["over_budget"] is True
+    assert logged["quality_floor"]["passed"] is False
 
 
 @pytest.mark.unit
@@ -238,6 +244,10 @@ def test_a_run_captures_tool_evidence(tmp_path, monkeypatch, offline):
     assert set(state["evidence_refs"]) <= set(graph.last_evidence_registry.ids())
     assert state["rating_authority"]["rating"] == state["final_rating"] == "Overweight"
     assert state["output_validation"]["ok"] is True
+    assert state["quality_floor"]["passed"] is False
+    assert state["cost_report"]["quality_floor_pass"] is False
+    assert state["cache_metrics"]["hits"] + state["cache_metrics"]["misses"] > 0
+    assert state["resume_metrics"] == {"enabled": False, "resumed": False}
 
 
 @pytest.mark.unit
@@ -250,10 +260,26 @@ def test_the_state_log_persists_the_integration_evidence(tmp_path, monkeypatch, 
 
     assert logged["evidence_refs"] == state["evidence_refs"]
     assert logged["evidence"] == state["evidence"]
+    assert logged["report_claims"] == state["report_claims"]
     assert logged["rating_authority"] == state["rating_authority"]
     assert logged["output_validation"] == state["output_validation"]
+    assert logged["quality_floor"] == state["quality_floor"]
     assert logged["cost_report"] == state["cost_report"]
     assert logged["token_usage_by_agent"] == state["token_usage_by_agent"]
+    assert logged["cache_metrics"] == state["cache_metrics"]
+    assert logged["resume_metrics"] == state["resume_metrics"]
+    assert logged["fallback_metrics"]["count"] == len(logged["fallback_events"])
+    assert logged["vendor_versions"]
+    assert logged["pit_coverage"]
+
+    manifest = json.loads(
+        next(tmp_path.rglob("run_manifest_*.json")).read_text(encoding="utf-8")
+    )
+    assert manifest["vendor_versions"] == logged["vendor_versions"]
+    assert manifest["pit_coverage"] == logged["pit_coverage"]
+    assert manifest["cache_metrics"] == logged["cache_metrics"]
+    assert manifest["resume_metrics"] == logged["resume_metrics"]
+    assert manifest["fallback_metrics"] == logged["fallback_metrics"]
 
 
 @pytest.mark.unit

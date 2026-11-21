@@ -36,6 +36,7 @@ from tradingagents.cost.benchmark import (
     summarize_latency,
 )
 from tradingagents.cost.budget import budget_for_profile
+from tradingagents.cost.ground_truth import provider_ground_truth_cost
 from tradingagents.cost.pricing import default_price_table
 
 
@@ -111,6 +112,7 @@ def _run_live(
     samples: list[LatencySample] = []
     runs: list[TokenRun] = []
     retained: Path | None = None
+    price_table = default_price_table()
 
     with _live_workspace(workdir, keep_artifacts) as (root, kept):
         if kept:
@@ -153,6 +155,12 @@ def _run_live(
                 except ValueError:
                     route_paths.append(RoutePath.DIRECT)
             cost = Decimal(str(state.get("cost_estimate") or 0))
+            truth = provider_ground_truth_cost(
+                graph.cost_monitor.events,
+                price_table,
+                run_id=graph._cost_run_id,
+            )
+            quality = state.get("quality_floor") or {}
             runs.append(
                 TokenRun(
                     run_id=f"{ticker}-{trade_date}-{len(runs)}",
@@ -164,10 +172,12 @@ def _run_live(
                         and not state.get("budget_exceeded")
                     ),
                     cost=cost,
-                    cost_ground_truth=cost,
-                    quality_floor_pass=bool(
-                        state.get("output_validation", {}).get("ok", True)
+                    cost_ground_truth=truth if truth is not None else cost,
+                    cost_ground_truth_source=(
+                        "provider" if truth is not None else "unavailable"
                     ),
+                    quality_floor_pass=bool(quality.get("passed", False)),
+                    quality_floor_failures=list(quality.get("failures") or []),
                     route_paths=route_paths or [RoutePath.DIRECT],
                 )
             )
@@ -312,6 +322,14 @@ def _token_gate_failures(report, args) -> list[str]:
         failures.append(
             f"silent over-budget runs {report.silent_over_budget_runs} "
             f"!= {args.assert_silent_over_budget}"
+        )
+    if (
+        args.assert_cost_error is not None
+        and report.cost_ground_truth_unavailable_runs != 0
+    ):
+        failures.append(
+            "cost ground truth unavailable for "
+            f"{report.cost_ground_truth_unavailable_runs} run(s)"
         )
     if (
         args.assert_cost_error is not None

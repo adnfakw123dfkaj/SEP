@@ -10,6 +10,7 @@ acceptance. The manifest stores metadata only — never raw vendor payloads.
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Any
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
@@ -29,7 +30,11 @@ class RunManifest(BaseModel):
     prompt_version: str = ""
     config_hash: str = ""
     vendor_versions: dict[str, str] = Field(default_factory=dict)
+    pit_coverage: dict[str, str] = Field(default_factory=dict)
     cache_hits: int = Field(default=0, ge=0)
+    cache_metrics: dict[str, Any] = Field(default_factory=dict)
+    resume_metrics: dict[str, Any] = Field(default_factory=dict)
+    fallback_metrics: dict[str, Any] = Field(default_factory=dict)
     token_usage_by_agent: dict[str, int] = Field(default_factory=dict)
     cost_estimate: float | None = None
     fallback_events: list[str] = Field(default_factory=list)

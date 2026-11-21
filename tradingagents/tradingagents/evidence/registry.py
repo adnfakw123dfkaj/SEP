@@ -17,6 +17,15 @@ class EvidenceRegistry:
 
     def __init__(self):
         self._refs: dict[str, EvidenceRef] = {}
+        self._snapshot_text = ""
+
+    def register_snapshot(self, text: str) -> None:
+        """Keep the latest verified market snapshot text for claim fidelity."""
+        if text and isinstance(text, str):
+            self._snapshot_text = text
+
+    def snapshot_text(self) -> str:
+        return self._snapshot_text
 
     def register(self, ref: EvidenceRef) -> EvidenceRef:
         """Register ``ref`` by its id (last write wins for a re-fetch of the same id)."""

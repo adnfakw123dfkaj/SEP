@@ -26,6 +26,7 @@ from cli.display import (
 from cli.selections import depth_from_env, get_user_selections, unattended_gaps
 from cli.stats_handler import StatsCallbackHandler
 from tradingagents.agents.rating import is_review, run_rating
+from tradingagents.cache.metrics import CacheMetrics, cache_metrics_scope
 from tradingagents.cost.enforcement import BudgetExceededError
 from tradingagents.dataflows.symbols import safe_ticker_component
 from tradingagents.default_config import DEFAULT_CONFIG
@@ -313,6 +314,9 @@ def run_analysis(checkpoint: bool | None = None, portfolio=None, flags=None):
         budget_exit_code = 0
         event_scope = fallback_event_scope(fallback_events)
         event_scope.__enter__()
+        cache_metrics = CacheMetrics()
+        cache_scope = cache_metrics_scope(cache_metrics)
+        cache_scope.__enter__()
         try:
             for messages, chunk in graph.stream_run(graph.checkpoint_input(init_agent_state), **args):
                 for message in messages:
@@ -430,6 +434,15 @@ def run_analysis(checkpoint: bool | None = None, portfolio=None, flags=None):
                 if registry is not None
                 else []
             )
+            final_state["verified_snapshot"] = (
+                registry.snapshot_text() if registry is not None else ""
+            )
+            final_state["cache_metrics"] = cache_metrics.as_dict()
+            final_state["resume_metrics"] = (
+                graph._resume_metrics()
+                if hasattr(graph, "_resume_metrics")
+                else {}
+            )
             final_state["security_events"] = [
                 json.dumps(event, sort_keys=True, ensure_ascii=False)
                 for event in drain_events()
@@ -462,6 +475,12 @@ def run_analysis(checkpoint: bool | None = None, portfolio=None, flags=None):
                 "message": str(exc),
                 "action": "hard_fail",
             }]
+            final_state["cache_metrics"] = cache_metrics.as_dict()
+            final_state["resume_metrics"] = (
+                graph._resume_metrics()
+                if hasattr(graph, "_resume_metrics")
+                else {}
+            )
             if hasattr(graph, "finish_cost_run"):
                 graph.finish_cost_run(final_state)
             final_state["budget_exceeded"] = True
@@ -480,6 +499,7 @@ def run_analysis(checkpoint: bool | None = None, portfolio=None, flags=None):
             budget_exit_code = 2
         finally:
             # Always restore the plain uncheckpointed graph, even on failure.
+            cache_scope.__exit__(None, None, None)
             event_scope.__exit__(None, None, None)
             graph.end_checkpoint()
 

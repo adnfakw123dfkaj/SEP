@@ -7,6 +7,7 @@ import every ``contracts/*.py`` module cleanly.
 
 from __future__ import annotations
 
+from .claim import ReportClaim
 from .cost import (
     Budget,
     CostReport,
@@ -42,6 +43,7 @@ __all__ = [
     "PricePair",
     "PriceTable",
     "Provenance",
+    "ReportClaim",
     "REVIEW",
     "RatingResult",
     "ReasonCode",

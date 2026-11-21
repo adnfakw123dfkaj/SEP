@@ -115,6 +115,25 @@ def _evidence_text(final_state: dict) -> str | None:
     return "\n".join(lines)
 
 
+def _claims_text(final_state: dict) -> str | None:
+    """Render claim ids and the evidence refs attached to each claim group."""
+    claims = final_state.get("report_claims") or []
+    if not claims:
+        return None
+    lines = [
+        "| Claim | Section | Kind | Evidence refs | Snapshot hashes |",
+        "|---|---|---|---|---|",
+    ]
+    for claim in claims:
+        refs = ", ".join(f"`{ref}`" for ref in claim.get("evidence_refs", []))
+        hashes = ", ".join(f"`{item}`" for item in claim.get("snapshot_hashes", []))
+        lines.append(
+            f"| `{_cell(claim.get('claim_id'))}` | {_cell(claim.get('section'))} | "
+            f"{_cell(claim.get('kind'))} | {refs or '-'} | {hashes or '-'} |"
+        )
+    return "\n".join(lines)
+
+
 def write_report_tree(final_state: dict, ticker: str, save_path, settings: dict | None = None,
                       html: bool = True) -> Path:
     """Save a completed run's reports to ``save_path``; return the complete-report path.
@@ -132,6 +151,11 @@ def write_report_tree(final_state: dict, ticker: str, save_path, settings: dict 
     evidence_text = _evidence_text(final_state)
     if evidence_text:
         parts.append(("VI. Evidence", "6_evidence", [("Evidence Index", "evidence.md", evidence_text)]))
+    claims_text = _claims_text(final_state)
+    if claims_text:
+        parts.append(("VII. Claim Evidence", "7_claims", [("Claim Index", "claims.md", claims_text)]))
+    else:
+        (save_path / "7_claims" / "claims.md").unlink(missing_ok=True)
     sections = []
     for heading, folder, written in parts:
         (save_path / folder).mkdir(exist_ok=True)

@@ -270,6 +270,33 @@ def test_live_workspace_default_removes_generated_dir():
     assert not path.exists()
 
 
+def test_token_audit_fails_when_cost_ground_truth_is_unavailable(tmp_path):
+    runs_path = tmp_path / "runs.jsonl"
+    out = tmp_path / "audit.json"
+    _write_tokens(
+        runs_path,
+        [_token_run("r", cost_ground_truth_source="unavailable")],
+    )
+
+    code = token_audit_main(
+        [
+            "--profile",
+            "quick",
+            "--runs-jsonl",
+            str(runs_path),
+            "--assert-cost-error",
+            "0.05",
+            "--out",
+            str(out),
+        ]
+    )
+
+    payload = json.loads(out.read_text(encoding="utf-8"))
+    assert code == 1
+    assert payload["cost_ground_truth_unavailable_runs"] == 1
+    assert "ground truth unavailable" in payload["gate_error"]
+
+
 def test_tc_p6_cli_004_token_audit_fails(tmp_path):
     """TC-P6-CLI-004: silent over-budget makes the audit exit non-zero."""
     runs_path = tmp_path / "runs.jsonl"

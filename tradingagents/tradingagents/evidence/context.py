@@ -71,6 +71,8 @@ def register_tool_result(
         retrieved_at=datetime.now(UTC),
     )
     registry.register(ref)
+    if method == "get_verified_market_snapshot" and isinstance(value, str):
+        registry.register_snapshot(value)
     return ref
 
 

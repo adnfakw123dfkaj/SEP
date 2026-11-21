@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import time
+from collections import Counter
 from collections.abc import Callable
 from contextvars import ContextVar
 from typing import Any
@@ -51,6 +52,20 @@ class FallbackDecision(BaseModel):
     confidence_factor: float = Field(default=1.0, ge=0, le=1)
     events: list[FailureEvent] = Field(default_factory=list)
     status: str = "ok"
+
+
+def summarize_fallback_events(events) -> dict[str, Any]:
+    """Count typed fallback events by kind, source and action."""
+    payloads = [
+        event.model_dump(mode="json") if hasattr(event, "model_dump") else event
+        for event in (events or [])
+    ]
+    return {
+        "count": len(payloads),
+        "by_kind": dict(Counter(str(item.get("kind", "unknown")) for item in payloads)),
+        "by_source": dict(Counter(str(item.get("source", "unknown")) for item in payloads)),
+        "by_action": dict(Counter(str(item.get("action", "unknown")) for item in payloads)),
+    }
 
 
 class _StructuredFallback:

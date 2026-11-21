@@ -13,6 +13,7 @@ from tradingagents.dataflows.date_window import as_of, as_of_window
 from tradingagents.dataflows.errors import NoMarketDataError, VendorUnavailableError
 from tradingagents.dataflows.router import no_data_available, route_to_vendor, vendor_unavailable
 from tradingagents.dataflows.vendors.yahoo.snapshot import build_verified_market_snapshot
+from tradingagents.evidence.context import register_tool_result
 from tradingagents.security import sanitize
 
 
@@ -96,12 +97,21 @@ def get_verified_market_snapshot(
     resistance, or historical comparisons, and treat it as the source of truth.
     """
     # An exception out of a tool would end the run.
+    as_of_date = as_of(curr_date, trade_date)
     try:
-        return build_verified_market_snapshot(symbol, as_of(curr_date, trade_date), look_back_days)
+        snapshot = build_verified_market_snapshot(symbol, as_of_date, look_back_days)
     except VendorUnavailableError as exc:
         return vendor_unavailable("get_verified_market_snapshot", exc)
     except NoMarketDataError as exc:
         return no_data_available(exc)
+    register_tool_result(
+        method="get_verified_market_snapshot",
+        vendor="snapshot",
+        args=(symbol, as_of_date, look_back_days),
+        kwargs={},
+        value=snapshot,
+    )
+    return snapshot
 
 
 @tool

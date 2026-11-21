@@ -25,6 +25,8 @@ class TokenRun(BaseModel):
     cost_ground_truth: Decimal
     quality_floor_pass: bool
     route_paths: list[RoutePath]
+    quality_floor_failures: list[str] = Field(default_factory=list)
+    cost_ground_truth_source: Literal["provider", "unavailable"] = "provider"
 
 
 class TokenReport(BaseModel):
@@ -35,6 +37,8 @@ class TokenReport(BaseModel):
     report_coverage: float
     silent_over_budget_runs: int
     cost_relative_error: float
+    cost_ground_truth_unavailable_runs: int
+    quality_floor_pass_rate: float
     routed_quality_floor_pass_rate: float
     currency: Literal["CNY"]
     price_table_version: str
@@ -62,12 +66,16 @@ def build_token_report(
     reported_ids = {run.run_id for run in selected if run.has_report}
     coverage = compute_report_coverage(expected_ids, reported_ids)
 
+    grounded = [
+        run for run in selected if run.cost_ground_truth_source == "provider"
+    ]
     errors = [
         _relative_error(run.cost, run.cost_ground_truth)
-        for run in selected
+        for run in grounded
     ]
     # Worst run wins: one 6% error must not hide behind many perfect runs.
     cost_error = max(errors) if errors else 0.0
+    unavailable_truth = len(selected) - len(grounded)
 
     routed = [
         run
@@ -78,6 +86,11 @@ def build_token_report(
         routed_quality = sum(1 for run in routed if run.quality_floor_pass) / len(routed)
     else:
         routed_quality = 1.0
+    quality = (
+        sum(1 for run in selected if run.quality_floor_pass) / len(selected)
+        if selected
+        else 0.0
+    )
 
     return TokenReport(
         profile=profile,
@@ -85,6 +98,8 @@ def build_token_report(
         report_coverage=coverage,
         silent_over_budget_runs=sum(1 for run in selected if run.silent_over_budget),
         cost_relative_error=cost_error,
+        cost_ground_truth_unavailable_runs=unavailable_truth,
+        quality_floor_pass_rate=quality,
         routed_quality_floor_pass_rate=routed_quality,
         currency=price_table.currency,
         price_table_version=price_table.version,
@@ -106,9 +121,18 @@ def assert_token_acceptance(report: TokenReport, *, hard_limit: int) -> None:
         raise AssertionError(
             f"silent over-budget runs: {report.silent_over_budget_runs}"
         )
+    if report.cost_ground_truth_unavailable_runs != 0:
+        raise AssertionError(
+            "cost ground truth unavailable for "
+            f"{report.cost_ground_truth_unavailable_runs} run(s)"
+        )
     if report.cost_relative_error > 0.05:
         raise AssertionError(
             f"cost relative error {report.cost_relative_error:.3f} exceeds 0.05"
+        )
+    if report.quality_floor_pass_rate != 1.0:
+        raise AssertionError(
+            f"quality floor pass rate {report.quality_floor_pass_rate:.3f} is not 1.0"
         )
     if report.routed_quality_floor_pass_rate != 1.0:
         raise AssertionError(

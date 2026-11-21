@@ -11,6 +11,7 @@ import tradingagents
 from tradingagents.agents.context import build_instrument_context, resolve_instrument_identity
 from tradingagents.agents.debate.export import resolve_evidence_refs
 from tradingagents.agents.rating import is_review, run_rating
+from tradingagents.cache.metrics import CacheMetrics, cache_metrics_scope
 from tradingagents.contracts import ALLOWED_RATINGS, Provenance, RunManifest
 from tradingagents.contracts.cost import Budget
 from tradingagents.cost import (
@@ -22,11 +23,15 @@ from tradingagents.cost import (
     estimate_tokens,
 )
 from tradingagents.cost.enforcement import BudgetExceededError
+from tradingagents.cost.quality_floor import evaluate_quality_floor
 from tradingagents.dataflows.config import run_config, run_config_context, set_config
 from tradingagents.dataflows.date_window import get_current_date, is_historical
+from tradingagents.dataflows.pit import pit_coverage
 from tradingagents.dataflows.symbols import safe_ticker_component
+from tradingagents.dataflows.vendor_versions import vendor_versions
 from tradingagents.default_config import DEFAULT_CONFIG
 from tradingagents.evidence import evidence_scope
+from tradingagents.evidence.claims import build_report_claims
 from tradingagents.llm_clients import create_tier_client, tier_provider
 from tradingagents.memory import TradingMemoryLog, settlement
 from tradingagents.memory.reflection import Reflector
@@ -36,7 +41,11 @@ from tradingagents.rating_authority import commit_rating
 from tradingagents.records import FileRatingStore, write_run_manifest
 from tradingagents.records.idempotency import record_id
 from tradingagents.reporting import write_report_tree
-from tradingagents.resilience import FallbackLLM, fallback_event_scope
+from tradingagents.resilience import (
+    FallbackLLM,
+    fallback_event_scope,
+    summarize_fallback_events,
+)
 from tradingagents.security import drain_events, validate_output
 
 from .checkpointer import checkpoint_step, clear_checkpoint, get_checkpointer, thread_id
@@ -208,6 +217,12 @@ class TradingAgentsGraph:
         (which have no stored resolution date) are unaffected.
         """
         return str(trade_date) if is_historical(trade_date) else None
+
+    def _resume_metrics(self) -> dict[str, bool]:
+        return {
+            "enabled": bool(self.config.get("checkpoint_enabled")),
+            "resumed": bool(getattr(self, "_resuming", False)),
+        }
 
     def run_signature(self, asset_type: str = "stock", portfolio=None) -> str:
         """Public stable key for checkpointing and idempotent decision records."""
@@ -607,6 +622,17 @@ class TradingAgentsGraph:
                 "decision_id": result.decision_id,
             }
 
+        if not final_state.get("debate_transcript"):
+            transcript = self._debate_transcript(company_name, trade_date, final_state)
+            if transcript:
+                final_state["debate_transcript"] = transcript
+        if not final_state.get("report_claims"):
+            final_state["report_claims"] = build_report_claims(final_state)
+        quality = evaluate_quality_floor(final_state)
+        final_state["quality_floor"] = quality
+        if isinstance(final_state.get("cost_report"), dict):
+            final_state["cost_report"]["quality_floor_pass"] = quality["passed"]
+
         self._log_state(trade_date, final_state)
         if not decision:
             logger.warning("No final decision for %s on %s; nothing added to the memory log",
@@ -633,8 +659,9 @@ class TradingAgentsGraph:
         self.start_cost_run(company_name, trade_date, self.config.get("run_profile"))
         fallback_events = []
         registry = None
+        cache_metrics = CacheMetrics()
         try:
-            with fallback_event_scope(fallback_events):
+            with cache_metrics_scope(cache_metrics), fallback_event_scope(fallback_events):
                 if self.debug:
                     # A state repeats the messages before it, so each prints once (#1027).
                     final_state, printed = {}, set()
@@ -661,6 +688,8 @@ class TradingAgentsGraph:
                     "action": "hard_fail",
                 }
             ]
+            final_state["cache_metrics"] = cache_metrics.as_dict()
+            final_state["resume_metrics"] = self._resume_metrics()
             self.finish_cost_run(final_state)
             final_state["budget_exceeded"] = True
             final_state["final_rating"] = "REVIEW"
@@ -679,6 +708,11 @@ class TradingAgentsGraph:
             if registry is not None
             else []
         )
+        final_state["verified_snapshot"] = (
+            registry.snapshot_text() if registry is not None else ""
+        )
+        final_state["cache_metrics"] = cache_metrics.as_dict()
+        final_state["resume_metrics"] = self._resume_metrics()
         final_state["security_events"] = [
             json.dumps(event, sort_keys=True, ensure_ascii=False)
             for event in drain_events()
@@ -788,6 +822,13 @@ class TradingAgentsGraph:
             "final_trade_decision": final_state["final_trade_decision"],
             "final_rating": run_rating(final_state),
             "run_settings": self.run_settings(),
+            "vendor_versions": vendor_versions(self.config),
+            "pit_coverage": pit_coverage(),
+            "cache_metrics": final_state.get("cache_metrics", {}),
+            "resume_metrics": final_state.get("resume_metrics", {}),
+            "fallback_metrics": summarize_fallback_events(
+                final_state.get("fallback_events", [])
+            ),
             "fallback_events": final_state.get("fallback_events", []),
             "cost_report": final_state.get("cost_report"),
             "cost_estimate": final_state.get("cost_estimate"),
@@ -795,9 +836,12 @@ class TradingAgentsGraph:
             "cache_hits": final_state.get("cache_hits", 0),
             "evidence_refs": final_state.get("evidence_refs", []),
             "evidence": final_state.get("evidence", []),
+            "verified_snapshot": final_state.get("verified_snapshot", ""),
+            "report_claims": final_state.get("report_claims", []),
             "security_events": final_state.get("security_events", []),
             "output_validation": final_state.get("output_validation"),
             "rating_authority": final_state.get("rating_authority"),
+            "quality_floor": final_state.get("quality_floor"),
             "budget_exceeded": final_state.get("budget_exceeded", False),
         }
 
@@ -834,6 +878,13 @@ class TradingAgentsGraph:
             provider=self.config.get("llm_provider", ""),
             prompt_version=self.config.get("prompt_version", ""),
             config_hash=config_hash,
+            vendor_versions=vendor_versions(self.config),
+            pit_coverage=pit_coverage(),
+            cache_metrics=dict(final_state.get("cache_metrics", {}) or {}),
+            resume_metrics=dict(final_state.get("resume_metrics", {}) or {}),
+            fallback_metrics=summarize_fallback_events(
+                final_state.get("fallback_events", [])
+            ),
             cache_hits=max(
                 int(final_state.get("cache_hits", 0) or 0),
                 sum(
