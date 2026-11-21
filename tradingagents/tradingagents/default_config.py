@@ -135,6 +135,10 @@ def build_default_config() -> dict:
         "max_recur_limit": 100,
         # Rounds of tool calls an analyst may make before it is asked for its report.
         "max_tool_rounds": 20,
+        "run_profile": "custom",
+        "token_budget": None,
+        "timeout_s": None,
+        "cache_ttl": {},
         # News / data fetching parameters
         # Increase for longer lookback strategies or to broaden macro coverage;
         # decrease to reduce token usage in agent prompts.

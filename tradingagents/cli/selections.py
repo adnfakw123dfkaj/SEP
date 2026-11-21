@@ -58,11 +58,13 @@ def depth_from_env() -> bool:
 def unattended_gaps(flags) -> list[str]:
     """The flags and environment variables a run with no terminal still needs."""
     env = os.environ.get
-    gaps = [f"--{name}" for name in ("ticker", "date", "analysts") if flags.get(name) is None]
+    gaps = [f"--{name}" for name in ("ticker", "date") if flags.get(name) is None]
+    if flags.get("analysts") is None and flags.get("profile") is None:
+        gaps.append("--analysts")
     gaps += [f"--{name} or --no-{name}" for name in ("save", "show") if flags.get(name) is None]
     if not env("TRADINGAGENTS_OUTPUT_LANGUAGE"):
         gaps.append("TRADINGAGENTS_OUTPUT_LANGUAGE")
-    if not depth_from_env():
+    if not depth_from_env() and flags.get("profile") is None:
         gaps.append("TRADINGAGENTS_MAX_DEBATE_ROUNDS and TRADINGAGENTS_MAX_RISK_ROUNDS")
     if not env("TRADINGAGENTS_LLM_PROVIDER"):
         gaps.append("TRADINGAGENTS_LLM_PROVIDER")
@@ -216,7 +218,16 @@ def _prompt_selections(prefs, flags):
 
     # Step 4: Select analysts
     prefs = sanitize(prefs, asset_type.value)
-    if flags.get("analysts") is not None:
+    if flags.get("profile") is not None and flags.get("analysts") is None:
+        from tradingagents.profiles import build_profile
+        from cli.models import AnalystType
+        try:
+            selected_analysts = [AnalystType(name) for name in build_profile(flags["profile"]).analysts
+                                 if name in {a.value for a in filter_analysts_for_asset_type(list(AnalystType), asset_type)}]
+        except ValueError as exc:
+            console.print(f"[red]{exc}[/red]")
+            raise typer.Exit(code=1) from None
+    elif flags.get("analysts") is not None:
         selected_analysts = _from_flag(parse_analysts, flags["analysts"], asset_type)
     else:
         console.print(
@@ -233,7 +244,14 @@ def _prompt_selections(prefs, flags):
     # Research depth maps to the debate + risk round counts; when both are
     # supplied through TRADINGAGENTS_MAX_DEBATE_ROUNDS / _MAX_RISK_ROUNDS we keep
     # the run non-interactive and honor the env values (#977).
-    if depth_from_env():
+    if flags.get("profile") is not None:
+        from tradingagents.profiles import build_profile
+        try:
+            selected_research_depth = build_profile(flags["profile"]).debate_rounds
+        except ValueError as exc:
+            console.print(f"[red]{exc}[/red]")
+            raise typer.Exit(code=1) from None
+    elif depth_from_env():
         selected_research_depth = DEFAULT_CONFIG["max_debate_rounds"]
         console.print(
             f"[green]✓ Research depth from environment:[/green] "
