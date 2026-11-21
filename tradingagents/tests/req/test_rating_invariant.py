@@ -63,6 +63,15 @@ def _record_source(prov):
     }
 
 
+def test_file_rating_store_roundtrip(tmp_path):
+    from tradingagents.records import FileRatingStore
+
+    store = FileRatingStore(tmp_path)
+    store.write("decision-1", {"rating": "Buy", "decision_id": "decision-1"})
+    assert store.read("decision-1")["rating"] == "Buy"
+    assert store.read("missing") is None
+
+
 def test_allowed_set():
     """TC-P5-INV003-02: a committed rating is always in the allowed set."""
     store = InMemoryRatingStore()

@@ -1,5 +1,6 @@
-"""Part 3 record primitives: atomic records and the single manifest writer."""
+"""Part 3 record primitives: atomic records, manifests and rating storage."""
 
 from .manifest import write_run_manifest
+from .rating_store import FileRatingStore
 
-__all__ = ["write_run_manifest"]
+__all__ = ["FileRatingStore", "write_run_manifest"]

@@ -10,7 +10,7 @@ from typing import Any
 import tradingagents
 from tradingagents.agents.context import build_instrument_context, resolve_instrument_identity
 from tradingagents.agents.rating import is_review, run_rating
-from tradingagents.contracts import RunManifest
+from tradingagents.contracts import Provenance, RunManifest
 from tradingagents.dataflows.config import run_config, run_config_context, set_config
 from tradingagents.dataflows.date_window import get_current_date, is_historical
 from tradingagents.dataflows.symbols import safe_ticker_component
@@ -21,7 +21,9 @@ from tradingagents.memory import TradingMemoryLog, settlement
 from tradingagents.memory.reflection import Reflector
 from tradingagents.preflight import validate_request
 from tradingagents.profiles import resolve_run_profile
-from tradingagents.records import write_run_manifest
+from tradingagents.rating_authority import commit_rating
+from tradingagents.records import FileRatingStore, write_run_manifest
+from tradingagents.records.idempotency import record_id
 from tradingagents.reporting import write_report_tree
 from tradingagents.resilience import fallback_event_scope
 
@@ -93,6 +95,15 @@ class TradingAgentsGraph:
         self.quick_thinking_llm = create_tier_client(self.config, "quick", **extra).get_llm()
 
         self.memory_log = TradingMemoryLog(self.config)
+        rating_root = self.config.get("rating_store_dir")
+        if not rating_root:
+            log_path = self.config.get("memory_log_path")
+            rating_root = (
+                Path(log_path).expanduser().parent / "rating_records"
+                if log_path
+                else Path(self.config["data_cache_dir"]) / "rating_records"
+            )
+        self.rating_store = FileRatingStore(rating_root)
 
         self.conditional_logic = ConditionalLogic(
             max_debate_rounds=self.config["max_debate_rounds"],
@@ -151,6 +162,16 @@ class TradingAgentsGraph:
     def run_signature(self, asset_type: str = "stock", portfolio=None) -> str:
         """Public stable key for checkpointing and idempotent decision records."""
         return self._run_signature(asset_type, portfolio)
+
+    def _config_hash(self) -> str:
+        """Stable hash of the settings that affect a run's output."""
+        return hashlib.sha256(
+            json.dumps(
+                {k: v for k, v in self.config.items() if k not in _NOT_IN_SIGNATURE},
+                sort_keys=True,
+                default=str,
+            ).encode()
+        ).hexdigest()[:16]
 
     def _run_signature(self, asset_type: str, portfolio=None) -> str:
         """Run inputs that must invalidate a checkpoint if changed.
@@ -377,11 +398,68 @@ class TradingAgentsGraph:
         with run_config(self.config):
             return settlement.settle_all_pending(self.memory_log, self.reflector, self.config, wait=wait)
 
+    def _rating_provenance(self, ticker: str, trade_date: str, final_state: dict) -> Provenance:
+        """Build the provenance the rating authority checks before a commit."""
+        evidence = final_state.get("evidence") or []
+        market_tools = {
+            "get_stock_data",
+            "get_indicators",
+            "get_stock_stats_indicators_window",
+        }
+        snapshot_verified = any(
+            str(ref.get("source", "")).split(":", 1)[0] in market_tools
+            for ref in evidence
+        )
+        snapshot_seed = {
+            "ticker": ticker,
+            "date": str(trade_date),
+            "evidence": [
+                ref.get("snapshot_hash")
+                for ref in evidence
+                if str(ref.get("source", "")).split(":", 1)[0] in market_tools
+            ],
+        }
+        snapshot_id = "snap-" + hashlib.sha256(
+            json.dumps(snapshot_seed, sort_keys=True, default=str).encode()
+        ).hexdigest()[:32]
+        manifest_id = "man-" + hashlib.sha256(
+            f"{ticker}|{trade_date}|{self._config_hash()}".encode()
+        ).hexdigest()[:32]
+        return Provenance(
+            snapshot_id=snapshot_id,
+            manifest_id=manifest_id,
+            model=self.config.get("deep_think_llm")
+            or self.config.get("quick_think_llm")
+            or "unknown",
+            prompt_version=self.config.get("prompt_version") or "v1",
+            config_version=self.config.get("config_version") or "v1",
+            snapshot_verified=snapshot_verified,
+        )
+
     def record_decision(self, company_name, trade_date, final_state, run_signature: str | None = None):
-        """Record a finished run: its state log, and its decision in the memory log
-        for reflection on the next same-ticker run. propagate() and the CLI both end here."""
-        self._log_state(trade_date, final_state)
+        """Commit the rating, then write the state log and the memory-log entry.
+
+        The rating authority is the only writer of a committed rating. A run
+        without a signature is a legacy/internal call and keeps the old reader.
+        """
         decision = final_state.get("final_trade_decision")
+        if decision and run_signature and final_state.get("evidence"):
+            provenance = self._rating_provenance(company_name, trade_date, final_state)
+            result = commit_rating(
+                decision,
+                provenance,
+                self.rating_store,
+                decision_id=record_id(company_name, str(trade_date), run_signature),
+            )
+            final_state["final_rating"] = result.rating
+            final_state["rating_authority"] = {
+                "rating": result.rating,
+                "review_required": result.review_required,
+                "reason_codes": list(result.reason_codes),
+                "decision_id": result.decision_id,
+            }
+
+        self._log_state(trade_date, final_state)
         if not decision:
             logger.warning("No final decision for %s on %s; nothing added to the memory log",
                            company_name, trade_date)
@@ -518,13 +596,7 @@ class TradingAgentsGraph:
             json.dump(entry, f, indent=4, ensure_ascii=False)
 
         rating = run_rating(final_state)
-        config_hash = hashlib.sha256(
-            json.dumps(
-                {k: v for k, v in self.config.items() if k not in _NOT_IN_SIGNATURE},
-                sort_keys=True,
-                default=str,
-            ).encode()
-        ).hexdigest()[:16]
+        config_hash = self._config_hash()
         manifest = RunManifest(
             run_id=f"{safe_ticker}-{trade_date}",
             ticker=safe_ticker,

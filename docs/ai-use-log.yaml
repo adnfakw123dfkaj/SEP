@@ -312,3 +312,12 @@ entries:
       - tradingagents/tradingagents/memory/log.py
       - tradingagents/tradingagents/graph/trading_graph.py
       - tradingagents/cli/run.py
+
+  - change_id: "phase1-part5-rating-authority"
+    date: "2026-11-21"
+    agent_session: "phase1-integration"
+    summary: "Part 5 rating slice: added a file-backed rating store, built deterministic provenance from the run's market evidence/config, committed the final rating through commit_rating in record_decision, and wrote the committed rating back to final state before manifest/memory logging. Runs without captured evidence keep the legacy reader so resume/debug paths are not falsely downgraded."
+    files_changed:
+      - tradingagents/tradingagents/records/__init__.py
+      - tradingagents/tradingagents/records/rating_store.py
+      - tradingagents/tradingagents/graph/trading_graph.py
