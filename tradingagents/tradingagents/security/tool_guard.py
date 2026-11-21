@@ -71,6 +71,10 @@ class ToolGuard:
     def is_allowed(self, role: str, tool: str) -> bool:
         return tool in self.allowed.get(role, set())
 
+    def check(self, role: str, tool: str) -> None:
+        """Log and allow a bound tool, or reject an unbound one before execution."""
+        self._check_and_log(role, tool)
+
     def executions(self, role: str, tool: str) -> int:
         """How many times ``(role, tool)`` actually executed."""
         return self._exec_counts.get((role, tool), 0)

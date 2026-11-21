@@ -329,3 +329,13 @@ entries:
     files_changed:
       - tradingagents/tradingagents/agents/tools.py
       - tradingagents/tradingagents/agents/analysts/sentiment_analyst.py
+
+  - change_id: "phase1-part5-tool-guard"
+    date: "2026-11-21"
+    agent_session: "phase1-integration"
+    summary: "Part 5 tool-guard slice: added a GuardedToolNode around LangGraph ToolNode, checked every proposed tool call against the role allowlist before execution, returned an auditable ToolMessage for unauthorised calls, and used the guarded node for every analyst tool graph. Added a rejection test."
+    files_changed:
+      - tradingagents/tradingagents/security/__init__.py
+      - tradingagents/tradingagents/security/tool_guard.py
+      - tradingagents/tradingagents/security/tool_node.py
+      - tradingagents/tradingagents/graph/setup.py

@@ -55,6 +55,7 @@ from .tool_guard import (
     ToolGuard,
     UnauthorizedToolCall,
 )
+from .tool_node import GuardedToolNode
 from .validate_output import ValidationResult, validate_output
 
 __all__ = [
@@ -86,6 +87,7 @@ __all__ = [
     "log_event",
     "reset_event_log",
     # tool guard
+    "GuardedToolNode",
     "RoleToolGuard",
     "ToolGuard",
     "UnauthorizedToolCall",

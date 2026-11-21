@@ -511,3 +511,20 @@ def test_news_tool_delimits_benign_text(monkeypatch):
     out = tools.get_news.func("AAPL", "2026-01-01", "2026-01-02", trade_date="2026-01-02")
     assert "<untrusted>" in out
     assert "AAPL beat estimates" in out
+
+
+def test_guarded_tool_node_rejects_an_unbound_tool():
+    from types import SimpleNamespace
+
+    from tradingagents.agents.tools import get_news
+    from tradingagents.security import GuardedToolNode, ToolGuard
+
+    guard = ToolGuard(allowed={"market": {"get_stock_data"}})
+    node = GuardedToolNode([get_news], role="market", guard=guard)
+    request = SimpleNamespace(tool_call={"name": "get_news", "id": "call-1"})
+
+    message = node._check(request)
+
+    assert message is not None
+    assert message.tool_call_id == "call-1"
+    assert "not allowed" in message.content
