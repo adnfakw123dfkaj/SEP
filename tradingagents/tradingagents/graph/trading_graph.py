@@ -19,6 +19,7 @@ from tradingagents.default_config import DEFAULT_CONFIG
 from tradingagents.llm_clients import create_tier_client, tier_provider
 from tradingagents.memory import TradingMemoryLog, settlement
 from tradingagents.memory.reflection import Reflector
+from tradingagents.preflight import validate_request
 from tradingagents.profiles import resolve_run_profile
 from tradingagents.reporting import write_report_tree
 from tradingagents.resilience import fallback_event_scope
@@ -189,6 +190,12 @@ class TradingAgentsGraph:
         PortfolioRating enum.
         """
         trade_date = _validate_trade_date(trade_date)
+        if self.config.get("preflight_enabled", True):
+            preflight = validate_request(company_name, trade_date, config=self.config)
+            if not preflight.ok:
+                raise ValueError(
+                    f"preflight failed for {preflight.ticker}: {preflight.reason}"
+                )
 
         with run_config(self.config), \
                 self.checkpoint_scope(company_name, trade_date, asset_type, portfolio) as thread_id_value:

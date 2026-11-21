@@ -60,3 +60,37 @@ def test_explicit_analysts_override_quick_defaults(monkeypatch):
     assert result.exit_code == 0, result.output
     assert captured["flags"]["profile"] == "quick"
     assert captured["flags"]["analysts"] == "market,news"
+
+
+def test_headless_run_defaults_to_standard_profile(monkeypatch):
+    """With no profile, no analysts and no terminal, Standard is the default."""
+    from cli.models import AnalystType
+    from tradingagents.contracts.preflight import PreflightResult
+
+    captured = {}
+    monkeypatch.setattr(
+        cli_run.sys,
+        "stdin",
+        type("S", (), {"isatty": lambda self: False})(),
+    )
+    monkeypatch.setattr(cli_run, "unattended_gaps", lambda flags: [])
+    monkeypatch.setattr(cli_run, "get_user_selections", lambda flags: captured.update(flags) or {
+        "ticker": "AAPL", "analysis_date": "2026-11-20", "asset_type": "stock",
+        "analysts": [AnalystType.MARKET], "research_depth": 1,
+        "quick_think_llm": "q", "deep_think_llm": "d", "backend_url": None,
+        "llm_provider": "openai", "output_language": "English",
+    })
+    monkeypatch.setattr(
+        cli_run,
+        "validate_request",
+        lambda *a, **k: PreflightResult(
+            ticker="AAPL", resolved=True, data_available=False, reason="stop"
+        ),
+    )
+
+    with pytest.raises(cli_run.typer.Exit):
+        cli_run.run_analysis(flags={
+            "ticker": "AAPL", "date": "2026-11-20", "save": False, "show": False,
+        })
+
+    assert captured["profile"] == "standard"

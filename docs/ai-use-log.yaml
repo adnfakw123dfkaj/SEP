@@ -262,3 +262,15 @@ entries:
     files_changed:
       - tradingagents/tradingagents/preflight.py
       - tradingagents/cli/run.py
+
+  - change_id: "phase1-part1-complete"
+    date: "2026-11-21"
+    agent_session: "phase1-integration"
+    summary: "Completed Part 1 core integration: headless runs default to Standard, explicit analysts must stay inside the active profile, profile cache_ttl overrides reach the data-router TTL policy, and programmatic propagate() runs preflight unless preflight_enabled is false."
+    files_changed:
+      - tradingagents/tradingagents/profiles.py
+      - tradingagents/tradingagents/contracts/cache.py
+      - tradingagents/tradingagents/dataflows/router.py
+      - tradingagents/tradingagents/graph/trading_graph.py
+      - tradingagents/tradingagents/default_config.py
+      - tradingagents/cli/run.py

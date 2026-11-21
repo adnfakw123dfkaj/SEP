@@ -231,7 +231,11 @@ def route_to_vendor(method: str, *args, **kwargs):
     now_et = datetime.now(ZoneInfo("America/New_York"))
     market_open = now_et.weekday() < 5 and (now_et.hour, now_et.minute) >= (9, 30) \
         and (now_et.hour, now_et.minute) < (16, 0)
-    policy = TTLPolicy.for_request(data_class, market_open=market_open)
+    policy = TTLPolicy.for_request(
+        data_class,
+        market_open=market_open,
+        overrides=config.get("cache_ttl") or {},
+    )
     cache = CacheController(config["data_cache_dir"], policy)
     impl_signature = []
     for vendor_name, implementation in VENDOR_METHODS.get(method, {}).items():

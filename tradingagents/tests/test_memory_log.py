@@ -954,7 +954,7 @@ class TestLegacyRemoval:
         mock_graph = MagicMock()
         mock_graph.memory_log = TradingMemoryLog({"memory_log_path": str(tmp_path / "mem.md")})
         mock_graph.debug = False
-        mock_graph.config = {"results_dir": str(tmp_path)}
+        mock_graph.config = {"results_dir": str(tmp_path), "preflight_enabled": False}
         mock_graph.graph.invoke.return_value = fake_state
         mock_graph.propagator.create_initial_state.return_value = fake_state
         mock_graph.propagator.get_graph_args.return_value = {}

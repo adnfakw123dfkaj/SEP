@@ -27,7 +27,22 @@ class TTLPolicy(BaseModel):
                             "preflight_identity": 604800}.get(data_class, 3600))
 
     @classmethod
-    def for_request(cls, data_class: str, *, market_open: bool = True) -> TTLPolicy:
+    def for_request(
+        cls,
+        data_class: str,
+        *,
+        market_open: bool = True,
+        overrides: dict[str, int] | None = None,
+    ) -> TTLPolicy:
+        if overrides:
+            aliases = {
+                "price": ("price", "prices"),
+                "technical": ("technical", "prices"),
+                "fundamental": ("fundamental", "fundamentals"),
+            }
+            for key in aliases.get(data_class, (data_class,)):
+                if key in overrides:
+                    return cls(seconds=int(overrides[key]))
         if data_class == "price" and not market_open:
             return cls(seconds=86400)
         return cls.for_data_class(data_class)

@@ -136,6 +136,7 @@ def build_default_config() -> dict:
         # Rounds of tool calls an analyst may make before it is asked for its report.
         "max_tool_rounds": 20,
         "run_profile": "custom",
+        "preflight_enabled": True,
         "token_budget": None,
         "timeout_s": None,
         "cache_ttl": {},

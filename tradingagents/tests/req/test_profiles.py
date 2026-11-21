@@ -45,11 +45,16 @@ def test_resolve_run_profile_supplies_analysts_and_runtime_config():
     assert config["max_tool_rounds"] == 6
 
 
-def test_resolve_run_profile_keeps_explicit_analysts_and_config():
+def test_resolve_run_profile_keeps_allowed_explicit_analysts_and_config():
     original = {"run_profile": "quick", "max_tool_rounds": 20}
-    config, analysts = resolve_run_profile(original, ("market", "news"))
-    assert analysts == ("market", "news")
+    config, analysts = resolve_run_profile(original, ("market",))
+    assert analysts == ("market",)
     assert config == original
+
+
+def test_resolve_run_profile_rejects_analysts_outside_profile():
+    with pytest.raises(ValueError, match="not allowed for profile 'quick'"):
+        resolve_run_profile({"run_profile": "quick"}, ("market", "news"))
 
 
 def test_resolve_run_profile_rejects_unknown_profile():

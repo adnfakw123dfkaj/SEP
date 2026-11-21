@@ -67,7 +67,7 @@ def _graph(config):
     from tradingagents.graph.trading_graph import TradingAgentsGraph
 
     g = object.__new__(TradingAgentsGraph)
-    g.config = config
+    g.config = {**config, "preflight_enabled": False}
     g._checkpointer_ctx = None
     return g
 

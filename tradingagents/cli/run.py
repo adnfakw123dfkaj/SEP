@@ -32,7 +32,7 @@ from tradingagents.graph.analyst_execution import (
 )
 from tradingagents.graph.trading_graph import TradingAgentsGraph
 from tradingagents.preflight import validate_request
-from tradingagents.profiles import build_profile, profile_to_runtime_config
+from tradingagents.profiles import DEFAULT_PROFILE, build_profile, profile_to_runtime_config
 from tradingagents.resilience import fallback_event_scope
 
 
@@ -106,7 +106,15 @@ def _build_run_config(selections: dict, checkpoint: bool | None) -> dict:
 
 
 def run_analysis(checkpoint: bool | None = None, portfolio=None, flags=None):
-    flags = flags or {}
+    flags = dict(flags or {})
+    # A headless run with no profile and no explicit analysts uses Standard; an
+    # interactive run still asks, so a user can choose a custom analyst set.
+    if (
+        not flags.get("profile")
+        and not flags.get("analysts")
+        and not (sys.stdin and sys.stdin.isatty())
+    ):
+        flags["profile"] = DEFAULT_PROFILE
     # With no terminal nothing can answer a prompt: name every question still
     # open before any model is called, rather than stopping at the first one.
     if not (sys.stdin and sys.stdin.isatty()):
@@ -126,8 +134,9 @@ def run_analysis(checkpoint: bool | None = None, portfolio=None, flags=None):
         except ValueError as exc:
             console.print(f"[red]{exc}[/red]")
             raise typer.Exit(code=1) from None
-        # Explicit --analysts wins; otherwise use profile defaults, filtered for
-        # the selected asset (fundamentals is unavailable for crypto).
+        # Explicit --analysts wins only when it stays inside the profile's
+        # analyst set; otherwise use the profile defaults, filtered for the
+        # selected asset (fundamentals is unavailable for crypto).
         if (flags or {}).get("analysts") is None:
             from cli.models import AnalystType, AssetType
             from cli.prompts import filter_analysts_for_asset_type
@@ -135,6 +144,15 @@ def run_analysis(checkpoint: bool | None = None, portfolio=None, flags=None):
                 list(AnalystType), AssetType(selections["asset_type"]))}
             analyst_keys = [a for a in profile.analysts if a in allowed]
             selections["analysts"] = [AnalystType(a) for a in analyst_keys]
+        else:
+            chosen = {analyst.value for analyst in selections["analysts"]}
+            invalid = sorted(chosen - set(profile.analysts))
+            if invalid:
+                console.print(
+                    f"[red]Analysts {', '.join(invalid)} are not allowed for "
+                    f"profile {profile.name!r}; allowed: {', '.join(profile.analysts)}[/red]"
+                )
+                raise typer.Exit(code=1)
         selections["profile"] = profile_name
 
     config = _build_run_config(selections, checkpoint)

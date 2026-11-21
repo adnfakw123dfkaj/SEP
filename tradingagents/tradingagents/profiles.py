@@ -6,6 +6,7 @@ from typing import Any
 
 from tradingagents.contracts.profile import ProfileConfig
 
+DEFAULT_PROFILE = "standard"
 _COMMON_TTL = {"prices": 900, "news": 3600, "fundamentals": 86400}
 _PROFILES = {
     "quick": ProfileConfig(name="quick", analysts=("market",), debate_rounds=1, risk_rounds=1,
@@ -68,5 +69,12 @@ def resolve_run_profile(
 
     profile = build_profile(name)
     if selected_analysts is not None:
-        return dict(config), tuple(selected_analysts)
+        chosen = tuple(selected_analysts)
+        invalid = sorted(set(chosen) - set(profile.analysts))
+        if invalid:
+            raise ValueError(
+                f"analysts {invalid} are not allowed for profile {profile.name!r}; "
+                f"allowed: {list(profile.analysts)}"
+            )
+        return dict(config), chosen
     return profile_to_runtime_config(profile, config), profile.analysts

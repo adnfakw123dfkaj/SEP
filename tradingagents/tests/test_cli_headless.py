@@ -74,8 +74,9 @@ def test_without_a_terminal_every_unanswered_question_is_named_before_the_run(mo
         run.run_analysis(flags={"ticker": "NVDA"})
 
     out = capsys.readouterr().out
-    for needed in ("--date", "--analysts", "--save", "--show", "TRADINGAGENTS_LLM_PROVIDER"):
+    for needed in ("--date", "--save", "--show", "TRADINGAGENTS_LLM_PROVIDER"):
         assert needed in out
+    assert "--analysts" not in out
     assert "--ticker" not in out
 
 

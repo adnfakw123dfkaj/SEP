@@ -129,6 +129,26 @@ def _graph(tmp_path, monkeypatch, model, debug=False, **config):
 
 
 @pytest.mark.unit
+def test_propagate_preflight_blocks_before_the_graph_runs(tmp_path, monkeypatch):
+    from tradingagents.contracts.preflight import PreflightResult
+
+    model = ScriptedModel()
+    graph = _graph(tmp_path, monkeypatch, model)
+    monkeypatch.setattr(
+        trading_graph,
+        "validate_request",
+        lambda *a, **k: PreflightResult(
+            ticker="NVDA", resolved=True, data_available=False, reason="no data"
+        ),
+    )
+
+    with pytest.raises(ValueError, match="preflight failed"):
+        graph.propagate("NVDA", TRADE_DATE)
+
+    assert model.calls == []
+
+
+@pytest.mark.unit
 @pytest.mark.parametrize("structured", [False, True], ids=["free-text", "structured"])
 def test_a_full_run_reaches_a_logged_decision(tmp_path, monkeypatch, offline, structured):
     graph = _graph(tmp_path, monkeypatch, ScriptedModel(structured=structured))
