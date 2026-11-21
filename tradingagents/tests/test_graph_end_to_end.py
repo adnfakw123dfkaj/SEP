@@ -138,6 +138,7 @@ def test_a_run_captures_tool_evidence(tmp_path, monkeypatch, offline):
     assert graph.last_evidence_registry is not None
     assert set(state["evidence_refs"]) <= set(graph.last_evidence_registry.ids())
     assert state["rating_authority"]["rating"] == state["final_rating"] == "Overweight"
+    assert state["output_validation"]["ok"] is True
 
 
 @pytest.mark.unit

@@ -10,7 +10,7 @@ from typing import Any
 import tradingagents
 from tradingagents.agents.context import build_instrument_context, resolve_instrument_identity
 from tradingagents.agents.rating import is_review, run_rating
-from tradingagents.contracts import Provenance, RunManifest
+from tradingagents.contracts import ALLOWED_RATINGS, Provenance, RunManifest
 from tradingagents.dataflows.config import run_config, run_config_context, set_config
 from tradingagents.dataflows.date_window import get_current_date, is_historical
 from tradingagents.dataflows.symbols import safe_ticker_component
@@ -26,6 +26,7 @@ from tradingagents.records import FileRatingStore, write_run_manifest
 from tradingagents.records.idempotency import record_id
 from tradingagents.reporting import write_report_tree
 from tradingagents.resilience import fallback_event_scope
+from tradingagents.security import drain_events, validate_output
 
 from .checkpointer import checkpoint_step, clear_checkpoint, get_checkpointer, thread_id
 from .conditional_logic import ConditionalLogic
@@ -443,6 +444,33 @@ class TradingAgentsGraph:
         without a signature is a legacy/internal call and keeps the old reader.
         """
         decision = final_state.get("final_trade_decision")
+        candidate_rating = run_rating(final_state)
+        validation = validate_output(
+            {
+                "final_trade_decision": decision or "",
+                "final_rating": candidate_rating,
+            },
+            {
+                "type": "object",
+                "required": ["final_trade_decision", "final_rating"],
+                "properties": {
+                    "final_trade_decision": {"type": "string"},
+                    "final_rating": {
+                        "type": "string",
+                        "enum": sorted(ALLOWED_RATINGS),
+                    },
+                },
+            },
+        )
+        final_state["output_validation"] = {
+            "ok": validation.ok and bool((decision or "").strip()),
+            "errors": validation.errors
+            if validation.ok
+            else validation.errors + ([] if (decision or "").strip() else ["empty decision"]),
+        }
+        if not final_state["output_validation"]["ok"]:
+            final_state["final_rating"] = "REVIEW"
+
         if decision and run_signature and final_state.get("evidence"):
             provenance = self._rating_provenance(company_name, trade_date, final_state)
             result = commit_rating(
@@ -508,6 +536,10 @@ class TradingAgentsGraph:
             if registry is not None
             else []
         )
+        final_state["security_events"] = [
+            json.dumps(event, sort_keys=True, ensure_ascii=False)
+            for event in drain_events()
+        ]
 
         self.record_decision(
             company_name,

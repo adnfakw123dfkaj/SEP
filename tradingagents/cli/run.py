@@ -1,5 +1,6 @@
 """Running one analysis from the CLI: build the graph, stream it into the live view, save the report."""
 
+import json
 import os
 import sys
 import time
@@ -34,6 +35,7 @@ from tradingagents.graph.trading_graph import TradingAgentsGraph
 from tradingagents.preflight import validate_request
 from tradingagents.profiles import DEFAULT_PROFILE, build_profile, profile_to_runtime_config
 from tradingagents.resilience import fallback_event_scope
+from tradingagents.security import drain_events, install_log_filter
 
 
 def _run_directory(config: dict, ticker: str, trade_date: str) -> Path:
@@ -107,6 +109,7 @@ def _build_run_config(selections: dict, checkpoint: bool | None) -> dict:
 
 def run_analysis(checkpoint: bool | None = None, portfolio=None, flags=None):
     flags = dict(flags or {})
+    install_log_filter()
     # A headless run with no profile and no explicit analysts uses Standard; an
     # interactive run still asks, so a user can choose a custom analyst set.
     if (
@@ -412,6 +415,10 @@ def run_analysis(checkpoint: bool | None = None, portfolio=None, flags=None):
                 if registry is not None
                 else []
             )
+            final_state["security_events"] = [
+                json.dumps(event, sort_keys=True, ensure_ascii=False)
+                for event in drain_events()
+            ]
 
             # Clean run: log the decision, then drop this run's checkpoint so a
             # later run starts fresh. A mid-stream failure skips both, keeping

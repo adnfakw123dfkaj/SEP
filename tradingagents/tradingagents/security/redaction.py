@@ -27,6 +27,7 @@ secret.
 from __future__ import annotations
 
 import logging
+import numbers
 import os
 import re
 from typing import Any
@@ -147,7 +148,7 @@ def redact_obj(value: Any) -> Any:
             return type(value)(_redact_text(str(value)))
         except Exception:  # pragma: no cover - exotic exception ctor
             return REDACTED
-    if value is None or isinstance(value, (int, float, bool)):
+    if value is None or isinstance(value, (numbers.Number, bool)):
         return value
     # Unknown object: do not echo it raw; redact its repr.
     return _redact_text(repr(value))

@@ -10,6 +10,7 @@ from datetime import datetime
 from pathlib import Path
 
 from tradingagents.agents.rating import run_rating
+from tradingagents.security import scrub_manifest
 
 
 def analyst_names(keys) -> list[str]:
@@ -126,6 +127,7 @@ def write_report_tree(final_state: dict, ticker: str, save_path, settings: dict 
     """
     save_path = Path(save_path)
     save_path.mkdir(parents=True, exist_ok=True)
+    final_state = scrub_manifest(final_state)
     parts = _report_parts(final_state)
     evidence_text = _evidence_text(final_state)
     if evidence_text:
