@@ -152,6 +152,20 @@ class TestTradingMemoryLogCore:
         assert len(entries) == 1
         assert entries[0]["pending"] is False  # the settled record is kept, not replaced
 
+    def test_run_signature_blocks_duplicates_but_allows_new_versions(self, tmp_path):
+        log = make_log(tmp_path)
+        log.store_decision("NVDA", "2026-01-10", DECISION_BUY, run_signature="quick-a")
+        log.store_decision("NVDA", "2026-01-10", DECISION_BUY, run_signature="quick-a")
+        assert len(log.load_entries()) == 1
+
+        log.store_decision(
+            "NVDA", "2026-01-10", DECISION_OVERWEIGHT, run_signature="standard-b"
+        )
+        entries = log.load_entries()
+        assert len(entries) == 2
+        assert [e["rating"] for e in entries] == ["Buy", "Overweight"]
+        assert (tmp_path / "decision_records" / "index.json").exists()
+
     def test_batch_update_resolves_multiple_entries(self, tmp_path):
         """batch_update_with_outcomes resolves multiple pending entries in one write."""
         log = make_log(tmp_path)

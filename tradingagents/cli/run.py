@@ -416,7 +416,17 @@ def run_analysis(checkpoint: bool | None = None, portfolio=None, flags=None):
             # Clean run: log the decision, then drop this run's checkpoint so a
             # later run starts fresh. A mid-stream failure skips both, keeping
             # the checkpoint for resume.
-            graph.record_decision(selections["ticker"], selections["analysis_date"], final_state)
+            signature_for_record = (
+                graph.run_signature(selections["asset_type"], portfolio)
+                if hasattr(graph, "run_signature")
+                else None
+            )
+            graph.record_decision(
+                selections["ticker"],
+                selections["analysis_date"],
+                final_state,
+                run_signature=signature_for_record,
+            )
             graph.clear_checkpoint_on_success(
                 selections["ticker"], selections["analysis_date"], selections["asset_type"], portfolio
             )

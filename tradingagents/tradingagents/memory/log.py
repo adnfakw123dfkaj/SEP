@@ -6,6 +6,7 @@ from pathlib import Path
 
 from tradingagents.agents.rating import parse_rating
 from tradingagents.dataflows.files import locked
+from tradingagents.records.idempotency import IdempotentStore, record_id
 
 
 class TradingMemoryLog:
@@ -21,9 +22,16 @@ class TradingMemoryLog:
         cfg = config or {}
         self._log_path = None
         path = cfg.get("memory_log_path")
+        self._records_dir = None
         if path:
             self._log_path = Path(path).expanduser()
             self._log_path.parent.mkdir(parents=True, exist_ok=True)
+            records = cfg.get("decision_records_dir")
+            self._records_dir = (
+                Path(records).expanduser()
+                if records
+                else self._log_path.parent / "decision_records"
+            )
         # Optional cap on resolved entries. None disables rotation.
         self._max_entries = cfg.get("memory_log_max_entries")
 
@@ -35,29 +43,42 @@ class TradingMemoryLog:
         trade_date: str,
         final_trade_decision: str,
         rating: str | None = None,
+        run_signature: str | None = None,
     ) -> None:
         """Append pending entry at end of propagate(). No LLM call.
 
         ``rating`` is the decision's own rating when the caller has it; without
-        one it is read from the decision text.
+        one it is read from the decision text. ``run_signature`` scopes
+        idempotency to the actual run settings: the same ticker/date re-run with
+        different profile/models is a new decision, while an identical retry is
+        ignored.
         """
         if not self._log_path:
             return
         with locked(self._log_path):
-            # Idempotency guard: fast raw-text scan instead of full parse. Any entry
-            # for this ticker and date blocks another, pending or settled: a re-run
-            # after the outcome landed would otherwise count the same decision twice
-            # in past context and in every aggregate over the log.
-            if self._log_path.exists():
-                raw = self._log_path.read_text(encoding="utf-8")
-                for line in raw.splitlines():
-                    if line.startswith(f"[{trade_date} | {ticker} |") and line.endswith("]"):
-                        return
+            store = None
+            rid = None
+            if run_signature and self._records_dir is not None:
+                store = IdempotentStore(self._records_dir)
+                rid = record_id(ticker, trade_date, run_signature)
+                if store.contains(rid):
+                    return
+            else:
+                # Legacy/simple guard: any entry for this ticker and date blocks
+                # another, pending or settled, when no run signature was supplied.
+                if self._log_path.exists():
+                    raw = self._log_path.read_text(encoding="utf-8")
+                    for line in raw.splitlines():
+                        if line.startswith(f"[{trade_date} | {ticker} |") and line.endswith("]"):
+                            return
+
             rating = rating or parse_rating(final_trade_decision)
             tag = f"[{trade_date} | {ticker} | {rating} | pending]"
             entry = f"{tag}\n\nDECISION:\n{final_trade_decision}{self._SEPARATOR}"
             with open(self._log_path, "a", encoding="utf-8") as f:
                 f.write(entry)
+            if store is not None and rid is not None:
+                store.store(ticker, trade_date, run_signature, {"decision.md": entry})
 
     def settling(self, wait: bool = True):
         """Hold the log for one settlement pass at a time, across threads and processes.
@@ -178,7 +199,8 @@ class TradingMemoryLog:
                 if (
                     not updated
                     and tag_line.startswith(pending_prefix)
-                    and tag_line.endswith("| pending]")
+                    and "| pending" in tag_line
+                    and tag_line.endswith("]")
                 ):
                     fields = [f.strip() for f in tag_line[1:-1].split("|")]
                     rating = fields[2]
@@ -230,7 +252,7 @@ class TradingMemoryLog:
                 matched = False
                 for (trade_date, ticker), upd in list(update_map.items()):
                     pending_prefix = f"[{trade_date} | {ticker} |"
-                    if tag_line.startswith(pending_prefix) and tag_line.endswith("| pending]"):
+                    if tag_line.startswith(pending_prefix) and "| pending" in tag_line and tag_line.endswith("]"):
                         fields = [f.strip() for f in tag_line[1:-1].split("|")]
                         rating = fields[2]
                         raw_pct = f"{upd['raw_return']:+.1%}"
@@ -293,7 +315,7 @@ class TradingMemoryLog:
             is_resolved = (
                 tag_line.startswith("[")
                 and tag_line.endswith("]")
-                and not tag_line.endswith("| pending]")
+                and "| pending" not in tag_line
             )
             decisions.append((block, is_resolved, tag_line[1:].split("|")[0].strip()))
 

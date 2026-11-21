@@ -148,6 +148,10 @@ class TradingAgentsGraph:
         """
         return str(trade_date) if is_historical(trade_date) else None
 
+    def run_signature(self, asset_type: str = "stock", portfolio=None) -> str:
+        """Public stable key for checkpointing and idempotent decision records."""
+        return self._run_signature(asset_type, portfolio)
+
     def _run_signature(self, asset_type: str, portfolio=None) -> str:
         """Run inputs that must invalidate a checkpoint if changed.
 
@@ -373,7 +377,7 @@ class TradingAgentsGraph:
         with run_config(self.config):
             return settlement.settle_all_pending(self.memory_log, self.reflector, self.config, wait=wait)
 
-    def record_decision(self, company_name, trade_date, final_state):
+    def record_decision(self, company_name, trade_date, final_state, run_signature: str | None = None):
         """Record a finished run: its state log, and its decision in the memory log
         for reflection on the next same-ticker run. propagate() and the CLI both end here."""
         self._log_state(trade_date, final_state)
@@ -384,7 +388,7 @@ class TradingAgentsGraph:
             return
         self.memory_log.store_decision(
             ticker=company_name, trade_date=trade_date, final_trade_decision=decision,
-            rating=run_rating(final_state),
+            rating=run_rating(final_state), run_signature=run_signature,
         )
 
     def _run_graph(self, company_name, trade_date, asset_type: str = "stock",
@@ -427,7 +431,12 @@ class TradingAgentsGraph:
             else []
         )
 
-        self.record_decision(company_name, trade_date, final_state)
+        self.record_decision(
+            company_name,
+            trade_date,
+            final_state,
+            run_signature=self.run_signature(asset_type, portfolio),
+        )
 
         # Clear checkpoint on successful completion to avoid stale state.
         self.clear_checkpoint_on_success(company_name, trade_date, asset_type, portfolio)

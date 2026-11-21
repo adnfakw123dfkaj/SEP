@@ -303,3 +303,12 @@ entries:
       - tradingagents/tradingagents/reporting.py
       - tradingagents/tradingagents/graph/trading_graph.py
       - tradingagents/cli/run.py
+
+  - change_id: "phase1-part3-idempotent-records"
+    date: "2026-11-21"
+    agent_session: "phase1-integration"
+    summary: "Part 3 records slice: memory-log writes now take a run signature, use IdempotentStore to suppress identical retries while allowing a new profile/model version, write an atomic decision record beside the log, and pass the graph run signature from both propagate and CLI paths. Legacy no-signature writes keep the existing ticker/date guard."
+    files_changed:
+      - tradingagents/tradingagents/memory/log.py
+      - tradingagents/tradingagents/graph/trading_graph.py
+      - tradingagents/cli/run.py
