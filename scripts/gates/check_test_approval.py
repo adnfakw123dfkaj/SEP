@@ -151,7 +151,8 @@ def check(
                 )
             )
             continue
-        # This approval is valid.
-        return result
+        # This approval is valid. Earlier approvals that did not cover these
+        # tests are unrelated; their violations must not fail a valid approval.
+        return GateResult(gate="G1")
 
     return result

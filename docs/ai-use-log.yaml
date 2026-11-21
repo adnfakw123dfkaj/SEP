@@ -230,3 +230,19 @@ entries:
       - tradingagents/tradingagents/dataflows/router.py
       - tradingagents/tradingagents/graph/trading_graph.py
       - tradingagents/tradingagents/resilience.py
+
+  - change_id: "g1-multiple-approvals"
+    date: "2026-11-21"
+    agent_session: "integration-gate-fixes"
+    summary: "Fixed G1 so a valid approval is not failed by earlier unrelated non-covering approvals; added the regression test. G2 exposed one missing import and import-order issues, so the CLI analyst filter import was restored and imports were sorted. The combined integration approval records the project owner's supplied approval time for the integration diff."
+    files_changed:
+      - scripts/gates/check_test_approval.py
+      - tradingagents/cli/run.py
+      - tradingagents/cli/selections.py
+      - tradingagents/tradingagents/agents/analysts/sentiment_analyst.py
+      - tradingagents/tradingagents/cache/__init__.py
+      - tradingagents/tradingagents/contracts/cache.py
+      - tradingagents/tradingagents/contracts/preflight.py
+      - tradingagents/tradingagents/dataflows/router.py
+      - tradingagents/tradingagents/graph/trading_graph.py
+      - tradingagents/tradingagents/resilience.py

@@ -114,6 +114,17 @@ def test_gate_infrastructure_test_does_not_need_approval():
     assert result.passed
 
 
+def test_valid_approval_ignores_earlier_non_covering_approvals():
+    unrelated = _approval(["tests/other.py"], change_id="unrelated")
+    valid = _approval(["tests/test_x.py"], change_id="valid")
+    result = g1.check(
+        ["src/app/x.py", "tests/test_x.py"],
+        [unrelated, valid],
+        IMPL,
+    )
+    assert result.passed
+
+
 def test_app_test_not_covered_still_blocks():
     impl = "2026-11-18T16:00:00+08:00"
     approval = {"change_id": "c", "tests": [], "approved_by": "a",

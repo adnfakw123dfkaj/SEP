@@ -25,6 +25,7 @@ from cli.prompts import (
     detect_asset_type,
     ensure_api_key,
     ensure_signed_in,
+    filter_analysts_for_asset_type,
     get_ticker,
     parse_analysis_date,
     parse_analysts,
@@ -219,8 +220,8 @@ def _prompt_selections(prefs, flags):
     # Step 4: Select analysts
     prefs = sanitize(prefs, asset_type.value)
     if flags.get("profile") is not None and flags.get("analysts") is None:
-        from tradingagents.profiles import build_profile
         from cli.models import AnalystType
+        from tradingagents.profiles import build_profile
         try:
             selected_analysts = [AnalystType(name) for name in build_profile(flags["profile"]).analysts
                                  if name in {a.value for a in filter_analysts_for_asset_type(list(AnalystType), asset_type)}]

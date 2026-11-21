@@ -34,7 +34,6 @@ from tradingagents.agents.tools import get_news
 from tradingagents.cache import CacheController
 from tradingagents.contracts.cache import CacheKey, TTLPolicy
 from tradingagents.dataflows.config import get_config
-from tradingagents.resilience import FailureEvent, record_fallback_event
 from tradingagents.dataflows.vendors.reddit import (
     CRYPTO_SUBREDDITS,
     DEFAULT_SUBREDDITS,
@@ -42,6 +41,7 @@ from tradingagents.dataflows.vendors.reddit import (
     subreddits_for,
 )
 from tradingagents.dataflows.vendors.stocktwits import fetch_stocktwits_messages
+from tradingagents.resilience import FailureEvent, record_fallback_event
 
 
 def _seven_days_back(trade_date: str) -> str:

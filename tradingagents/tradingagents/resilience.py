@@ -2,16 +2,16 @@
 from __future__ import annotations
 
 import time
-from contextvars import ContextVar
 from collections.abc import Callable
+from contextvars import ContextVar
 from typing import Any
 
 from pydantic import BaseModel, Field
 
-_event_sink: ContextVar[list["FailureEvent"] | None] = ContextVar("fallback_event_sink", default=None)
+_event_sink: ContextVar[list[FailureEvent] | None] = ContextVar("fallback_event_sink", default=None)
 
 
-def record_fallback_event(event: "FailureEvent") -> None:
+def record_fallback_event(event: FailureEvent) -> None:
     """Append an event to the active run's sink, when one is bound."""
     sink = _event_sink.get()
     if sink is not None:
@@ -20,7 +20,7 @@ def record_fallback_event(event: "FailureEvent") -> None:
 
 class fallback_event_scope:
     """Bind a list that the graph runner can serialize into its RunManifest."""
-    def __init__(self, sink: list["FailureEvent"]):
+    def __init__(self, sink: list[FailureEvent]):
         self.sink = sink
 
     def __enter__(self):

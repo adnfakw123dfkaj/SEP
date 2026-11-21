@@ -31,8 +31,8 @@ from tradingagents.graph.analyst_execution import (
     build_analyst_execution_plan,
 )
 from tradingagents.graph.trading_graph import TradingAgentsGraph
-from tradingagents.profiles import build_profile, profile_to_runtime_config
 from tradingagents.preflight import validate_request
+from tradingagents.profiles import build_profile, profile_to_runtime_config
 from tradingagents.resilience import fallback_event_scope
 
 
@@ -129,8 +129,8 @@ def run_analysis(checkpoint: bool | None = None, portfolio=None, flags=None):
         # Explicit --analysts wins; otherwise use profile defaults, filtered for
         # the selected asset (fundamentals is unavailable for crypto).
         if (flags or {}).get("analysts") is None:
-            from cli.prompts import filter_analysts_for_asset_type
             from cli.models import AnalystType, AssetType
+            from cli.prompts import filter_analysts_for_asset_type
             allowed = {a.value for a in filter_analysts_for_asset_type(
                 list(AnalystType), AssetType(selections["asset_type"]))}
             analyst_keys = [a for a in profile.analysts if a in allowed]

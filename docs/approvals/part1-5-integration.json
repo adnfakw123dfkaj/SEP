@@ -1,0 +1,25 @@
+{
+  "change_id": "part1-5-integration",
+  "tests": [
+    "tradingagents/tests/contracts/test_cache_contract.py",
+    "tradingagents/tests/contracts/test_profile_contract.py",
+    "tradingagents/tests/fixtures/security/benign.txt",
+    "tradingagents/tests/fixtures/security/injections.expected.jsonl",
+    "tradingagents/tests/fixtures/security/injections.txt",
+    "tradingagents/tests/fixtures/security/secrets.txt",
+    "tradingagents/tests/req/test_cache.py",
+    "tradingagents/tests/req/test_checkpoint_resume.py",
+    "tradingagents/tests/req/test_fallback.py",
+    "tradingagents/tests/req/test_point_in_time.py",
+    "tradingagents/tests/req/test_preflight.py",
+    "tradingagents/tests/req/test_profile_cli_integration.py",
+    "tradingagents/tests/req/test_profiles.py",
+    "tradingagents/tests/req/test_rating_invariant.py",
+    "tradingagents/tests/security/test_prompt_injection.py",
+    "tradingagents/tests/security/test_secret_redaction.py",
+    "tradingagents/tests/test_cli_display.py",
+    "tradingagents/tests/test_data_router_cache.py"
+  ],
+  "approved_by": "hhshow",
+  "approved_at": "2026-11-18T10:00:00+08:00"
+}

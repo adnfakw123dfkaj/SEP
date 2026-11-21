@@ -5,10 +5,11 @@ import hashlib
 import os
 import tempfile
 import time
+from collections.abc import Callable
 from contextlib import contextmanager
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 from tradingagents.contracts.cache import CacheEntry, CacheKey, TTLPolicy
 
@@ -65,7 +66,7 @@ class CacheController:
 
     def set(self, key: CacheKey, value: Any, provenance: dict[str, Any] | None = None,
             *, now: datetime | None = None) -> CacheEntry:
-        now = now or datetime.now(timezone.utc)
+        now = now or datetime.now(UTC)
         policy = self.ttl or TTLPolicy.for_data_class(key.data_class)
         entry = CacheEntry(value=value, provenance=provenance or {}, created_at=now,
                            expires_at=now + timedelta(seconds=policy.seconds))
@@ -99,7 +100,7 @@ class CacheController:
                 value, result_provenance = result
             else:
                 value = result
-            now = datetime.now(timezone.utc)
+            now = datetime.now(UTC)
             policy = self.ttl or TTLPolicy.for_data_class(key.data_class)
             entry = CacheEntry(value=value, provenance=result_provenance,
                                created_at=now, expires_at=now + timedelta(seconds=policy.seconds))

@@ -3,10 +3,9 @@ import logging
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
-from tradingagents.dataflows.config import get_config
 from tradingagents.cache import CacheController
 from tradingagents.contracts.cache import CacheKey, TTLPolicy
-from tradingagents.resilience import FallbackRouter, FailureEvent, record_fallback_event
+from tradingagents.dataflows.config import get_config
 from tradingagents.dataflows.errors import (
     NoMarketDataError,
     VendorNotConfiguredError,
@@ -44,6 +43,7 @@ from tradingagents.dataflows.vendors.yahoo.market import (
     get_YFin_data_online,
 )
 from tradingagents.dataflows.vendors.yahoo.news import get_global_news_yfinance, get_news_yfinance
+from tradingagents.resilience import FailureEvent, FallbackRouter, record_fallback_event
 
 logger = logging.getLogger(__name__)
 

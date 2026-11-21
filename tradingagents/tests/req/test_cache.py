@@ -1,8 +1,8 @@
 """Behavior checks for Part 4 local cache."""
-from datetime import UTC, datetime, timedelta
-from concurrent.futures import ThreadPoolExecutor
-from threading import Lock
 import time
+from concurrent.futures import ThreadPoolExecutor
+from datetime import UTC, datetime, timedelta
+from threading import Lock
 
 from tradingagents.cache import CacheController
 from tradingagents.contracts.cache import CacheKey, TTLPolicy

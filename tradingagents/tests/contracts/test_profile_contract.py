@@ -1,7 +1,7 @@
 import pytest
 
-from tradingagents.contracts.profile import ProfileConfig
 from tradingagents.contracts.preflight import PreflightResult
+from tradingagents.contracts.profile import ProfileConfig
 from tradingagents.profiles import build_profile
 
 

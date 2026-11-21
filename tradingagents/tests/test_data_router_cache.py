@@ -1,6 +1,6 @@
 """Cache integration checks for the shared data vendor router."""
-from tradingagents.dataflows.config import run_config
 from tradingagents.dataflows import router
+from tradingagents.dataflows.config import run_config
 
 
 def test_route_caches_successful_response(tmp_path, monkeypatch):
