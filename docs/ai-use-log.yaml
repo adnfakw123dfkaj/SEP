@@ -144,3 +144,11 @@ entries:
     summary: "Fix Gate 1 false block: a gate-infrastructure test (tests/gates/) was required to be listed in a test-approval record even though it is gate tooling, not an application test. test_changed now excludes paths under _GATE_INFRA_PREFIXES, matching how scripts/gates/ is excluded from code_changed. App tests still require approval. Human reviewed."
     files_changed:
       - scripts/gates/check_test_approval.py
+
+  - change_id: "part1-ci-gate-fixes"
+    date: "2026-11-21"
+    agent_session: "codex-part1-ci-fixes"
+    summary: "Codex-assisted Part 1 CI follow-up: removed the test's direct click import by asserting the CLI's Typer exit type, organized preflight imports for Ruff, and recorded the Part 1 CI remediation. Changes are available for human review; no OpenCode session or prior G1 approval is claimed by this entry."
+    files_changed:
+      - tradingagents/cli/run.py
+      - tradingagents/tradingagents/preflight.py

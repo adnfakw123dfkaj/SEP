@@ -1,5 +1,5 @@
-from unittest.mock import Mock
 import pytest
+from unittest.mock import Mock
 
 from tradingagents.preflight import validate_request
 
@@ -22,6 +22,7 @@ def test_no_data_is_distinct_from_invalid(monkeypatch):
 
 def test_valid_tickers_use_normalized_symbol(monkeypatch):
     seen = []
+
     def fake_route(tool, symbol, *args):
         seen.append(symbol)
         return "Date Open High Low Close Volume\n2026-11-20 1 1 1 1 1"
@@ -40,7 +41,6 @@ def test_valid_tickers(monkeypatch, symbol):
 def test_no_analyst_calls(monkeypatch):
     """A failed preflight exits before graph construction / analyst execution."""
     import cli.run as run
-    from click.exceptions import Exit
     from cli.models import AnalystType
 
     monkeypatch.setattr(run, "get_user_selections", lambda flags=None: {
@@ -49,12 +49,14 @@ def test_no_analyst_calls(monkeypatch):
         "quick_think_llm": "test", "deep_think_llm": "test", "backend_url": None,
         "llm_provider": "openai", "output_language": "English",
     })
-    monkeypatch.setattr(run, "validate_request", lambda *a: __import__(
-        "tradingagents.contracts.preflight", fromlist=["PreflightResult"]
-    ).PreflightResult(ticker="AAPL", resolved=True, data_available=False, reason="no data"))
+    from tradingagents.contracts.preflight import PreflightResult
+
+    monkeypatch.setattr(run, "validate_request", lambda *a: PreflightResult(
+        ticker="AAPL", resolved=True, data_available=False, reason="no data"
+    ))
     graph = Mock()
     monkeypatch.setattr(run, "TradingAgentsGraph", graph)
-    with pytest.raises(Exit):
+    with pytest.raises(run.typer.Exit):
         run.run_analysis(flags={"profile": "quick", "ticker": "AAPL", "date": "2026-11-20",
                                 "analysts": "market", "save": False, "show": False})
     graph.assert_not_called()

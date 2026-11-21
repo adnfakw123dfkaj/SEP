@@ -1,7 +1,6 @@
 """Synchronous, pre-LLM ticker and price-data preflight."""
-from __future__ import annotations
-
 import re
+
 from tradingagents.contracts.preflight import PreflightResult
 
 _TICKER = re.compile(r"^[A-Z0-9^][A-Z0-9.^=_+-]{0,31}$")
@@ -18,9 +17,9 @@ def validate_request(ticker: str, date: str | None = None, profile=None) -> Pref
         return PreflightResult(ticker=raw, resolved=False, data_available=False,
                                reason="ticker is empty or has an invalid format")
     try:
-        from tradingagents.dataflows.symbols import normalize_symbol
         from tradingagents.dataflows.date_window import get_current_date
         from tradingagents.dataflows.router import route_to_vendor
+        from tradingagents.dataflows.symbols import normalize_symbol
         as_of = date or get_current_date()
         data = route_to_vendor("get_stock_data", normalize_symbol(raw), "2020-01-01", as_of)
         if not data or "no data available" in str(data).lower():
