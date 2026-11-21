@@ -129,6 +129,17 @@ def _graph(tmp_path, monkeypatch, model, debug=False, **config):
 
 
 @pytest.mark.unit
+def test_a_run_persists_the_structured_debate_transcript(tmp_path, monkeypatch, offline):
+    graph = _graph(tmp_path, monkeypatch, ScriptedModel())
+
+    state, _ = graph.propagate("NVDA", TRADE_DATE)
+
+    assert state["debate_transcript"]["turns"]
+    assert "quality_available" in state["debate_transcript"]
+    assert list(tmp_path.rglob("debate_transcript.json"))
+
+
+@pytest.mark.unit
 def test_a_run_captures_tool_evidence(tmp_path, monkeypatch, offline):
     graph = _graph(tmp_path, monkeypatch, ScriptedModel())
 
@@ -208,7 +219,7 @@ def test_a_graph_reused_across_runs_keeps_no_run_state(tmp_path, monkeypatch, of
 
     held = [v for v in vars(graph).values() if isinstance(v, dict) and TRADE_DATE in v]
     assert held == []
-    assert len(list(tmp_path.glob("results/NVDA/TradingAgentsStrategy_logs/*.json"))) == 2
+    assert len(list(tmp_path.glob("results/NVDA/TradingAgentsStrategy_logs/full_states_log_*.json"))) == 2
 
 
 @pytest.mark.unit

@@ -257,6 +257,39 @@ def test_export_schema():
     assert debate.DebateTranscript.model_validate(invalid_export)
 
 
+def test_research_manager_preserves_structured_debate_fields():
+    from types import SimpleNamespace
+
+    from tradingagents.agents.managers.research_manager import create_research_manager
+
+    class _LLM:
+        def invoke(self, prompt):
+            return SimpleNamespace(content="Recommendation: Hold\nRationale: balanced.")
+
+    turns = [{"turn_id": "t1", "round": 1, "speaker": "bull"}]
+    state = {
+        "company_of_interest": "TEST",
+        "asset_type": "stock",
+        "investment_debate_state": {
+            "history": "history",
+            "bull_history": "bull",
+            "bear_history": "bear",
+            "current_response": "",
+            "count": 1,
+            "turns": turns,
+            "quality_available": False,
+            "enable_structured_debate": True,
+        },
+    }
+
+    update = create_research_manager(_LLM())(state)
+    debate = update["investment_debate_state"]
+
+    assert debate["turns"] == turns
+    assert debate["quality_available"] is False
+    assert debate["enable_structured_debate"] is True
+
+
 def test_retry_then_degrade():
     """TC-P2-FR003-05: invalid turn retries once then degrades."""
     import json

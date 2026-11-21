@@ -9,6 +9,7 @@ from typing import Any
 
 import tradingagents
 from tradingagents.agents.context import build_instrument_context, resolve_instrument_identity
+from tradingagents.agents.debate.export import resolve_evidence_refs
 from tradingagents.agents.rating import is_review, run_rating
 from tradingagents.contracts import ALLOWED_RATINGS, Provenance, RunManifest
 from tradingagents.dataflows.config import run_config, run_config_context, set_config
@@ -600,6 +601,23 @@ class TradingAgentsGraph:
                 context.run(stream.close)
                 self.last_evidence_registry = registry
 
+    def _debate_transcript(self, ticker, trade_date, final_state):
+        """Export the structured debate, resolving any available evidence refs."""
+        debate = final_state.get("investment_debate_state") or {}
+        turns = debate.get("turns") or []
+        if not turns:
+            return None
+        payload = {
+            "transcript_id": f"{ticker}-{trade_date}",
+            "turns": turns,
+            "quality_available": bool(debate.get("quality_available", True)),
+        }
+        try:
+            return resolve_evidence_refs(payload, self.last_evidence_registry)
+        except Exception as exc:  # never lose a completed run to transcript export
+            logger.warning("Could not export debate transcript: %s", exc)
+            return None
+
     def _log_state(self, trade_date, final_state):
         """Write a run's final state to JSON under the run's own ticker."""
         entry = {
@@ -635,6 +653,14 @@ class TradingAgentsGraph:
         safe_ticker = safe_ticker_component(final_state["company_of_interest"])
         directory = Path(self.config["results_dir"]) / safe_ticker / "TradingAgentsStrategy_logs"
         directory.mkdir(parents=True, exist_ok=True)
+        transcript = self._debate_transcript(safe_ticker, trade_date, final_state)
+        if transcript:
+            entry["debate_transcript"] = transcript
+            final_state["debate_transcript"] = transcript
+            (directory / "debate_transcript.json").write_text(
+                json.dumps(transcript, indent=2, ensure_ascii=False),
+                encoding="utf-8",
+            )
 
         log_path = directory / f"full_states_log_{trade_date}.json"
         with open(log_path, "w", encoding="utf-8") as f:

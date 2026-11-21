@@ -360,3 +360,12 @@ entries:
       - tradingagents/tradingagents/graph/trading_graph.py
       - tradingagents/tradingagents/default_config.py
       - tradingagents/tradingagents/resilience.py
+
+  - change_id: "phase1-part2-complete"
+    date: "2026-11-21"
+    agent_session: "phase1-integration"
+    summary: "Completed Part 2 integration: Research Manager preserves structured debate turns/quality instead of rebuilding a lossy state, transcript export can attach resolved Part 3 evidence objects without changing the DebateTurn wire contract, and the graph persists debate_transcript.json plus the transcript in the state log."
+    files_changed:
+      - tradingagents/tradingagents/agents/managers/research_manager.py
+      - tradingagents/tradingagents/agents/debate/export.py
+      - tradingagents/tradingagents/graph/trading_graph.py

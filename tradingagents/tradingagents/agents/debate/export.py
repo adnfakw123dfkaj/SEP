@@ -24,4 +24,23 @@ def export_transcript(transcript) -> dict:
     return DebateTranscript.model_validate(payload).model_dump(mode="json")
 
 
-__all__ = ["export_transcript"]
+def resolve_evidence_refs(transcript, registry) -> dict:
+    """Attach resolved Part 3 evidence objects to an exported transcript.
+
+    ``DebateTurn.evidence_refs`` remains the stable string wire format. When a
+    matching id exists in the run registry, the exported copy also carries the
+    full ``EvidenceRef`` so reports can migrate without changing the debate
+    contract yet.
+    """
+    payload = export_transcript(transcript)
+    for turn in payload.get("turns", []):
+        resolved = []
+        for ref_id in turn.get("evidence_refs", []):
+            ref = registry.get(ref_id) if registry is not None else None
+            if ref is not None:
+                resolved.append(ref.model_dump(mode="json"))
+        turn["resolved_evidence"] = resolved
+    return payload
+
+
+__all__ = ["export_transcript", "resolve_evidence_refs"]
