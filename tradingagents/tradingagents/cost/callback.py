@@ -126,6 +126,7 @@ class CostTrackingCallback(BaseCallbackHandler):
         route_path: RoutePath = RoutePath.DIRECT,
         cache_hit: bool = False,
         default_model: str = "unknown",
+        before_call: Callable[..., None] | None = None,
     ):
         self.run_id = run_id
         self.on_event = on_event
@@ -134,6 +135,7 @@ class CostTrackingCallback(BaseCallbackHandler):
         self.route_path = route_path
         self.cache_hit = cache_hit
         self.default_model = default_model
+        self.before_call = before_call
         self._states: dict[str, _CallState] = {}
         self._lock = threading.Lock()
 
@@ -143,10 +145,13 @@ class CostTrackingCallback(BaseCallbackHandler):
         prompt_text: str,
         serialized: dict[str, Any],
     ) -> None:
+        model = _serialized_model(serialized, self.default_model)
+        if self.before_call is not None:
+            self.before_call(model=model, prompt_text=prompt_text)
         state = _CallState(
             started=time.perf_counter(),
             prompt_text=prompt_text,
-            model=_serialized_model(serialized, self.default_model),
+            model=model,
             agent_name=current_agent() or self.agent_name,
         )
         with self._lock:

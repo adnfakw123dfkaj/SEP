@@ -378,3 +378,12 @@ entries:
       - tradingagents/tradingagents/graph/setup.py
       - tradingagents/tradingagents/graph/trading_graph.py
       - tradingagents/cli/run.py
+
+  - change_id: "phase1-part6-pre-call-hard-fail"
+    date: "2026-11-21"
+    agent_session: "phase1-integration"
+    summary: "Part 6 pre-call guard: check projected tokens (used + prompt estimate + output cap) before each model call, block over-hard-budget calls via BudgetExceededError, turn the blocked run into a REVIEW state with budget_exceeded/exit_code=2, write the partial cost report/manifest, and make the CLI return exit 2."
+    files_changed:
+      - tradingagents/tradingagents/cost/callback.py
+      - tradingagents/tradingagents/graph/trading_graph.py
+      - tradingagents/cli/run.py

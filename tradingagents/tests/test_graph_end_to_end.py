@@ -169,6 +169,27 @@ def test_finish_cost_run_populates_cost_fields(tmp_path, monkeypatch, offline):
 
 
 @pytest.mark.unit
+def test_pre_call_budget_failure_returns_review(tmp_path, monkeypatch, offline):
+    from tradingagents.cost.enforcement import BudgetExceededError
+
+    graph = _graph(tmp_path, monkeypatch, ScriptedModel())
+    graph.graph = type(
+        "G",
+        (),
+        {"invoke": lambda self, i, **k: (_ for _ in ()).throw(
+            BudgetExceededError("projected over hard cap")
+        )},
+    )()
+
+    state, rating = graph.propagate("NVDA", TRADE_DATE)
+
+    assert rating == "REVIEW"
+    assert state["final_rating"] == "REVIEW"
+    assert state["budget_exceeded"] is True
+    assert state["exit_code"] == 2
+
+
+@pytest.mark.unit
 def test_a_run_persists_the_structured_debate_transcript(tmp_path, monkeypatch, offline):
     graph = _graph(tmp_path, monkeypatch, ScriptedModel())
 

@@ -26,6 +26,7 @@ from cli.display import (
 from cli.selections import depth_from_env, get_user_selections, unattended_gaps
 from cli.stats_handler import StatsCallbackHandler
 from tradingagents.agents.rating import is_review, run_rating
+from tradingagents.cost.enforcement import BudgetExceededError
 from tradingagents.dataflows.symbols import safe_ticker_component
 from tradingagents.default_config import DEFAULT_CONFIG
 from tradingagents.graph.analyst_execution import (
@@ -309,6 +310,7 @@ def run_analysis(checkpoint: bool | None = None, portfolio=None, flags=None):
         # try/finally tears the checkpointer down even if the stream raises.
         trace = []
         fallback_events = []
+        budget_exit_code = 0
         event_scope = fallback_event_scope(fallback_events)
         event_scope.__enter__()
         try:
@@ -452,6 +454,30 @@ def run_analysis(checkpoint: bool | None = None, portfolio=None, flags=None):
             graph.clear_checkpoint_on_success(
                 selections["ticker"], selections["analysis_date"], selections["asset_type"], portfolio
             )
+        except BudgetExceededError as exc:
+            final_state = graph._budget_failure_state(init_agent_state, exc)
+            final_state["fallback_events"] = [{
+                "kind": "budget_exceeded",
+                "source": "cost",
+                "message": str(exc),
+                "action": "hard_fail",
+            }]
+            if hasattr(graph, "finish_cost_run"):
+                graph.finish_cost_run(final_state)
+            final_state["budget_exceeded"] = True
+            final_state["final_rating"] = "REVIEW"
+            signature_for_record = (
+                graph.run_signature(selections["asset_type"], portfolio)
+                if hasattr(graph, "run_signature")
+                else None
+            )
+            graph.record_decision(
+                selections["ticker"],
+                selections["analysis_date"],
+                final_state,
+                run_signature=signature_for_record,
+            )
+            budget_exit_code = 2
         finally:
             # Always restore the plain uncheckpointed graph, even on failure.
             event_scope.__exit__(None, None, None)
@@ -486,6 +512,9 @@ def run_analysis(checkpoint: bool | None = None, portfolio=None, flags=None):
 
     _offer_reports(final_state, graph, selections["ticker"],
                    save=flags.get("save"), show=flags.get("show"), html=flags.get("html"))
+
+    if budget_exit_code:
+        raise typer.Exit(code=budget_exit_code)
 
 
 def _yes(question: str) -> bool:

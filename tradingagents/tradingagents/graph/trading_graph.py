@@ -18,7 +18,9 @@ from tradingagents.cost import (
     CostTrackingCallback,
     budget_for_profile,
     default_price_table,
+    estimate_tokens,
 )
+from tradingagents.cost.enforcement import BudgetExceededError
 from tradingagents.dataflows.config import run_config, run_config_context, set_config
 from tradingagents.dataflows.date_window import get_current_date, is_historical
 from tradingagents.dataflows.symbols import safe_ticker_component
@@ -102,10 +104,16 @@ class TradingAgentsGraph:
         self.cost_monitor = CostMonitor(self._price_table)
         self._cost_run_id = None
         self._cost_profile = self.config.get("run_profile", "custom")
+        self._cost_budget = Budget(
+            profile=self._cost_profile or "custom",
+            soft_limit=10**12,
+            hard_limit=10**12,
+        )
         self.cost_callback = CostTrackingCallback(
             run_id="pending",
             on_event=self._record_cost_event,
             provider=self.config.get("llm_provider", "unknown"),
+            before_call=self._check_budget_before_call,
         )
         self.callbacks = [*(callbacks or []), self.cost_callback]
 
@@ -198,10 +206,34 @@ class TradingAgentsGraph:
     def _record_cost_event(self, event) -> None:
         self.cost_monitor.record(event)
 
+    def _check_budget_before_call(self, *, model: str, prompt_text: str) -> None:
+        """Block a provider call when its projected total would exceed the hard cap."""
+        output_cap = int(self.config.get("max_tokens") or 4096)
+        estimate = estimate_tokens(
+            prompt_text,
+            model,
+            max_output_tokens=output_cap,
+        )
+        used = sum(event.total_tokens for event in self.cost_monitor.events)
+        projected = used + estimate.input_tokens + output_cap
+        if projected >= self._cost_budget.hard_limit:
+            raise BudgetExceededError(
+                f"budget hard limit would be exceeded: used={used}, "
+                f"projected={projected}, hard={self._cost_budget.hard_limit}"
+            )
+
     def start_cost_run(self, ticker: str, trade_date: str, profile: str | None = None) -> None:
-        """Bind a fresh monitor and run id before a run starts."""
+        """Bind a fresh monitor, run id and budget before a run starts."""
         self._cost_run_id = f"{ticker}-{trade_date}"
         self._cost_profile = profile or self.config.get("run_profile", "custom")
+        try:
+            self._cost_budget = budget_for_profile(self._cost_profile)
+        except ValueError:
+            self._cost_budget = Budget(
+                profile=self._cost_profile or "custom",
+                soft_limit=10**12,
+                hard_limit=10**12,
+            )
         if not hasattr(self, "_price_table"):
             self._price_table = default_price_table()
         self.cost_monitor = CostMonitor(self._price_table)
@@ -214,14 +246,15 @@ class TradingAgentsGraph:
             f"{final_state.get('company_of_interest', 'run')}-"
             f"{final_state.get('trade_date', 'unknown')}"
         )
-        try:
-            budget = budget_for_profile(self._cost_profile)
-        except ValueError:
-            budget = Budget(
+        budget = getattr(
+            self,
+            "_cost_budget",
+            Budget(
                 profile=self._cost_profile or "custom",
                 soft_limit=10**12,
                 hard_limit=10**12,
-            )
+            ),
+        )
         report = self.cost_monitor.report(
             run_id,
             budget,
@@ -587,23 +620,45 @@ class TradingAgentsGraph:
         self.start_cost_run(company_name, trade_date, self.config.get("run_profile"))
         fallback_events = []
         registry = None
-        with fallback_event_scope(fallback_events):
-            if self.debug:
-                # A state repeats the messages before it, so each prints once (#1027).
-                final_state, printed = {}, set()
-                for messages, state in self.stream_run(graph_input, **args):
-                    for msg in messages:
-                        key = getattr(msg, "id", None) or (type(msg).__name__, getattr(msg, "content", None))
-                        if key not in printed:
-                            printed.add(key)
-                            msg.pretty_print()
-                    if state is not None:
-                        final_state.update(state)
-                registry = self.last_evidence_registry
-            else:
-                with evidence_scope() as registry:
-                    final_state = self.graph.invoke(graph_input, **args)
-                self.last_evidence_registry = registry
+        try:
+            with fallback_event_scope(fallback_events):
+                if self.debug:
+                    # A state repeats the messages before it, so each prints once (#1027).
+                    final_state, printed = {}, set()
+                    for messages, state in self.stream_run(graph_input, **args):
+                        for msg in messages:
+                            key = getattr(msg, "id", None) or (type(msg).__name__, getattr(msg, "content", None))
+                            if key not in printed:
+                                printed.add(key)
+                                msg.pretty_print()
+                        if state is not None:
+                            final_state.update(state)
+                    registry = self.last_evidence_registry
+                else:
+                    with evidence_scope() as registry:
+                        final_state = self.graph.invoke(graph_input, **args)
+                    self.last_evidence_registry = registry
+        except BudgetExceededError as exc:
+            final_state = self._budget_failure_state(init_agent_state, exc)
+            final_state["fallback_events"] = [
+                {
+                    "kind": "budget_exceeded",
+                    "source": "cost",
+                    "message": str(exc),
+                    "action": "hard_fail",
+                }
+            ]
+            self.finish_cost_run(final_state)
+            final_state["budget_exceeded"] = True
+            final_state["final_rating"] = "REVIEW"
+            self.record_decision(
+                company_name,
+                trade_date,
+                final_state,
+                run_signature=self.run_signature(asset_type, portfolio),
+            )
+            final_state["exit_code"] = 2
+            return final_state, "REVIEW"
         final_state["fallback_events"] = [event.model_dump(mode="json") for event in fallback_events]
         final_state["evidence_refs"] = registry.ids() if registry is not None else []
         final_state["evidence"] = (
@@ -661,6 +716,19 @@ class TradingAgentsGraph:
             finally:
                 context.run(stream.close)
                 self.last_evidence_registry = registry
+
+    def _budget_failure_state(self, init_agent_state: dict, error: Exception) -> dict:
+        """A complete-enough state for a pre-call budget hard stop."""
+        state = dict(init_agent_state)
+        state.update({
+            "investment_plan": "",
+            "trader_investment_plan": "",
+            "final_trade_decision": "Rating: REVIEW\n\nBudget hard limit exceeded.",
+            "final_rating": "REVIEW",
+            "budget_exceeded": True,
+            "budget_error": str(error),
+        })
+        return state
 
     def _debate_transcript(self, ticker, trade_date, final_state):
         """Export the structured debate, resolving any available evidence refs."""
