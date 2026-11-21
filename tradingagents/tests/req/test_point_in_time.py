@@ -40,8 +40,9 @@ def test_social_unavailable():
 
 
 def test_property_dates():
-    """TC-P4-INV002-04: for a historical date, undated items are dropped."""
-    for year in range(2015, 2025):
+    """TC-P4-INV002-04: undated items are dropped across 100 historical dates."""
+    for offset in range(100):
+        year = 1927 + offset
         start = datetime(year, 1, 1)
         end = datetime(year, 1, 31)
         assert in_window(None, start, end) is False

@@ -31,6 +31,10 @@ from tradingagents.agents.structured import (
     invoke_structured_or_freetext,
 )
 from tradingagents.agents.tools import get_news
+from tradingagents.cache import CacheController
+from tradingagents.contracts.cache import CacheKey, TTLPolicy
+from tradingagents.dataflows.config import get_config
+from tradingagents.resilience import FailureEvent, record_fallback_event
 from tradingagents.dataflows.vendors.reddit import (
     CRYPTO_SUBREDDITS,
     DEFAULT_SUBREDDITS,
@@ -42,6 +46,28 @@ from tradingagents.dataflows.vendors.stocktwits import fetch_stocktwits_messages
 
 def _seven_days_back(trade_date: str) -> str:
     return (datetime.strptime(trade_date, "%Y-%m-%d") - timedelta(days=7)).strftime("%Y-%m-%d")
+
+
+def _cached_social(source: str, ticker: str, start_date: str, end_date: str,
+                   screened: bool, fetch):
+    """Cache a point-in-time social block for one ticker and exact window."""
+    config = get_config()
+    cache = CacheController(config["data_cache_dir"], TTLPolicy.for_data_class("social"))
+    key = CacheKey(
+        data_class="social", source=source, subject=ticker,
+        parameters={"start_date": start_date, "end_date": end_date, "screened": screened},
+        as_of=end_date,
+    )
+    entry = cache.get_or_fetch(key, fetch, {"source": source, "window_end": end_date})
+    value = entry.value
+    if isinstance(value, str) and "unavailable" in value.lower():
+        cache_file = cache._path(key)
+        cache_file.unlink(missing_ok=True)
+        record_fallback_event(FailureEvent(
+            kind="source_failure", source=source, message="social source unavailable",
+            action="unavailable",
+        ))
+    return value
 
 
 def create_sentiment_analyst(llm):
@@ -67,12 +93,18 @@ def create_sentiment_analyst(llm):
         # Pass the analysis window so a historical run trims social posts to it
         # instead of leaking today's chatter into a backtest (#1220).
         screen = jev_screen(ticker)
-        stocktwits_block = fetch_stocktwits_messages(
-            ticker, limit=30, start_date=start_date, end_date=end_date, screen=screen
+        stocktwits_block = _cached_social(
+            "stocktwits", ticker, start_date, end_date, screen is not None,
+            lambda: fetch_stocktwits_messages(
+                ticker, limit=30, start_date=start_date, end_date=end_date, screen=screen
+            ),
         )
         subreddits = subreddits_for(ticker)
-        reddit_block = fetch_reddit_posts(
-            ticker, subreddits, start_date=start_date, end_date=end_date, screen=screen
+        reddit_block = _cached_social(
+            "reddit", ticker, start_date, end_date, screen is not None,
+            lambda: fetch_reddit_posts(
+                ticker, subreddits, start_date=start_date, end_date=end_date, screen=screen
+            ),
         )
 
         system_message = _build_system_message(

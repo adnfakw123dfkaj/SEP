@@ -33,6 +33,7 @@ from tradingagents.graph.analyst_execution import (
 from tradingagents.graph.trading_graph import TradingAgentsGraph
 from tradingagents.profiles import build_profile, profile_to_runtime_config
 from tradingagents.preflight import validate_request
+from tradingagents.resilience import fallback_event_scope
 
 
 def _run_directory(config: dict, ticker: str, trade_date: str) -> Path:
@@ -270,6 +271,9 @@ def run_analysis(checkpoint: bool | None = None, portfolio=None, flags=None):
         # interrupted run instead of re-appending the initial state (#1249); the
         # try/finally tears the checkpointer down even if the stream raises.
         trace = []
+        fallback_events = []
+        event_scope = fallback_event_scope(fallback_events)
+        event_scope.__enter__()
         try:
             for messages, chunk in graph.stream_run(graph.checkpoint_input(init_agent_state), **args):
                 for message in messages:
@@ -379,6 +383,7 @@ def run_analysis(checkpoint: bool | None = None, portfolio=None, flags=None):
             final_state = {}
             for chunk in trace:
                 final_state.update(chunk)
+            final_state["fallback_events"] = [event.model_dump(mode="json") for event in fallback_events]
 
             # Clean run: log the decision, then drop this run's checkpoint so a
             # later run starts fresh. A mid-stream failure skips both, keeping
@@ -389,6 +394,7 @@ def run_analysis(checkpoint: bool | None = None, portfolio=None, flags=None):
             )
         finally:
             # Always restore the plain uncheckpointed graph, even on failure.
+            event_scope.__exit__(None, None, None)
             graph.end_checkpoint()
 
         for agent in message_buffer.agent_status:

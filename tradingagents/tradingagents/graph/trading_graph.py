@@ -2,6 +2,7 @@ import hashlib
 import json
 import logging
 import os
+import tempfile
 from contextlib import contextmanager
 from datetime import datetime
 from pathlib import Path
@@ -9,7 +10,7 @@ from typing import Any
 
 import tradingagents
 from tradingagents.agents.context import build_instrument_context, resolve_instrument_identity
-from tradingagents.agents.rating import run_rating
+from tradingagents.agents.rating import is_review, run_rating
 from tradingagents.dataflows.config import run_config, run_config_context, set_config
 from tradingagents.dataflows.date_window import get_current_date, is_historical
 from tradingagents.dataflows.symbols import safe_ticker_component
@@ -18,6 +19,8 @@ from tradingagents.llm_clients import create_tier_client, tier_provider
 from tradingagents.memory import TradingMemoryLog, settlement
 from tradingagents.memory.reflection import Reflector
 from tradingagents.reporting import write_report_tree
+from tradingagents.resilience import fallback_event_scope
+from tradingagents.contracts import RunManifest
 
 from .checkpointer import checkpoint_step, clear_checkpoint, get_checkpointer, thread_id
 from .conditional_logic import ConditionalLogic
@@ -383,19 +386,22 @@ class TradingAgentsGraph:
 
         # None resumes an existing checkpoint; init_agent_state starts fresh (#1249).
         graph_input = self.checkpoint_input(init_agent_state)
-        if self.debug:
-            # A state repeats the messages before it, so each prints once (#1027).
-            final_state, printed = {}, set()
-            for messages, state in self.stream_run(graph_input, **args):
-                for msg in messages:
-                    key = getattr(msg, "id", None) or (type(msg).__name__, getattr(msg, "content", None))
-                    if key not in printed:
-                        printed.add(key)
-                        msg.pretty_print()
-                if state is not None:
-                    final_state.update(state)
-        else:
-            final_state = self.graph.invoke(graph_input, **args)
+        fallback_events = []
+        with fallback_event_scope(fallback_events):
+            if self.debug:
+                # A state repeats the messages before it, so each prints once (#1027).
+                final_state, printed = {}, set()
+                for messages, state in self.stream_run(graph_input, **args):
+                    for msg in messages:
+                        key = getattr(msg, "id", None) or (type(msg).__name__, getattr(msg, "content", None))
+                        if key not in printed:
+                            printed.add(key)
+                            msg.pretty_print()
+                    if state is not None:
+                        final_state.update(state)
+            else:
+                final_state = self.graph.invoke(graph_input, **args)
+        final_state["fallback_events"] = [event.model_dump(mode="json") for event in fallback_events]
 
         self.record_decision(company_name, trade_date, final_state)
 
@@ -463,6 +469,7 @@ class TradingAgentsGraph:
             "final_trade_decision": final_state["final_trade_decision"],
             "final_rating": run_rating(final_state),
             "run_settings": self.run_settings(),
+            "fallback_events": final_state.get("fallback_events", []),
         }
 
         # A ticker that would escape the results directory is rejected.
@@ -474,3 +481,26 @@ class TradingAgentsGraph:
         with open(log_path, "w", encoding="utf-8") as f:
             # Reports can be in any language and this file is read by a person.
             json.dump(entry, f, indent=4, ensure_ascii=False)
+
+        manifest = RunManifest(
+            run_id=f"{safe_ticker}-{trade_date}",
+            ticker=safe_ticker,
+            date=str(trade_date),
+            profile=self.config.get("profile", "standard"),
+            provider=self.config.get("llm_provider", ""),
+            status="review" if is_review(run_rating(final_state)) else "completed",
+            fallback_events=[],
+        )
+        manifest.add_fallback_events(final_state.get("fallback_events", []))
+        manifest_dir = directory / "manifests"
+        manifest_dir.mkdir(parents=True, exist_ok=True)
+        manifest_path = manifest_dir / f"run_manifest_{trade_date}.json"
+        fd, temp_name = tempfile.mkstemp(dir=manifest_dir, prefix=".manifest-")
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8") as stream:
+                stream.write(manifest.model_dump_json(indent=2))
+                stream.flush()
+                os.fsync(stream.fileno())
+            os.replace(temp_name, manifest_path)
+        finally:
+            Path(temp_name).unlink(missing_ok=True)
