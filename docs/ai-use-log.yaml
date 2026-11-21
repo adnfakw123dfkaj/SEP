@@ -274,3 +274,12 @@ entries:
       - tradingagents/tradingagents/graph/trading_graph.py
       - tradingagents/tradingagents/default_config.py
       - tradingagents/cli/run.py
+
+  - change_id: "phase1-part3-manifest-writer"
+    date: "2026-11-21"
+    agent_session: "phase1-integration"
+    summary: "Part 3 integration slice: added Part 3's single atomic run-manifest writer under records, moved the graph off its inline temp-file writer, switched the manifest profile field to run_profile, and populated analysts/models/config hash/timestamps/rating/cache/token/cost placeholders from run state. Added writer round-trip and graph manifest assertions."
+    files_changed:
+      - tradingagents/tradingagents/records/__init__.py
+      - tradingagents/tradingagents/records/manifest.py
+      - tradingagents/tradingagents/graph/trading_graph.py

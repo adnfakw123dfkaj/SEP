@@ -63,7 +63,8 @@ def _bare_graph(tmp_path):
     graph = object.__new__(TradingAgentsGraph)
     graph.config = {"results_dir": str(tmp_path), "llm_provider": "openai", "deep_think_llm": "d",
                     "quick_think_llm": "q", "max_debate_rounds": 1, "max_risk_discuss_rounds": 1,
-                    "output_language": "English", "data_vendors": {}, "tool_vendors": {}}
+                    "output_language": "English", "data_vendors": {}, "tool_vendors": {},
+                    "run_profile": "quick"}
     graph.selected_analysts = ("market",)
     return graph
 
@@ -105,6 +106,9 @@ def test_run_manifest_serializes_fallback_events(tmp_path):
     manifest = json.loads(manifests[0].read_text(encoding="utf-8"))
     event = json.loads(manifest["fallback_events"][0])
     assert event["action"] == "fresh_cache"
+    assert manifest["profile"] == "quick"
+    assert manifest["analysts"] == ["market"]
+    assert manifest["models"] == {"quick": "q", "deep": "d"}
 
 
 @pytest.mark.unit

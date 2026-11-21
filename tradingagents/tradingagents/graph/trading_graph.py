@@ -2,9 +2,8 @@ import hashlib
 import json
 import logging
 import os
-import tempfile
 from contextlib import contextmanager
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -21,6 +20,7 @@ from tradingagents.memory import TradingMemoryLog, settlement
 from tradingagents.memory.reflection import Reflector
 from tradingagents.preflight import validate_request
 from tradingagents.profiles import resolve_run_profile
+from tradingagents.records import write_run_manifest
 from tradingagents.reporting import write_report_tree
 from tradingagents.resilience import fallback_event_scope
 
@@ -494,25 +494,35 @@ class TradingAgentsGraph:
             # Reports can be in any language and this file is read by a person.
             json.dump(entry, f, indent=4, ensure_ascii=False)
 
+        rating = run_rating(final_state)
+        config_hash = hashlib.sha256(
+            json.dumps(
+                {k: v for k, v in self.config.items() if k not in _NOT_IN_SIGNATURE},
+                sort_keys=True,
+                default=str,
+            ).encode()
+        ).hexdigest()[:16]
         manifest = RunManifest(
             run_id=f"{safe_ticker}-{trade_date}",
             ticker=safe_ticker,
             date=str(trade_date),
-            profile=self.config.get("profile", "standard"),
+            profile=self.config.get("run_profile", "custom"),
+            analysts=list(self.selected_analysts),
+            models={
+                "quick": self.config.get("quick_think_llm", ""),
+                "deep": self.config.get("deep_think_llm", ""),
+            },
             provider=self.config.get("llm_provider", ""),
-            status="review" if is_review(run_rating(final_state)) else "completed",
+            prompt_version=self.config.get("prompt_version", ""),
+            config_hash=config_hash,
+            cache_hits=int(final_state.get("cache_hits", 0) or 0),
+            token_usage_by_agent=dict(final_state.get("token_usage_by_agent", {}) or {}),
+            cost_estimate=final_state.get("cost_estimate"),
+            security_events=list(final_state.get("security_events", []) or []),
+            rating=rating,
+            timestamps={"finished": datetime.now(UTC).isoformat()},
+            status="review" if is_review(rating) else "completed",
             fallback_events=[],
         )
         manifest.add_fallback_events(final_state.get("fallback_events", []))
-        manifest_dir = directory / "manifests"
-        manifest_dir.mkdir(parents=True, exist_ok=True)
-        manifest_path = manifest_dir / f"run_manifest_{trade_date}.json"
-        fd, temp_name = tempfile.mkstemp(dir=manifest_dir, prefix=".manifest-")
-        try:
-            with os.fdopen(fd, "w", encoding="utf-8") as stream:
-                stream.write(manifest.model_dump_json(indent=2))
-                stream.flush()
-                os.fsync(stream.fileno())
-            os.replace(temp_name, manifest_path)
-        finally:
-            Path(temp_name).unlink(missing_ok=True)
+        write_run_manifest(directory / "manifests", manifest)

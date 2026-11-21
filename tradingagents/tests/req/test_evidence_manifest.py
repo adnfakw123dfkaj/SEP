@@ -13,6 +13,7 @@ from tradingagents.evidence.fidelity import (
     unsupported_claim_rate,
 )
 from tradingagents.evidence.registry import EvidenceRegistry
+from tradingagents.records.manifest import write_run_manifest
 
 
 def test_manifest_schema():
@@ -78,6 +79,24 @@ def test_qualitative_refs():
     claims = [f"point {i}" for i in range(20)]
     refs = [f"r{i}" for i in range(20)]  # 100% supported here
     assert unsupported_claim_rate(claims, refs) <= 0.05
+
+
+def test_manifest_writer_roundtrips_atomically(tmp_path):
+    """Part 3 is the single manifest writer; the written file replays cleanly."""
+    manifest = RunManifest(
+        run_id="run-writer",
+        ticker="NVDA",
+        date="2026-11-01",
+        profile="quick",
+        analysts=["market"],
+        models={"quick": "deepseek-flash"},
+        provider="deepseek",
+        rating="Hold",
+        timestamps={"finished": "2026-11-01T10:10:00+00:00"},
+    )
+    path = write_run_manifest(tmp_path / "manifests", manifest)
+    assert path.exists()
+    assert RunManifest.model_validate_json(path.read_text(encoding="utf-8")) == manifest
 
 
 def test_orphan_number_must_fail():
