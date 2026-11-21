@@ -23,8 +23,8 @@ parts:
       - tradingagents/tests/req/test_preflight.py
 
   part2:
-    owner: null
-    enabled: false
+    owner: "wsk"
+    enabled: true
     tests:
       - tradingagents/tests/req/test_debate_protocol.py
       - tradingagents/tests/req/test_debate_quality.py

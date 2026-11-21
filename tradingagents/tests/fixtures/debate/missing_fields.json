@@ -1,0 +1,19 @@
+{
+  "turn": {
+    "turn_id": "missing-1",
+    "speaker": "bull",
+    "claim": "这条样本故意缺少两个必填字段。",
+    "stance": "bullish",
+    "assumptions": [],
+    "rebuttal_to": null,
+    "confidence": 0.7,
+    "open_questions": [],
+    "requested_evidence": [],
+    "no_new_evidence": false,
+    "status": "ok"
+  },
+  "expected_missing_fields": [
+    "round",
+    "evidence_refs"
+  ]
+}
