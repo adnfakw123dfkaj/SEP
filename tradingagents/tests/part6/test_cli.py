@@ -1,6 +1,7 @@
 """Step 10b: offline CLI wrappers for latency and token audits."""
 
 import json
+import shutil
 from decimal import Decimal
 from pathlib import Path
 
@@ -145,7 +146,7 @@ def test_live_latency_mode_uses_formal_flags(monkeypatch, tmp_path):
         )
         for i in range(30)
     ]
-    monkeypatch.setattr(cost_cli, "_run_live", lambda *a, **k: (samples, []))
+    monkeypatch.setattr(cost_cli, "_run_live", lambda *a, **k: (samples, [], None))
 
     out = tmp_path / "live-latency.json"
     code = bench_latency_main([
@@ -157,24 +158,116 @@ def test_live_latency_mode_uses_formal_flags(monkeypatch, tmp_path):
     assert code == 0
     assert payload["mode"] == "live"
     assert payload["gate_passed"] is True
+    assert payload["artifacts_kept"] is False
+
+
+def test_live_latency_forwards_artifact_options(monkeypatch, tmp_path):
+    samples = [
+        LatencySample(
+            profile="quick",
+            cache_state="cold",
+            duration_s=60.0,
+            success=True,
+        )
+        for _ in range(2)
+    ]
+    workdir = tmp_path / "latency-artifacts"
+    seen = {}
+
+    def fake_run_live(*args, **kwargs):
+        seen.update(kwargs)
+        return samples, [], workdir
+
+    monkeypatch.setattr(cost_cli, "_run_live", fake_run_live)
+    out = tmp_path / "live-latency.json"
+    code = bench_latency_main(
+        [
+            "--profile",
+            "quick",
+            "--cold",
+            "2",
+            "--warm",
+            "0",
+            "--workdir",
+            str(workdir),
+            "--keep-artifacts",
+            "--out",
+            str(out),
+        ]
+    )
+
+    payload = json.loads(out.read_text(encoding="utf-8"))
+    assert code == 0
+    assert seen == {"workdir": str(workdir), "keep_artifacts": True}
+    assert payload["artifacts_kept"] is True
+    assert payload["artifacts_dir"] == str(workdir)
 
 
 def test_live_token_mode_uses_formal_flags(monkeypatch, tmp_path):
     runs = [_token_run(f"live-{i}") for i in range(30)]
-    monkeypatch.setattr(cost_cli, "_run_live", lambda *a, **k: ([], runs))
+    workdir = tmp_path / "token-artifacts"
+    monkeypatch.setattr(
+        cost_cli,
+        "_run_live",
+        lambda *a, **k: ([], runs, workdir),
+    )
 
     out = tmp_path / "live-tokens.json"
     code = token_audit_main([
         "--profile", "quick", "--runs", "30", "--assert-p95", "25000",
         "--assert-report-coverage", "1.0", "--assert-silent-over-budget", "0",
         "--assert-cost-error", "0.05", "--assert-routed-quality", "1.0",
-        "--out", str(out),
+        "--workdir", str(workdir), "--keep-artifacts", "--out", str(out),
     ])
 
     payload = json.loads(out.read_text(encoding="utf-8"))
     assert code == 0
     assert payload["mode"] == "live"
     assert payload["gate_passed"] is True
+    assert payload["artifacts_kept"] is True
+    assert payload["artifacts_dir"] == str(workdir)
+
+
+def test_live_workspace_keeps_explicit_workdir(tmp_path):
+    root = tmp_path / "artifacts"
+
+    with cost_cli._live_workspace(root, False) as (path, kept):
+        assert path == root.resolve()
+        assert kept is True
+        (path / "marker.txt").write_text("kept", encoding="utf-8")
+
+    assert (root / "marker.txt").read_text(encoding="utf-8") == "kept"
+
+
+def test_live_workspace_rejects_nonempty_workdir(tmp_path):
+    root = tmp_path / "artifacts"
+    root.mkdir()
+    (root / "existing.txt").write_text("occupied", encoding="utf-8")
+
+    with (
+        pytest.raises(ValueError, match="must be empty"),
+        cost_cli._live_workspace(root, False),
+    ):
+        pass
+
+
+def test_live_workspace_keep_artifacts_retains_generated_dir():
+    with cost_cli._live_workspace(None, True) as (path, kept):
+        assert kept is True
+        (path / "marker.txt").write_text("kept", encoding="utf-8")
+
+    try:
+        assert (path / "marker.txt").read_text(encoding="utf-8") == "kept"
+    finally:
+        shutil.rmtree(path, ignore_errors=True)
+
+
+def test_live_workspace_default_removes_generated_dir():
+    with cost_cli._live_workspace(None, False) as (path, kept):
+        assert kept is False
+        (path / "marker.txt").write_text("temporary", encoding="utf-8")
+
+    assert not path.exists()
 
 
 def test_tc_p6_cli_004_token_audit_fails(tmp_path):

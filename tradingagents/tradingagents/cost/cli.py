@@ -3,6 +3,8 @@
 Both commands support an offline JSONL mode and a live mode. Live mode runs the
 real graph with the selected profile and a temporary cache/results tree so cold
 and warm measurements are repeatable without touching the user's run data.
+Artifacts are removed by default; `--keep-artifacts` retains a generated tree,
+while `--workdir` writes into an explicit empty directory for inspection.
 """
 
 from __future__ import annotations
@@ -13,7 +15,8 @@ import shutil
 import sys
 import tempfile
 import time
-from collections.abc import Sequence
+from collections.abc import Iterator, Sequence
+from contextlib import contextmanager
 from decimal import Decimal
 from pathlib import Path
 from typing import Any
@@ -64,14 +67,41 @@ def _baseline_p95(args) -> float | None:
     return None
 
 
+@contextmanager
+def _live_workspace(
+    workdir: str | Path | None,
+    keep_artifacts: bool,
+) -> Iterator[tuple[Path, bool]]:
+    """Yield a live workspace root and whether it survives the run."""
+    if workdir is not None:
+        root = Path(workdir).expanduser().resolve()
+        if root.exists() and not root.is_dir():
+            raise ValueError(f"live workdir is not a directory: {root}")
+        if root.exists() and any(root.iterdir()):
+            raise ValueError(f"live workdir must be empty: {root}")
+        root.mkdir(parents=True, exist_ok=True)
+        yield root, True
+        return
+
+    if keep_artifacts:
+        yield Path(tempfile.mkdtemp(prefix="ta-part6-live-")), True
+        return
+
+    with tempfile.TemporaryDirectory(prefix="ta-part6-live-") as temp_root:
+        yield Path(temp_root), False
+
+
 def _run_live(
     profile: str,
     ticker: str,
     trade_date: str | None,
     cold: int,
     warm: int,
-) -> tuple[list[LatencySample], list[TokenRun]]:
-    """Run the real graph and return latency samples plus token/cost runs."""
+    *,
+    workdir: str | Path | None = None,
+    keep_artifacts: bool = False,
+) -> tuple[list[LatencySample], list[TokenRun], Path | None]:
+    """Run the real graph and return samples, runs, and retained artifacts."""
     from tradingagents.dataflows.date_window import get_current_date
     from tradingagents.default_config import DEFAULT_CONFIG
     from tradingagents.graph.trading_graph import TradingAgentsGraph
@@ -80,9 +110,11 @@ def _run_live(
     trade_date = trade_date or get_current_date()
     samples: list[LatencySample] = []
     runs: list[TokenRun] = []
+    retained: Path | None = None
 
-    with tempfile.TemporaryDirectory(prefix="ta-part6-live-") as temp_root:
-        root = Path(temp_root)
+    with _live_workspace(workdir, keep_artifacts) as (root, kept):
+        if kept:
+            retained = root
         config = profile_to_runtime_config(build_profile(profile), DEFAULT_CONFIG.copy())
         config.update(
             results_dir=str(root / "results"),
@@ -150,7 +182,7 @@ def _run_live(
         for _ in range(warm):
             run_one("warm")
 
-    return samples, runs
+    return samples, runs, retained
 
 
 def _latency_gate_failures(report, args) -> list[str]:
@@ -193,10 +225,13 @@ def bench_latency_main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--assert-p99-ratio", type=float, default=None)
     parser.add_argument("--assert-failure-rate", type=float, default=None)
     parser.add_argument("--assert-improvement", type=float, default=None)
+    parser.add_argument("--workdir", default=None)
+    parser.add_argument("--keep-artifacts", action="store_true")
     parser.add_argument("--out", default=None)
     parser.add_argument("--assert", dest="assert_gate", action="store_true")
     args = parser.parse_args(argv)
 
+    retained: Path | None = None
     if args.samples_jsonl:
         samples: list[LatencySample] = _load_jsonl(args.samples_jsonl, LatencySample)
     else:
@@ -206,7 +241,15 @@ def bench_latency_main(argv: Sequence[str] | None = None) -> int:
         if cold + warm == 0:
             parser.error("live mode needs --cold or --warm samples")
         try:
-            samples, _ = _run_live(args.profile, args.ticker, args.date, cold, warm)
+            samples, _, retained = _run_live(
+                args.profile,
+                args.ticker,
+                args.date,
+                cold,
+                warm,
+                workdir=args.workdir,
+                keep_artifacts=args.keep_artifacts,
+            )
         except Exception as exc:
             print(f"live latency benchmark could not start: {exc}", file=sys.stderr)
             return 2
@@ -218,6 +261,9 @@ def bench_latency_main(argv: Sequence[str] | None = None) -> int:
     )
     payload = report.model_dump(mode="json")
     payload["mode"] = "live" if not args.samples_jsonl else "jsonl"
+    payload["artifacts_kept"] = retained is not None
+    if retained is not None:
+        payload["artifacts_dir"] = str(retained)
     payload["gate_passed"] = None
     payload["warnings"] = latency_warnings(report)
 
@@ -309,10 +355,13 @@ def token_audit_main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--assert-silent-over-budget", type=int, default=None)
     parser.add_argument("--assert-cost-error", type=float, default=None)
     parser.add_argument("--assert-routed-quality", type=float, default=None)
+    parser.add_argument("--workdir", default=None)
+    parser.add_argument("--keep-artifacts", action="store_true")
     parser.add_argument("--out", default=None)
     parser.add_argument("--assert", dest="assert_gate", action="store_true")
     args = parser.parse_args(argv)
 
+    retained: Path | None = None
     if args.runs_jsonl:
         runs: list[TokenRun] = _load_jsonl(args.runs_jsonl, TokenRun)
         mode = "jsonl"
@@ -320,12 +369,14 @@ def token_audit_main(argv: Sequence[str] | None = None) -> int:
         if args.runs <= 0:
             parser.error("live mode needs --runs > 0")
         try:
-            _, runs = _run_live(
+            _, runs, retained = _run_live(
                 args.profile,
                 args.ticker,
                 args.date,
                 cold=1,
                 warm=max(0, args.runs - 1),
+                workdir=args.workdir,
+                keep_artifacts=args.keep_artifacts,
             )
         except Exception as exc:
             print(f"live token audit could not start: {exc}", file=sys.stderr)
@@ -342,6 +393,9 @@ def token_audit_main(argv: Sequence[str] | None = None) -> int:
     payload = report.model_dump(mode="json")
     payload["mode"] = mode
     payload["hard_limit"] = hard_limit
+    payload["artifacts_kept"] = retained is not None
+    if retained is not None:
+        payload["artifacts_dir"] = str(retained)
     payload["gate_passed"] = None
 
     failures = _token_gate_failures(report, args)
