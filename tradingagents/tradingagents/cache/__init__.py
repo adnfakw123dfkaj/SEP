@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import hashlib
 import os
-import tempfile
 import time
 from collections.abc import Callable
 from contextlib import contextmanager
@@ -12,6 +11,7 @@ from pathlib import Path
 from typing import Any
 
 from tradingagents.contracts.cache import CacheEntry, CacheKey, TTLPolicy
+from tradingagents.dataflows.files import replace_file
 
 
 class CacheController:
@@ -77,15 +77,13 @@ class CacheController:
         return entry
 
     def _write_entry(self, path: Path, entry: CacheEntry) -> None:
-        fd, name = tempfile.mkstemp(dir=self.root, prefix=".cache-")
-        try:
-            with os.fdopen(fd, "w", encoding="utf-8") as stream:
+        def write(temp: str) -> None:
+            with open(temp, "w", encoding="utf-8") as stream:
                 stream.write(entry.model_dump_json())
                 stream.flush()
                 os.fsync(stream.fileno())
-            os.replace(name, path)
-        finally:
-            Path(name).unlink(missing_ok=True)
+
+        replace_file(path, write)
 
     def get_or_fetch(self, key: CacheKey, fetch_fn: Callable[[], Any],
                      provenance: dict[str, Any] | None = None) -> CacheEntry:

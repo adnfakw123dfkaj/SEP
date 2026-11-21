@@ -8,6 +8,8 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
+from tradingagents.cost.enforcement import BudgetExceededError
+
 _event_sink: ContextVar[list[FailureEvent] | None] = ContextVar("fallback_event_sink", default=None)
 
 
@@ -61,6 +63,8 @@ class _StructuredFallback:
     def invoke(self, *args, **kwargs):
         try:
             return self.primary.invoke(*args, **kwargs)
+        except BudgetExceededError:
+            raise
         except Exception as exc:
             record_fallback_event(FailureEvent(
                 kind="llm_failure", source="structured_output",
@@ -79,6 +83,8 @@ class FallbackLLM:
     def invoke(self, *args, **kwargs):
         try:
             return self.primary.invoke(*args, **kwargs)
+        except BudgetExceededError:
+            raise
         except Exception as exc:
             record_fallback_event(FailureEvent(
                 kind="llm_failure", source="primary_model",

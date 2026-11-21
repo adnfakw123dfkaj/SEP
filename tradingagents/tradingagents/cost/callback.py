@@ -126,7 +126,6 @@ class CostTrackingCallback(BaseCallbackHandler):
         route_path: RoutePath = RoutePath.DIRECT,
         cache_hit: bool = False,
         default_model: str = "unknown",
-        before_call: Callable[..., None] | None = None,
     ):
         self.run_id = run_id
         self.on_event = on_event
@@ -135,7 +134,6 @@ class CostTrackingCallback(BaseCallbackHandler):
         self.route_path = route_path
         self.cache_hit = cache_hit
         self.default_model = default_model
-        self.before_call = before_call
         self._states: dict[str, _CallState] = {}
         self._lock = threading.Lock()
 
@@ -145,29 +143,18 @@ class CostTrackingCallback(BaseCallbackHandler):
         prompt_text: str,
         serialized: dict[str, Any],
     ) -> None:
-        model = _serialized_model(serialized, self.default_model)
-        if self.before_call is not None:
-            self.before_call(model=model, prompt_text=prompt_text)
         state = _CallState(
             started=time.perf_counter(),
             prompt_text=prompt_text,
-            model=model,
+            model=_serialized_model(serialized, self.default_model),
             agent_name=current_agent() or self.agent_name,
         )
         with self._lock:
             self._states[str(run_id)] = state
 
-    def _take(self, run_id: Any) -> _CallState:
+    def _take(self, run_id: Any) -> _CallState | None:
         with self._lock:
-            return self._states.pop(
-                str(run_id),
-                _CallState(
-                    started=time.perf_counter(),
-                    prompt_text="",
-                    model=self.default_model,
-                    agent_name=self.agent_name,
-                ),
-            )
+            return self._states.pop(str(run_id), None)
 
     def on_chat_model_start(
         self,
@@ -196,6 +183,8 @@ class CostTrackingCallback(BaseCallbackHandler):
 
     def on_llm_end(self, response: Any, *, run_id: Any, **kwargs: Any) -> None:
         state = self._take(run_id)
+        if state is None:
+            return
         latency_ms = max(0.0, (time.perf_counter() - state.started) * 1000.0)
         usage = _extract_usage(response)
 
@@ -234,6 +223,8 @@ class CostTrackingCallback(BaseCallbackHandler):
 
     def on_llm_error(self, error: BaseException, *, run_id: Any, **kwargs: Any) -> None:
         state = self._take(run_id)
+        if state is None:
+            return
         latency_ms = max(0.0, (time.perf_counter() - state.started) * 1000.0)
         self.on_event(
             LLMCallEvent(

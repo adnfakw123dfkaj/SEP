@@ -10,6 +10,7 @@ from tradingagents.agents.context import (
     opponent_argument_or_opening,
     report_or_absent,
 )
+from tradingagents.cost.enforcement import BudgetExceededError
 
 from .prompts import BEAR_PROMPT, BULL_PROMPT
 from .schemas import DebateTurn, Stance
@@ -111,6 +112,8 @@ def run_debate_turn(
             if turn.status != "ok":
                 raise ValueError("completion reported an invalid turn")
             return turn
+        except BudgetExceededError:
+            raise
         except Exception:
             # 不记录模型原文或异常原文，也不把它们复制进重试提示。
             continue

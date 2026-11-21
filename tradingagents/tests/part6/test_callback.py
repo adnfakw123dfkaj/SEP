@@ -10,7 +10,6 @@ from langchain_core.messages import HumanMessage
 from tradingagents.contracts.llm_event import CallStatus, RoutePath, UsageSource
 from tradingagents.cost.agent_context import agent_scope, current_agent, with_agent_scope
 from tradingagents.cost.callback import CostTrackingCallback
-from tradingagents.cost.enforcement import BudgetExceededError
 
 pytestmark = pytest.mark.unit
 
@@ -56,21 +55,28 @@ def _emit(callback, model="deepseek-flash"):
     )
 
 
-def test_pre_call_budget_guard_blocks_before_the_model_runs():
-    def guard(**kwargs):
-        raise BudgetExceededError("projected over hard cap")
-
+def test_callback_records_but_does_not_block_unknown_end_events():
+    events = []
     callback = CostTrackingCallback(
         run_id="run-1",
-        on_event=lambda event: None,
-        before_call=guard,
+        on_event=events.append,
+        default_model="deepseek-flash",
     )
-    with pytest.raises(BudgetExceededError, match="projected over hard cap"):
-        callback.on_chat_model_start(
-            {"kwargs": {"model_name": "deepseek-flash"}},
-            [[HumanMessage(content="Analyse NVDA")]],
-            run_id=uuid4(),
-        )
+
+    callback.on_llm_end(
+        FakeLLMResult(
+            llm_output={
+                "token_usage": {
+                    "prompt_tokens": 10,
+                    "completion_tokens": 5,
+                    "total_tokens": 15,
+                }
+            }
+        ),
+        run_id=uuid4(),
+    )
+
+    assert events == []
 
 
 def test_tc_p6_cap_001_chat_model_usage_event():

@@ -8,6 +8,7 @@ the wiring: a restructure that drops a node, a tool or an edge fails here.
 from __future__ import annotations
 
 import copy
+import json
 import time
 
 import pandas as pd
@@ -190,6 +191,32 @@ def test_pre_call_budget_failure_returns_review(tmp_path, monkeypatch, offline):
 
 
 @pytest.mark.unit
+def test_the_guarded_llm_stops_the_real_graph_before_the_first_call(tmp_path, monkeypatch, offline):
+    from tradingagents.contracts.cost import Budget
+
+    model = ScriptedModel()
+    graph = _graph(tmp_path, monkeypatch, model)
+    monkeypatch.setattr(
+        trading_graph,
+        "budget_for_profile",
+        lambda *a, **k: Budget(profile="quick", soft_limit=1, hard_limit=1),
+    )
+
+    state, rating = graph.propagate("NVDA", TRADE_DATE)
+
+    assert model.calls == []
+    assert rating == "REVIEW"
+    assert state["exit_code"] == 2
+    assert state["budget_exceeded"] is True
+    assert state["cost_report"]["over_budget"] is True
+    logged = json.loads(
+        next(tmp_path.rglob(f"full_states_log_{TRADE_DATE}.json")).read_text(encoding="utf-8")
+    )
+    assert logged["budget_exceeded"] is True
+    assert logged["cost_report"]["over_budget"] is True
+
+
+@pytest.mark.unit
 def test_a_run_persists_the_structured_debate_transcript(tmp_path, monkeypatch, offline):
     graph = _graph(tmp_path, monkeypatch, ScriptedModel())
 
@@ -211,6 +238,88 @@ def test_a_run_captures_tool_evidence(tmp_path, monkeypatch, offline):
     assert set(state["evidence_refs"]) <= set(graph.last_evidence_registry.ids())
     assert state["rating_authority"]["rating"] == state["final_rating"] == "Overweight"
     assert state["output_validation"]["ok"] is True
+
+
+@pytest.mark.unit
+def test_the_state_log_persists_the_integration_evidence(tmp_path, monkeypatch, offline):
+    graph = _graph(tmp_path, monkeypatch, ScriptedModel())
+
+    state, _ = graph.propagate("NVDA", TRADE_DATE)
+    path = next(tmp_path.rglob(f"full_states_log_{TRADE_DATE}.json"))
+    logged = json.loads(path.read_text(encoding="utf-8"))
+
+    assert logged["evidence_refs"] == state["evidence_refs"]
+    assert logged["evidence"] == state["evidence"]
+    assert logged["rating_authority"] == state["rating_authority"]
+    assert logged["output_validation"] == state["output_validation"]
+    assert logged["cost_report"] == state["cost_report"]
+    assert logged["token_usage_by_agent"] == state["token_usage_by_agent"]
+
+
+@pytest.mark.unit
+def test_a_streamed_run_captures_tool_evidence(tmp_path, monkeypatch, offline):
+    graph = _graph(tmp_path, monkeypatch, ScriptedModel())
+
+    for _, _chunk in graph.stream_run(
+        graph.create_run_state("NVDA", TRADE_DATE),
+        **graph.propagator.get_graph_args(),
+    ):
+        pass
+
+    assert graph.last_evidence_registry is not None
+    assert graph.last_evidence_registry.ids()
+
+
+@pytest.mark.unit
+def test_a_streamed_run_propagates_the_budget_stop(tmp_path, monkeypatch, offline):
+    from tradingagents.contracts.cost import Budget
+    from tradingagents.cost.enforcement import BudgetExceededError
+
+    model = ScriptedModel()
+    graph = _graph(tmp_path, monkeypatch, model)
+    monkeypatch.setattr(
+        trading_graph,
+        "budget_for_profile",
+        lambda *a, **k: Budget(profile="quick", soft_limit=1, hard_limit=1),
+    )
+    graph.start_cost_run("NVDA", TRADE_DATE, "quick")
+
+    with pytest.raises(BudgetExceededError):
+        for _ in graph.stream_run(
+            graph.create_run_state("NVDA", TRADE_DATE),
+            **graph.propagator.get_graph_args(),
+        ):
+            pass
+
+    assert model.calls == []
+
+
+@pytest.mark.unit
+def test_a_streamed_cli_run_commits_the_rating_authority(tmp_path, monkeypatch, offline):
+    graph = _graph(tmp_path, monkeypatch, ScriptedModel())
+    final_state = {}
+    graph.start_cost_run("NVDA", TRADE_DATE, "quick")
+
+    for _, state in graph.stream_run(
+        graph.create_run_state("NVDA", TRADE_DATE),
+        **graph.propagator.get_graph_args(),
+    ):
+        if state:
+            final_state.update(state)
+
+    registry = graph.last_evidence_registry
+    final_state["evidence_refs"] = registry.ids()
+    final_state["evidence"] = [ref.model_dump(mode="json") for ref in registry.all()]
+    graph.finish_cost_run(final_state)
+    graph.record_decision(
+        "NVDA",
+        TRADE_DATE,
+        final_state,
+        run_signature=graph.run_signature(),
+    )
+
+    assert final_state["rating_authority"]["rating"] == "Overweight"
+    assert list((tmp_path / "rating_records").glob("*.json"))
 
 
 @pytest.mark.unit
@@ -450,7 +559,7 @@ def test_a_settlement_failure_is_noted_and_the_run_goes_on(tmp_path, monkeypatch
 
     assert rating == "Overweight"
     assert "could not be settled" in final_state["memory_note"]
-    report = write_report_tree(final_state, "NVDA", tmp_path / "report").read_text()
+    report = write_report_tree(final_state, "NVDA", tmp_path / "report").read_text(encoding="utf-8")
     assert "Memory log: Past decisions could not be settled" in report
 
 

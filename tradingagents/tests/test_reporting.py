@@ -32,12 +32,12 @@ SETTINGS = {"version": "0.5.2", "llm_provider": "openai", "deep_think_llm": "gpt
 def test_write_report_tree_creates_files(tmp_path):
     out = write_report_tree(_state(), "AAPL", tmp_path)
     assert out.name == "complete_report.md"
-    assert (tmp_path / "1_analysts" / "market.md").read_text() == "MKT"
-    assert (tmp_path / "1_analysts" / "news.md").read_text() == "NEWS"
-    assert (tmp_path / "2_research" / "manager.md").read_text() == "RM PLAN"
-    assert (tmp_path / "3_trading" / "trader.md").read_text() == "TRADE"
-    assert (tmp_path / "5_portfolio" / "decision.md").read_text() == "PM DECISION"
-    complete = out.read_text()
+    assert (tmp_path / "1_analysts" / "market.md").read_text(encoding="utf-8") == "MKT"
+    assert (tmp_path / "1_analysts" / "news.md").read_text(encoding="utf-8") == "NEWS"
+    assert (tmp_path / "2_research" / "manager.md").read_text(encoding="utf-8") == "RM PLAN"
+    assert (tmp_path / "3_trading" / "trader.md").read_text(encoding="utf-8") == "TRADE"
+    assert (tmp_path / "5_portfolio" / "decision.md").read_text(encoding="utf-8") == "PM DECISION"
+    complete = out.read_text(encoding="utf-8")
     assert "Trading Analysis Report: AAPL" in complete
     assert "MKT" in complete and "PM DECISION" in complete
 
@@ -93,14 +93,14 @@ def test_save_reports_replaces_previous_run_sections(tmp_path, empty_value):
     }
     out = TradingAgentsGraph.save_reports(graph, second, "AAPL", save_path=tmp_path)
 
-    assert (tmp_path / "1_analysts" / "market.md").read_text() == "NEW MARKET"
+    assert (tmp_path / "1_analysts" / "market.md").read_text(encoding="utf-8") == "NEW MARKET"
     for filename in (
         "1_analysts/news.md", "2_research/bull.md", "2_research/manager.md",
         "3_trading/trader.md", "4_risk/neutral.md", "5_portfolio/decision.md",
     ):
         assert not (tmp_path / filename).exists()
-    assert (tmp_path / "notes.md").read_text() == "User notes"
-    assert (tmp_path / "1_analysts" / "notes.md").read_text() == "Analyst notes"
+    assert (tmp_path / "notes.md").read_text(encoding="utf-8") == "User notes"
+    assert (tmp_path / "1_analysts" / "notes.md").read_text(encoding="utf-8") == "Analyst notes"
     assert "NEW MARKET" in out.read_text(encoding="utf-8")
     assert "NEWS" not in out.read_text(encoding="utf-8")
     assert "NEWS" not in (tmp_path / "complete_report.html").read_text(encoding="utf-8")
@@ -113,7 +113,7 @@ def test_empty_report_removes_previous_sections_and_disabled_html(tmp_path):
 
     assert list(tmp_path.rglob("*.md")) == [out]
     assert not (tmp_path / "complete_report.html").exists()
-    assert "Trading Analysis Report: AAPL" in out.read_text()
+    assert "Trading Analysis Report: AAPL" in out.read_text(encoding="utf-8")
 
 
 @pytest.mark.unit
@@ -132,7 +132,7 @@ def test_save_reports_defaults_under_results_dir(tmp_path):
 def test_the_report_names_the_analysis_date_and_what_produced_it(tmp_path):
     state = dict(_state(), trade_date="2026-09-23")
 
-    header = write_report_tree(state, "NVDA", tmp_path, settings=SETTINGS).read_text().split("## ")[0]
+    header = write_report_tree(state, "NVDA", tmp_path, settings=SETTINGS).read_text(encoding="utf-8").split("## ")[0]
 
     assert "Analysis date: 2026-09-23" in header
     assert "TradingAgents 0.5.2" in header
@@ -163,7 +163,7 @@ def test_run_settings_record_the_run_without_endpoints_or_paths():
 @pytest.mark.unit
 def test_a_partial_settings_dict_still_writes_the_report(tmp_path):
     out = write_report_tree(_state(), "AAPL", tmp_path, settings={"llm_provider": "openai"})
-    assert "openai" in out.read_text()
+    assert "openai" in out.read_text(encoding="utf-8")
 
 
 @pytest.mark.unit
@@ -184,7 +184,7 @@ def test_run_settings_name_the_version_of_the_running_code():
 def test_the_report_header_names_the_rating(tmp_path, decision, rating):
     state = dict(_state(), final_trade_decision=decision)
 
-    header = write_report_tree(state, "NVDA", tmp_path, settings=SETTINGS).read_text().split("## ")[0]
+    header = write_report_tree(state, "NVDA", tmp_path, settings=SETTINGS).read_text(encoding="utf-8").split("## ")[0]
 
     assert f"- Rating: {rating}" in header
 

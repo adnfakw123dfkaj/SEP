@@ -6,6 +6,7 @@ import typer
 from rich.markup import escape
 
 from cli.display import console
+from cli.encoding import ensure_utf8_output
 from cli.models import AnalystType, AssetType
 from cli.prompts import filter_analysts_for_asset_type, parse_analysts
 from cli.run import run_analysis
@@ -13,6 +14,9 @@ from tradingagents.backtest import iter_grid, run_backtest, summarize
 from tradingagents.default_config import DEFAULT_CONFIG
 from tradingagents.llm_clients.openai_client import SIGNED_IN_PROVIDERS
 from tradingagents.portfolio import load_portfolio
+
+if sys.platform == "win32":
+    ensure_utf8_output()
 
 # prompt_toolkit's win32 output module is importable only on Windows (it asserts
 # the platform at import time), so gate on the platform rather than catching the

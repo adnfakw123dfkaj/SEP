@@ -7,6 +7,8 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
+from tradingagents.cache import CacheController
+from tradingagents.contracts.cache import CacheKey
 from tradingagents.dataflows import files
 from tradingagents.dataflows.vendors import sec_edgar
 from tradingagents.dataflows.vendors.yahoo import ohlcv
@@ -83,6 +85,21 @@ def test_a_file_held_open_elsewhere_keeps_its_old_content(monkeypatch, tmp_path)
 
     assert target.read_text() == "old"
     assert list(tmp_path.iterdir()) == [target]
+
+
+@pytest.mark.unit
+def test_a_locked_cache_target_keeps_the_old_entry(monkeypatch, tmp_path):
+    cache = CacheController(tmp_path)
+    key = CacheKey(data_class="news", source="test", subject="AAPL")
+    cache.set(key, "old")
+
+    def locked(src, dst):
+        raise PermissionError("in use")
+
+    monkeypatch.setattr(files.os, "replace", locked)
+    cache.set(key, "new")
+
+    assert cache.get(key).value == "old"
 
 
 def _fake_msvcrt(results):

@@ -16,6 +16,7 @@ from tradingagents.contracts.cost import Budget
 from tradingagents.cost import (
     CostMonitor,
     CostTrackingCallback,
+    GuardedLLM,
     budget_for_profile,
     default_price_table,
     estimate_tokens,
@@ -113,7 +114,6 @@ class TradingAgentsGraph:
             run_id="pending",
             on_event=self._record_cost_event,
             provider=self.config.get("llm_provider", "unknown"),
-            before_call=self._check_budget_before_call,
         )
         self.callbacks = [*(callbacks or []), self.cost_callback]
 
@@ -123,8 +123,18 @@ class TradingAgentsGraph:
         os.makedirs(self.config["results_dir"], exist_ok=True)
 
         extra = {"callbacks": self.callbacks} if self.callbacks else {}
-        self.deep_thinking_llm = create_tier_client(self.config, "deep", **extra).get_llm()
-        self.quick_thinking_llm = create_tier_client(self.config, "quick", **extra).get_llm()
+        deep_model = self.config.get("deep_think_llm", "unknown")
+        quick_model = self.config.get("quick_think_llm", "unknown")
+        self.deep_thinking_llm = GuardedLLM(
+            create_tier_client(self.config, "deep", **extra).get_llm(),
+            model=deep_model,
+            check=self._check_budget_before_call,
+        )
+        self.quick_thinking_llm = GuardedLLM(
+            create_tier_client(self.config, "quick", **extra).get_llm(),
+            model=quick_model,
+            check=self._check_budget_before_call,
+        )
         if (
             self.config.get("llm_fallback_to_quick", True)
             and self.deep_thinking_llm is not self.quick_thinking_llm
@@ -255,10 +265,12 @@ class TradingAgentsGraph:
                 hard_limit=10**12,
             ),
         )
+        hard_stop = bool(final_state.get("budget_exceeded"))
         report = self.cost_monitor.report(
             run_id,
             budget,
-            quality_floor_pass=True,
+            quality_floor_pass=not hard_stop,
+            over_budget=True if hard_stop else None,
         )
         final_state["token_usage_by_agent"] = report.by_agent
         final_state["cost_estimate"] = float(report.cost)
@@ -267,8 +279,8 @@ class TradingAgentsGraph:
             int(final_state.get("cache_hits", 0) or 0),
             sum(1 for event in self.cost_monitor.events if event.cache_hit),
         )
-        final_state["budget_exceeded"] = report.over_budget
-        if report.over_budget:
+        final_state["budget_exceeded"] = hard_stop or report.over_budget
+        if final_state["budget_exceeded"]:
             final_state["final_rating"] = "REVIEW"
 
     def _config_hash(self) -> str:
@@ -513,6 +525,7 @@ class TradingAgentsGraph:
             "get_stock_data",
             "get_indicators",
             "get_stock_stats_indicators_window",
+            "get_verified_market_snapshot",
         }
         snapshot_verified = any(
             str(ref.get("source", "")).split(":", 1)[0] in market_tools
@@ -696,12 +709,12 @@ class TradingAgentsGraph:
         and reports come from their own finished steps ("tasks") as they happen.
         """
         args = {**args, "stream_mode": ["values", "tasks"]}
-        # The graph's own config serves every tool call, as in propagate(), even
-        # when the process-wide config has changed since. Each step runs in the
-        # run's context, so the caller keeps its own between steps.
-        context = run_config_context(self.config)
-        stream = context.run(self.graph.stream, graph_input, subgraphs=True, **args)
+        # Bind evidence and the graph's own config before the stream starts.
+        # LangGraph carries this context into tool calls; creating it first
+        # leaves the tools without the run's evidence registry.
         with evidence_scope() as registry:
+            context = run_config_context(self.config)
+            stream = context.run(self.graph.stream, graph_input, subgraphs=True, **args)
             try:
                 while (step := context.run(next, stream, None)) is not None:
                     namespace, mode, chunk = step
@@ -776,6 +789,16 @@ class TradingAgentsGraph:
             "final_rating": run_rating(final_state),
             "run_settings": self.run_settings(),
             "fallback_events": final_state.get("fallback_events", []),
+            "cost_report": final_state.get("cost_report"),
+            "cost_estimate": final_state.get("cost_estimate"),
+            "token_usage_by_agent": final_state.get("token_usage_by_agent", {}),
+            "cache_hits": final_state.get("cache_hits", 0),
+            "evidence_refs": final_state.get("evidence_refs", []),
+            "evidence": final_state.get("evidence", []),
+            "security_events": final_state.get("security_events", []),
+            "output_validation": final_state.get("output_validation"),
+            "rating_authority": final_state.get("rating_authority"),
+            "budget_exceeded": final_state.get("budget_exceeded", False),
         }
 
         # A ticker that would escape the results directory is rejected.

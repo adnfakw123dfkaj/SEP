@@ -22,6 +22,7 @@ from .enforcement import (
     handle_budget_exceeded,
 )
 from .estimator import estimate_tokens
+from .guard import GuardedLLM, GuardedRunnable
 from .monitor import CostMonitor, nearest_rank, price_phase
 from .pricing import default_price_table
 from .report import compute_report_coverage
@@ -44,6 +45,8 @@ __all__ = [
     "CostControlledRunner",
     "CostMonitor",
     "CostTrackingCallback",
+    "GuardedLLM",
+    "GuardedRunnable",
     "LATENCY_POLICIES",
     "LatencyPolicy",
     "LatencyReport",
