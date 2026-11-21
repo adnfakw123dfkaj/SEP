@@ -42,6 +42,7 @@ from tradingagents.dataflows.vendors.reddit import (
 )
 from tradingagents.dataflows.vendors.stocktwits import fetch_stocktwits_messages
 from tradingagents.resilience import FailureEvent, record_fallback_event
+from tradingagents.security import sanitize
 
 
 def _seven_days_back(trade_date: str) -> str:
@@ -106,6 +107,8 @@ def create_sentiment_analyst(llm):
                 ticker, subreddits, start_date=start_date, end_date=end_date, screen=screen
             ),
         )
+        stocktwits_block = sanitize(stocktwits_block)
+        reddit_block = sanitize(reddit_block)
 
         system_message = _build_system_message(
             ticker=ticker,

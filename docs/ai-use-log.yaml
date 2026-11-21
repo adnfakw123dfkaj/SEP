@@ -321,3 +321,11 @@ entries:
       - tradingagents/tradingagents/records/__init__.py
       - tradingagents/tradingagents/records/rating_store.py
       - tradingagents/tradingagents/graph/trading_graph.py
+
+  - change_id: "phase1-part5-input-sanitization"
+    date: "2026-11-21"
+    agent_session: "phase1-integration"
+    summary: "Part 5 input-security slice: sanitize external news, global-news, insider, macro and prediction-market tool text before it reaches prompts; keep DATA_UNAVAILABLE/NO_DATA_AVAILABLE sentinels unwrapped; sanitize direct StockTwits/Reddit sentiment blocks. Added injection-drop and benign-delimiting tests."
+    files_changed:
+      - tradingagents/tradingagents/agents/tools.py
+      - tradingagents/tradingagents/agents/analysts/sentiment_analyst.py

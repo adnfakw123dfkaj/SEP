@@ -13,6 +13,16 @@ from tradingagents.dataflows.date_window import as_of, as_of_window
 from tradingagents.dataflows.errors import NoMarketDataError, VendorUnavailableError
 from tradingagents.dataflows.router import no_data_available, route_to_vendor, vendor_unavailable
 from tradingagents.dataflows.vendors.yahoo.snapshot import build_verified_market_snapshot
+from tradingagents.security import sanitize
+
+
+def _untrusted(text: str) -> str:
+    """Delimit and sanitise external text before it reaches a model prompt."""
+    if not isinstance(text, str):
+        return text
+    if text.startswith(("DATA_UNAVAILABLE", "NO_DATA_AVAILABLE", "<")):
+        return text
+    return sanitize(text)
 
 
 @tool
@@ -188,7 +198,7 @@ def get_news(
         start_date, end_date = as_of_window(start_date, end_date, trade_date)
     except ValueError as e:
         return str(e)
-    return route_to_vendor("get_news", ticker, start_date, end_date)
+    return _untrusted(route_to_vendor("get_news", ticker, start_date, end_date))
 
 
 @tool
@@ -212,7 +222,9 @@ def get_global_news(
     Returns:
         str: A formatted string containing global news data
     """
-    return route_to_vendor("get_global_news", as_of(curr_date, trade_date), look_back_days, limit)
+    return _untrusted(
+        route_to_vendor("get_global_news", as_of(curr_date, trade_date), look_back_days, limit)
+    )
 
 
 @tool
@@ -226,7 +238,9 @@ def get_insider_transactions(
     Returns:
         str: A report of insider transaction data
     """
-    return route_to_vendor("get_insider_transactions", ticker, trade_date or None)
+    return _untrusted(
+        route_to_vendor("get_insider_transactions", ticker, trade_date or None)
+    )
 
 
 @tool
@@ -261,7 +275,14 @@ def get_macro_indicators(
     Returns:
         str: A formatted markdown report of the macro series
     """
-    return route_to_vendor("get_macro_indicators", indicator, as_of(curr_date, trade_date), look_back_days)
+    return _untrusted(
+        route_to_vendor(
+            "get_macro_indicators",
+            indicator,
+            as_of(curr_date, trade_date),
+            look_back_days,
+        )
+    )
 
 
 @tool
@@ -288,4 +309,6 @@ def get_prediction_markets(
     Returns:
         str: A formatted markdown report of matching prediction markets
     """
-    return route_to_vendor("get_prediction_markets", topic, limit, trade_date or None)
+    return _untrusted(
+        route_to_vendor("get_prediction_markets", topic, limit, trade_date or None)
+    )
