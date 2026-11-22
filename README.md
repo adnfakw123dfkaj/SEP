@@ -27,13 +27,21 @@ cost and rating authority are enforced by guards. See `architecture-blueprint.md
 - `docs/architecture/` — 11 D2 artifacts (ADR, invariants, trace matrix, memory, permission, runtime policy, evaluation table, …).
 - `docs/code-governance/` — structural/verification constraints, tool manifest; `docs/{review-memo,debt-register,bug-diary}.md` (D3/D4).
 - `prompts/` — versioned runtime prompts (D9).
+- `src/` — D8 compatibility entry; points to the application source in `tradingagents/`.
 - `tradingagents/` — application source (`tradingagents` package + `cli`) and tests.
-- `test/offline/`, `test/live/` — D8 offline/live test entry points.
+- `test/offline/`, `test/live/` — D8 root entry points; delegate to `tradingagents/test/offline` and `tradingagents/test/live`.
 - `.github/workflows/` — CI and blocking gates G1–G7.
 
 ## Running tests
 
-All commands run from `tradingagents/` unless noted.
+From the repository root, the D8 entry points are:
+
+```bash
+./test/offline/run.sh
+./test/live/run.sh
+```
+
+The underlying commands run from `tradingagents/`:
 
 **Offline (deterministic, no network, no live API)** — the CI suite:
 
