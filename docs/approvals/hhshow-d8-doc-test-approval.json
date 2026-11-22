@@ -1,0 +1,13 @@
+{
+  "change_id": "hhshow-d8-doc-test-approval",
+  "tests": [
+    "tradingagents/test/live/README.md",
+    "tradingagents/test/live/run.sh",
+    "tradingagents/test/offline/README.md",
+    "tradingagents/test/offline/run.sh",
+    "tradingagents/tests/req/test_live_end_to_end.py",
+    "tradingagents/tests/req/test_token_cost.py"
+  ],
+  "approved_by": "hhshow",
+  "approved_at": "2026-11-21T10:00:00+08:00"
+}

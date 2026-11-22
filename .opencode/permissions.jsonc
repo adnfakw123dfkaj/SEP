@@ -1,0 +1,98 @@
+// Project-level permission model (D3) — machine-readable.
+//
+// Default posture: NO read, NO write. Every path is explicitly whitelisted.
+// Guard rules + enforcement mechanisms are listed below; the CI gates in
+// .github/workflows/gates.yml enforce the merge-time side of this policy.
+
+{
+  "schema_version": "1.0",
+  "default": "deny",
+
+  "roles": {
+    "coding-agent": {
+      "description": "AI coding agent editing the repository under human supervision.",
+      "read": ["**"],
+      "write": [
+        "tradingagents/**",
+        "cli/**",
+        "tests/**",
+        "test/**",
+        "src/**",
+        "docs/**",
+        "scripts/**",
+        "prompts/**",
+        "AGENTS.md",
+        "architecture-blueprint.md",
+        "Prompt.md",
+        ".opencode/**",
+        ".agent/**"
+      ],
+      "deny": [
+        ".env",
+        ".env.*",
+        "**/.env",
+        "**/secrets*",
+        "**/*.pem",
+        "**/*.key"
+      ],
+      "protected_requires_approval": [
+        "tradingagents/agents/**",
+        "tradingagents/memory/**",
+        "tradingagents/dataflows/**",
+        "tradingagents/security/**",
+        "tradingagents/contracts/**",
+        "tradingagents/graph/**",
+        "scripts/gates/**",
+        ".github/workflows/**",
+        "docs/req/req-schema.json",
+        "docs/approvals/**"
+      ]
+    },
+    "verification-agent": {
+      "description": "Runs checks and gates; never writes code or approvals.",
+      "read": ["**"],
+      "write": [],
+      "deny": ["**"]
+    },
+    "human-owner": {
+      "description": "Human maintainer; sole authority for merges, live tests, and gate-config changes.",
+      "read": ["**"],
+      "write": ["**"],
+      "deny": [".env", "**/secrets*", "**/*.pem", "**/*.key"]
+    }
+  },
+
+  "guard_rules": [
+    {
+      "id": "GR-1-no-secrets",
+      "rule": "Never read or write secrets (.env, key files). Keys come from the environment only.",
+      "enforced_by": "scripts/gates/run_static_checks.py (security), docs/approvals + CI secret scan (REQ-INV-004)"
+    },
+    {
+      "id": "GR-2-protected-paths",
+      "rule": "Writes to protected paths require a docs/approvals record AND human review AND an ADR reference.",
+      "enforced_by": "gate G1 (tests approved before implementation), gate G2 permission check, branch protection"
+    },
+    {
+      "id": "GR-3-gate-config",
+      "rule": "Changes to scripts/gates/** or .github/workflows/** require a gate-owner approval.",
+      "enforced_by": "gate G2 (permission), CODEOWNERS-style review (documented in docs/gate-intro.md)"
+    },
+    {
+      "id": "GR-4-no-self-approve",
+      "rule": "The coding agent may not create or edit files under docs/approvals/**.",
+      "enforced_by": "path deny for coding-agent; human-owner only"
+    },
+    {
+      "id": "GR-5-ai-use-log",
+      "rule": "Any code/prompt change must add an AI-use-log entry in the same PR.",
+      "enforced_by": "gate G6 (scripts/gates/check_ai_use_log.py)"
+    }
+  ],
+
+  "enforcement": {
+    "pre_write": "Apply role write/deny globs; block writes to protected paths unless an approval record exists.",
+    "pre_merge": "CI blocking gates G1–G7 (.github/workflows/gates.yml).",
+    "human": "Branch protection requires passing CI and human review on safety-relevant paths."
+  }
+}

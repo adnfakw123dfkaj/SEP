@@ -38,6 +38,7 @@ parts:
       - tradingagents/tests/req/test_evidence_manifest.py
       - tradingagents/tests/req/test_report_faithfulness.py
       - tradingagents/tests/req/test_records.py
+      - tradingagents/tests/req/test_live_end_to_end.py
 
   part4:
     owner: "Mariana-Shi"
@@ -58,6 +59,7 @@ parts:
       - tradingagents/tests/req/test_rating_invariant.py
       - tradingagents/tests/security/test_prompt_injection.py
       - tradingagents/tests/security/test_secret_redaction.py
+      - tradingagents/tests/req/test_live_end_to_end.py
 
   part6:
     owner: "hhshow"
@@ -65,3 +67,4 @@ parts:
     tests:
       - tradingagents/tests/req/test_latency.py
       - tradingagents/tests/req/test_token_cost.py
+      - tradingagents/tests/req/test_live_end_to_end.py

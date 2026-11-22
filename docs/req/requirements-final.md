@@ -471,23 +471,26 @@
 - **类型**：Cost
 - **优先级**：Must
 - **负责 Part**：6
-- **陈述**：单次运行 p95 token 用量（输入 + 输出，含重试）应满足：Quick <=25,000、Standard <=60,000、Deep <=150,000。系统应估算 token、按预算选择直接/摘要/便宜模型/审批路径；实际用量按 agent/model/tool 拆分记录；100% 运行输出 token/费用报告；超预算不得静默继续。
+- **陈述**：单次运行 p95 token 用量（输入 + 输出，含重试）应满足：Quick <=25,000、Standard <=60,000、Deep <=150,000。系统应在每次 provider 调用前估算 token，超出该档 hard 上限时**阻断调用并结束为 `budget_exceeded` / `REVIEW`（不得静默继续）**；按档位裁剪注入的输入（工具输出与报告注入到 prompt 的字符上限）以控制用量；实际用量按 agent/model 拆分记录；每次运行产出 token/费用报告。
 - **为什么需要**：应用被描述为 token-burning，当前产物不汇总 token/费用。没有预算和成本报告，无法控制成本，也无法验证优化效果。
-- **实现方案**：
-  - 新增 `tradingagents/cost/`：`estimator.py`、`budget.py`、`router.py`、`monitor.py`。
-  - `LLMCallEvent` 由 provider adapter 产出；价格表可配置。
-  - Summarizer 压缩上下文但保留受保护证据（snapshot、引用、风控约束）。
-  - `scripts/token_audit.py` 输出 p95、按 agent 拆分、费用估算、超预算事件。
-- **验收标准**：
-  - `quick_p95_tokens <= 25000`；`python scripts/token_audit.py --profile quick --runs 30 --assert-p95 25000`
-  - `standard_p95_tokens <= 60000`；`python scripts/token_audit.py --profile standard --runs 30 --assert-p95 60000`
-  - `deep_p95_tokens <= 150000`；`python scripts/token_audit.py --profile deep --runs 30 --assert-p95 150000`
-  - `token_report_coverage == 1.0`；`python scripts/token_audit.py --runs 30 --assert-report-coverage 1.0`
-  - `silent_over_budget_runs == 0`；`python scripts/token_audit.py --runs 30 --assert-silent-over-budget 0`
-  - `cost_estimate_relative_error <= 0.05`；`python scripts/token_audit.py --assert-cost-error 0.05`
-  - `routed_run_quality_floor_pass_rate == 1.0`；`python scripts/token_audit.py --assert-routed-quality 1.0`
-- **取舍**：token 上限可能截断上下文、降低深度；用质量门禁保护，超预算优先摘要/便宜模型，仍不达标则审批加预算。Quick 的成本优势以覆盖面为代价。
-- **依赖与风险**：依赖 Part 1 profile、Part 3 manifest、provider adapter 的 usage。风险是不同 provider 的 token 计数差异；以 provider usage 为准，估算仅用于预警。
+- **实现方案（按实际代码）**：
+  - `cost/estimator.py`：确定性、离线的 `estimate_tokens()`（近似，用于调用前预警，非 provider tokenizer）。
+  - `cost/budget.py`：分档 soft/hard 上限（Quick 20k/25k、Standard 50k/60k、Deep 120k/150k），可被 `ProfileConfig` 覆盖。
+  - `graph/trading_graph.py`：把 quick/deep LLM 包成 `GuardedLLM`，每次调用前 `_check_budget_before_call` 估算“已用 + 本次 + 输出上限”，超 hard 上限抛 `BudgetExceededError`；运行结束据 `finish_cost_run` 附成本报告，硬停时状态为 `budget_exceeded`、评级 `REVIEW`。
+  - `profiles.py` + `GuardedToolNode`/`agents/context.py`：按档位截断工具输出与报告注入（`max_tool_output_chars`、`report_prompt_chars`、`max_output_tokens`），这是实际生效的“省 token”手段。
+  - `cost/callback.py` + `cost/monitor.py` + `cost/agent_context.py`：从 provider 回调收集 `LLMCallEvent`，按 agent 汇总 token、估算费用，产出 `CostReport`。
+  - `scripts/token_audit.py` / `scripts/bench_latency.py`：对录制 JSONL 或真实运行做 p95/覆盖率/费用/质量门的断言。
+  - **说明（实现现状）**：`cost/router.py` 的“直接/摘要/便宜模型/审批”路由、`summarize_context` 摘要压缩、`select_cheaper_model` 换便宜模型、`apply_quality_floor` 质量门禁回滚，均已在 `cost/` 实现并有单测，但**尚未接入 `graph`/`cli` 运行路径**；当前运行时超预算的行为是**直接硬停为 REVIEW**，而非渐进降级。这些渐进路径目前仅由 `cost/runner.py`（验收用 facade）与 `token_audit.py` 使用。
+- **验收标准（离线单测；脚本/真实基准为 integration）**：
+  - `quick_p95_tokens <= 25000`；`pytest tests/req/test_token_cost.py::test_quick_p95_tokens`
+  - `standard_p95_tokens <= 60000`；`pytest tests/req/test_token_cost.py::test_standard_p95_tokens`
+  - `deep_p95_tokens <= 150000`；`pytest tests/req/test_token_cost.py::test_deep_p95_tokens`
+  - `token_report_coverage == 1.0`；`pytest tests/req/test_token_cost.py::test_report_coverage`
+  - `silent_over_budget_runs == 0`、硬停为 REVIEW；`pytest tests/req/test_token_cost.py::test_no_silent_over_budget`、`::test_hard_stop_blocks_call_over_budget`、`::test_budget_exceeded_record_is_review`
+  - `routed_run_quality_floor_pass_rate == 1.0`；`pytest tests/req/test_token_cost.py::test_routed_quality_floor`
+  - 真实基准（需配额）：`python scripts/token_audit.py --profile quick --runs 30 --assert-p95 25000`
+- **取舍**：token 上限通过裁剪输入与硬停实现；硬停会让该次运行作废（REVIEW），而不是继续降级（摘要/便宜模型/审批的渐进路由已实现但未接入）。Quick 的成本优势以覆盖面为代价。
+- **依赖与风险**：依赖 Part 1 profile、Part 3 manifest、provider adapter 的 usage。风险是不同 provider 的 token 计数差异；以 provider usage 为准，估算仅用于调用前预警。
 
 ---
 

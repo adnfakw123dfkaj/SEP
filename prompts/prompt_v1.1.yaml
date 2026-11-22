@@ -1,0 +1,38 @@
+# Versioned runtime prompts — v1.1 (D9)
+#
+# Proposed next revision of the runtime prompts. Same structure as v1.0; the
+# changes below are the candidate deltas for the next version. To activate:
+# set `config["prompt_version"] = "v1.1"`, pass the semantic-evaluation gate (G4),
+# and add an AI-use-log entry (G6).
+version: "v1.1"
+prompt_version: "v1.1"
+status: "proposed"
+based_on: "v1.0"
+
+changes_from_v1_0:
+  - agent: market_analyst
+    change: >-
+      Ask the analyst to explicitly state, per selected indicator, the concrete
+      value it observed from the verified snapshot (grounding each claim), so
+      exact numbers always trace to tool output.
+  - agent: news_analyst
+    change: >-
+      Require a short 'data availability' line naming any source that returned
+      '<unavailable>' (e.g. Reddit 403, missing FRED key), so degraded inputs are
+      visible rather than implied as 'no news'.
+  - agent: sentiment_analyst
+    change: >-
+      Lower the confidence band automatically when fewer than 5 StockTwits
+      messages are available; state the sample size in the narrative.
+  - agent: portfolio_manager
+    change: >-
+      When prior lessons are present, name at least one lesson and how it changed
+      (or did not change) the call, so the memory log visibly influences the
+      decision.
+  - shared:
+      language_instruction: >-
+        No change; the English label/value rule is retained verbatim.
+
+# The full prompt bodies are identical to v1.0 unless overridden above; the
+# authoritative per-agent text is `prompts/prompt_v1.0.yaml`. This file records
+# only the deltas to review.
