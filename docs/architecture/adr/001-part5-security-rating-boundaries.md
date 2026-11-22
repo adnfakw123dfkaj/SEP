@@ -1,13 +1,13 @@
-# ADR-0001 — Part 5 security & rating authority boundaries
+# ADR-001 — Part 5 security & rating authority boundaries
 
 - Status: Accepted (module-level; integration pending)
 - Final state: Part 5 module implementation complete; pending final code review and integration. G1 multi-round approval, repository secret scan and CI type-coverage issues are for the shared gate owners (G2 static analysis passes in the installed environment; not a G2 todo).
 - Date: 2026-11-18
 - Owner: 陈妍妍
 - Scope: Part 5 (`contracts/rating.py`, `rating_authority.py`, `security/`)
-- Note on location: the repository had no `docs/architecture/adr/` directory and
-  no other ADR convention. This ADR creates the standard
-  `docs/architecture/adr/NNNN-title.md` layout; later ADRs should follow it.
+- Note on location: ADRs live in `docs/architecture/adr/` as
+  `NNN-title.md` (three-digit sequence). This is ADR-001; later ADRs increment
+  the number.
 
 ## Context
 

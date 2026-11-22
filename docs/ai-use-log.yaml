@@ -424,3 +424,57 @@ entries:
       - tradingagents/tradingagents/reporting.py
       - tradingagents/tradingagents/resilience.py
       - tradingagents/tradingagents/security/tool_node.py
+
+  - change_id: "part6-requirements-tests-alignment"
+    date: "2026-11-22"
+    agent_session: "part6-doc-test-sync"
+    summary: "Align REQ-COST-001 requirement text (requirements-final.md x2 + requirements.yaml) and tests/req/test_token_cost.py with the actual Part 6 implementation: runtime does hard-stop (budget_exceeded/REVIEW) + per-profile input trimming + agent-level cost accounting; the summarize/cheaper-model/approval routing and quality-floor rollback are implemented and unit-tested but not wired into the graph run path. Replaced stale require()-skip stubs with offline tests over the real audit/budget/enforcement API. Human reviewed."
+    files_changed:
+      - docs/req/requirements-final.md
+      - docs/req/requirements.yaml
+      - tradingagents/tests/req/test_token_cost.py
+
+  - change_id: "d8-layout-and-d2-architecture"
+    date: "2026-11-22"
+    agent_session: "d8-d2-docs"
+    summary: "D8: add src/ (pointer to the tradingagents + cli packages) and test/offline + test/live selectors (marker-based split; offline=1767, live=7) with run scripts and READMEs. D2: add architecture-blueprint.md and docs/architecture artifacts (ADR-001, invariants, trace-matrix, memory-design, permission-model, runtime-policy-catalog, evaluation-table, option-ledger, risk-list, evaluation-logbook) derived from the actual code. Human reviewed."
+    files_changed:
+      - architecture-blueprint.md
+      - docs/architecture/
+      - tradingagents/src/README.md
+      - tradingagents/test/offline/
+      - tradingagents/test/live/
+
+  - change_id: "live-integration-new-requirements"
+    date: "2026-11-22"
+    agent_session: "live-tests-new-reqs"
+    summary: "Add tests/req/test_live_end_to_end.py: one real pipeline run (integration) asserting new-requirement artifacts from an actual run — evidence refs + manifest (REQ-FR-004), report fidelity (REQ-QUAL-002), cost report / no silent over-budget (REQ-COST-001), rating in closed set (REQ-INV-003), point-in-time integrity (REQ-INV-002). Skipped without a provider key; excluded from offline/CI. Human runs live. Human reviewed."
+    files_changed:
+      - tradingagents/tests/req/test_live_end_to_end.py
+      - tradingagents/test/live/README.md
+
+  - change_id: "stage-b-governance"
+    date: "2026-11-22"
+    agent_session: "stage-b-impl"
+    summary: "Stage B (D3/D4 governance): add docs/code-governance/{structural-constraints,verification-constraints,mcp-tool-manifest}.md; docs/{review-memo,debt-register,bug-diary}.md; root AGENTS.md; .opencode/{permissions.jsonc,rules.md}; .agent/rules.md. All derived from the actual code and gate behaviour. Human reviewed."
+    files_changed:
+      - AGENTS.md
+      - .opencode/permissions.jsonc
+      - .opencode/rules.md
+      - .agent/rules.md
+      - docs/code-governance/structural-constraints.md
+      - docs/code-governance/verification-constraints.md
+      - docs/code-governance/mcp-tool-manifest.md
+      - docs/review-memo.md
+      - docs/debt-register.md
+      - docs/bug-diary.md
+
+  - change_id: "stage-c-readme-prompt"
+    date: "2026-11-22"
+    agent_session: "stage-c-impl"
+    summary: "Stage C (D9 + README): add root README.md (intro, file org, offline/live/full test commands, blocking-gate note), Prompt.md (static supervised startup prompt with human gates), and prompts/ versioned runtime prompts v1.0 (current, faithful extraction) and v1.1 (proposed deltas). Prompt files are eval-relevant (G4) and log-tracked (G6). Human reviewed."
+    files_changed:
+      - README.md
+      - Prompt.md
+      - prompts/prompt_v1.0.yaml
+      - prompts/prompt_v1.1.yaml

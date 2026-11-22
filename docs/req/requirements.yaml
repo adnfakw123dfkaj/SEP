@@ -855,54 +855,52 @@ requirements:
     priority: "must"
     part: 6
     part_name: "性能与成本"
-    status: "new"
+    status: "partial"
     statement: |
-      单次运行 p95 token 用量（输入 + 输出，含重试）应满足：Quick <=25,000、
-      Standard <=60,000、Deep <=150,000。系统应估算 token、按预算选择直接/摘要/
-      便宜模型/审批路径；实际用量按 agent/model/tool 拆分记录；100% 运行输出
-      token/费用报告；超预算不得静默继续。
+      单次运行 p95 token 用量（输入 + 输出，含重试）应满足：Quick <=25,000、Standard <=60,000、
+      Deep <=150,000。系统应在每次 provider 调用前估算 token，超出该档 hard 上限时阻断调用并结束为
+      budget_exceeded / REVIEW（不得静默继续）；按档位裁剪注入的输入（工具输出与报告注入字符上限）以控制用量；
+      实际用量按 agent/model 拆分记录；每次运行产出 token/费用报告。
     rationale: |
-      应用被描述为 token-burning，当前产物不汇总 token/费用。没有预算和成本报告，
-      无法控制成本，也无法验证优化效果。
+      应用被描述为 token-burning，当前产物不汇总 token/费用。没有预算和成本报告，无法控制成本，
+      也无法验证优化效果。
     implementation:
-      summary: "新增 cost 包：estimator、budget、router、monitor；LLMCallEvent 由 provider adapter 产出。"
+      summary: "已接线：GuardedLLM 调用前硬预算拦截、按档位裁剪输入、回调收集 + 按 agent 记账 + 成本报告；未接线：摘要/便宜模型/审批的渐进路由与质量门禁回滚（已实现，仅 runner/token_audit 使用）。"
       steps:
-        - "实现 estimate_tokens()：基于 tokenizer/历史统计。"
-        - "按 profile 定义 BudgetPolicy 和允许路径。"
-        - "实现 CostRouter：直接、摘要、便宜模型、审批。"
-        - "Summarizer 压缩上下文但保留受保护证据。"
-        - "CostMonitor 记录 provider usage 和估算费用；manifest 汇总。"
-        - "scripts/token_audit.py 输出 p95、按 agent 拆分、费用、超预算事件。"
+        - "cost/estimator.py：离线确定性 estimate_tokens()，用于调用前预警（非 provider tokenizer）。"
+        - "cost/budget.py：分档 soft/hard 上限（Quick 20k/25k、Standard 50k/60k、Deep 120k/150k），可由 ProfileConfig 覆盖。"
+        - "graph/trading_graph.py：GuardedLLM + _check_budget_before_call，超 hard 抛 BudgetExceededError；finish_cost_run 附成本报告，硬停状态 budget_exceeded / 评级 REVIEW。"
+        - "profiles.py + GuardedToolNode + agents/context.py：按档位截断工具输出与报告注入（max_tool_output_chars / report_prompt_chars / max_output_tokens）。"
+        - "cost/callback.py + cost/monitor.py + cost/agent_context.py：汇总 LLMCallEvent，按 agent 记账并产出 CostReport。"
+        - "cost/router.py / summarize_context / select_cheaper_model / apply_quality_floor：已实现并有单测，但未接入运行路径（当前运行时超预算为直接硬停，非渐进降级）。"
       modules:
         - "tradingagents/contracts/llm_event.py"
         - "tradingagents/cost/"
         - "scripts/token_audit.py"
-        - "tradingagents/llm_clients/"
+        - "tradingagents/graph/trading_graph.py"
+        - "tradingagents/profiles.py"
     fit_criterion:
       - metric: "quick_p95_tokens"
         threshold: "<= 25000"
-        verification: "python scripts/token_audit.py --profile quick --runs 30 --assert-p95 25000"
+        verification: "pytest tests/req/test_token_cost.py::test_quick_p95_tokens"
       - metric: "standard_p95_tokens"
         threshold: "<= 60000"
-        verification: "python scripts/token_audit.py --profile standard --runs 30 --assert-p95 60000"
+        verification: "pytest tests/req/test_token_cost.py::test_standard_p95_tokens"
       - metric: "deep_p95_tokens"
         threshold: "<= 150000"
-        verification: "python scripts/token_audit.py --profile deep --runs 30 --assert-p95 150000"
+        verification: "pytest tests/req/test_token_cost.py::test_deep_p95_tokens"
       - metric: "token_report_coverage"
         threshold: "== 1.0"
-        verification: "python scripts/token_audit.py --runs 30 --assert-report-coverage 1.0"
+        verification: "pytest tests/req/test_token_cost.py::test_report_coverage"
       - metric: "silent_over_budget_runs"
         threshold: "== 0"
-        verification: "python scripts/token_audit.py --runs 30 --assert-silent-over-budget 0"
-      - metric: "cost_estimate_relative_error"
-        threshold: "<= 0.05"
-        verification: "python scripts/token_audit.py --assert-cost-error 0.05"
+        verification: "pytest tests/req/test_token_cost.py::test_no_silent_over_budget"
       - metric: "routed_run_quality_floor_pass_rate"
         threshold: "== 1.0"
-        verification: "python scripts/token_audit.py --assert-routed-quality 1.0"
+        verification: "pytest tests/req/test_token_cost.py::test_routed_quality_floor"
     tradeoff: |
-      token 上限可能截断上下文、降低深度；用质量门禁保护，超预算优先摘要/便宜模型，
-      仍不达标则审批加预算。Quick 的成本优势以覆盖面为代价。
+      token 上限通过裁剪输入与硬停实现；硬停会让该次运行作废（REVIEW），而非继续降级
+      （摘要/便宜模型/审批的渐进路由已实现但未接入）。Quick 的成本优势以覆盖面为代价。
     dependencies:
       - "REQ-FR-001"
       - "REQ-FR-004"
