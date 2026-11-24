@@ -2,7 +2,7 @@
 
 - 日期：2026-11-16
 - 状态：baseline 已记录；暂不优化，等待 Part 1–5 到位后做 before/after 对比
-- 目的：保留“优化前”真实数据，最终报告与 25k/60k/150k 目标、优化后数据三方对比
+- 目的：保留“优化前”真实数据，最终报告与 80k/150k/300k 目标、优化后数据三方对比
 - 说明：本文是 tracked 证据摘要；原始 JSON 在 `tradingagents/reports/part6/`，该目录被 `.gitignore` 忽略
 
 ## 1. 运行配置
@@ -76,7 +76,7 @@
 关键事实：
 
 - **Market Analyst 单独 36,609**，已经超过 Quick hard cap 25,000。
-- 即使 Quick 只跑 market、不做辩论/风控/PM，仍会超过 25k。
+- 即使 Quick 只跑 market、不做辩论/风控/PM，仍会超过 80k。
 - prompt 总计 90,613（66.8%），completion 总计 45,040（33.2%）。
 - 说明需要同时做“减少调用/上下文”和“限制输出”，而不是只调 max_tokens。
 
@@ -122,11 +122,11 @@ $env:SEP_API_KEY=[Environment]::GetEnvironmentVariable('SEP_API_KEY','User')
 
 | 指标 | Baseline | Optimized | Target |
 |---|---:|---:|---:|
-| total tokens | 135,653（Run 2） | 待测 | ≤25k Quick |
+| total tokens | 135,653（Run 2） | 待测 | ≤80k Quick |
 | prompt tokens | 90,613 | 待测 | - |
 | completion tokens | 45,040 | 待测 | - |
 | wall time | 296.48s | 待测 | relative improvement |
 | cost CNY | 0.541546 | 待测 | - |
 | quality | 手动抽查 | 待测 | Part 2/3 指标 |
 
-优化必须等 Part 1/2/4 或明确的实验 harness；当前不修改 25k/60k/150k 目标。
+优化必须等 Part 1/2/4 或明确的实验 harness；当前不修改 80k/150k/300k 目标。

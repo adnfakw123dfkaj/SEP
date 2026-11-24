@@ -36,7 +36,7 @@ throughout; ends in a verdict: **APPROVE**, **CHANGES REQUIRED**, or **REJECT**.
 - Code/test: rewrote stale require()-skip stubs into offline tests over the real
   audit/budget/enforcement API (8 tests). ruff/pyright clean; no regressions.
 - Ops: AI-use-log updated; change is tests+docs only → G1 skipped (no app code).
-- Security: n/a. Efficiency: budget caps confirmed (25k/60k/150k).
+- Security: n/a. Efficiency: budget caps confirmed (80k/150k/300k).
 - Verdict: **APPROVE** (offline); live token/latency to be run by owner.
 
 ### PR: D8 layout + D2 architecture (2026-11-22)

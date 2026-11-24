@@ -13,9 +13,9 @@ from tradingagents.contracts.cost import Budget
 
 _PROFILE_LIMITS: dict[str, tuple[int, int]] = {
     # profile: (soft target, hard acceptance cap)
-    "quick": (20_000, 25_000),
-    "standard": (50_000, 60_000),
-    "deep": (120_000, 150_000),
+    "quick": (64_000, 80_000),
+    "standard": (120_000, 150_000),
+    "deep": (240_000, 300_000),
 }
 
 
