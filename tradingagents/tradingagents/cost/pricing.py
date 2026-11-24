@@ -34,6 +34,21 @@ def default_price_table() -> PriceTable:
                     output_per_1m=Decimal("4"),
                 ),
             ),
+            # Alias used in .env (quick tier). Same Flash price class as
+            # ``deepseek-flash`` so a run configured with ``deepseek-v4-flash``
+            # is not rejected by the cost monitor.
+            "deepseek-v4-flash": ModelPrice(
+                model="deepseek-v4-flash",
+                model_version="DeepSeek-V4.1-Flash-1017",
+                peak=PricePair(
+                    input_cache_miss_per_1m=Decimal("2"),
+                    output_per_1m=Decimal("8"),
+                ),
+                off_peak=PricePair(
+                    input_cache_miss_per_1m=Decimal("1"),
+                    output_per_1m=Decimal("4"),
+                ),
+            ),
             "deepseek-v4-pro": ModelPrice(
                 model="deepseek-v4-pro",
                 model_version="DeepSeek-V4-Pro-0813",
