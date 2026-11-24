@@ -1,0 +1,20 @@
+{
+  "change_id": "chg-2026-11-24-token-caps",
+  "tests": [
+    "tradingagents/tests/contracts/test_profile_contract.py",
+    "tradingagents/tests/part6/conftest.py",
+    "tradingagents/tests/part6/test_audit.py",
+    "tradingagents/tests/part6/test_budget.py",
+    "tradingagents/tests/part6/test_cli.py",
+    "tradingagents/tests/req/test_profile_cli_integration.py",
+    "tradingagents/tests/req/test_profiles.py",
+    "tradingagents/tests/req/test_token_cost.py"
+  ],
+  "deletes": [
+    "tradingagents/tests/req/test_profile_cli_integration.py::test_profile_option_reaches_cli_and_builds_runtime_config[deep-analysts2-2-2-3-150000-1800]",
+    "tradingagents/tests/req/test_profile_cli_integration.py::test_profile_option_reaches_cli_and_builds_runtime_config[quick-analysts0-1-1-1-25000-300]",
+    "tradingagents/tests/req/test_profile_cli_integration.py::test_profile_option_reaches_cli_and_builds_runtime_config[standard-analysts1-1-1-2-60000-720]"
+  ],
+  "approved_by": "luochen",
+  "approved_at": "2026-11-24T13:00:00+08:00"
+}

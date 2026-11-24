@@ -13,7 +13,7 @@ def test_profile_matrix():
     assert standard.analysts == ("market", "news", "fundamentals")
     assert deep.analysts == ("market", "social", "news", "fundamentals")
     assert [p.max_tool_rounds for p in (quick, standard, deep)] == [1, 2, 3]
-    assert [p.token_budget for p in (quick, standard, deep)] == [25000, 60000, 150000]
+    assert [p.token_budget for p in (quick, standard, deep)] == [80000, 150000, 300000]
 
 
 def test_manifest_profile():

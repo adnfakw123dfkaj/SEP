@@ -11,9 +11,9 @@ pytestmark = pytest.mark.unit
 
 def test_tc_p6_bud_001_profile_hard_limits():
     """TC-P6-BUD-001: the three profiles expose the agreed hard caps."""
-    assert budget_for_profile("quick").hard_limit == 25_000
-    assert budget_for_profile("standard").hard_limit == 60_000
-    assert budget_for_profile("deep").hard_limit == 150_000
+    assert budget_for_profile("quick").hard_limit == 80_000
+    assert budget_for_profile("standard").hard_limit == 150_000
+    assert budget_for_profile("deep").hard_limit == 300_000
     assert budget_for_profile("quick").currency == "CNY"
 
 

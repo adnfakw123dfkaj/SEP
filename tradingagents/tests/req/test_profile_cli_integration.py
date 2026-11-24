@@ -12,9 +12,9 @@ import cli.run as cli_run
 @pytest.mark.parametrize(
     ("profile", "analysts", "debate", "risk", "tool_rounds", "budget", "timeout"),
     [
-        ("quick", ("market",), 1, 1, 1, 25_000, 300),
-        ("standard", ("market", "news", "fundamentals"), 1, 1, 2, 60_000, 720),
-        ("deep", ("market", "social", "news", "fundamentals"), 2, 2, 3, 150_000, 1800),
+        ("quick", ("market",), 1, 1, 1, 80_000, 300),
+        ("standard", ("market", "news", "fundamentals"), 1, 1, 2, 150_000, 720),
+        ("deep", ("market", "social", "news", "fundamentals"), 2, 2, 3, 300_000, 1800),
     ],
 )
 def test_profile_option_reaches_cli_and_builds_runtime_config(

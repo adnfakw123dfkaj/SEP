@@ -478,3 +478,12 @@ entries:
       - Prompt.md
       - prompts/prompt_v1.0.yaml
       - prompts/prompt_v1.1.yaml
+
+  - change_id: "chg-2026-11-24-token-caps"
+    date: "2026-11-24"
+    agent_session: "token-cap-update"
+    summary: "Raised run-profile token caps to Quick<=80k / Standard<=150k / Deep<=300k, aligned budget and profile tests to the new caps, and added deepseek-v4-flash to the price table."
+    files_changed:
+      - tradingagents/tradingagents/profiles.py
+      - tradingagents/tradingagents/cost/budget.py
+      - tradingagents/tradingagents/cost/pricing.py

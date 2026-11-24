@@ -55,7 +55,7 @@
 | max_tool_rounds | 6 | 10 | 15 |
 | quick model | `deepseek-flash` | `deepseek-flash` | `deepseek-flash` |
 | deep model | `deepseek-v4-pro` | `deepseek-v4-pro` | `deepseek-v4-pro` |
-| token budget | 25k | 60k | 150k |
+| token budget | 80k | 150k | 300k |
 | timeout | 300s | 720s | 1800s |
 | cache TTL | 价格 15m / 新闻 60m / 基本面 24h | 同左 | 同左 |
 

@@ -147,7 +147,7 @@
 
 | ID | 目的 | 输入/步骤 | 期望 | 追溯 | 状态 |
 |---|---|---|---|---|---|
-| `TC-P6-BUD-001` | 三档硬上限 | Quick/Standard/Deep profile | 硬上限分别为 25k/60k/150k；币种 CNY | COST | READY |
+| `TC-P6-BUD-001` | 三档硬上限 | Quick/Standard/Deep profile | 硬上限分别为 80k/150k/300k；币种 CNY | COST | READY |
 | `TC-P6-BUD-002` | soft/hard 边界 | 合成预算 soft=80、hard=100；估算 79/80/99/100/101 | 79 未超 soft；80 达到 soft；99 未超 hard；100 达到 hard；101 超 hard | COST | READY |
 | `TC-P6-BUD-003` | 非法 profile | 未知 profile 名 | 明确错误；不静默使用默认值 | COST | READY |
 | `TC-P6-BUD-004` | 非法预算 | 负数/0/soft>hard | 明确错误；不进入路由 | COST | READY |
@@ -240,7 +240,7 @@
 
 | ID | 目的 | 输入/步骤 | 期望 | 追溯 | 状态 |
 |---|---|---|---|---|---|
-| `TC-P6-AUD-001` | 三档 token p95 上限 | 运行 `token_audit.py` | Quick p95 ≤25k；Standard ≤60k；Deep ≤150k | COST | READY |
+| `TC-P6-AUD-001` | 三档 token p95 上限 | 运行 `token_audit.py` | Quick p95 ≤80k；Standard ≤150k；Deep ≤300k | COST | READY |
 | `TC-P6-AUD-002` | 报告覆盖 | 统计 30 次/可用样本 | 100% 运行有 token/费用报告 | COST | READY |
 | `TC-P6-AUD-003` | 静默超预算 | 检查所有运行 | silent over-budget = 0 | COST | READY |
 | `TC-P6-AUD-004` | 费用误差 | 报告费用 vs provider usage × 价格表（按事件时间选峰谷、cache miss） | **最坏一次运行**的相对误差 ≤5%；CNY；标注估算 | COST | READY |

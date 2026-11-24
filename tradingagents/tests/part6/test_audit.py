@@ -34,7 +34,7 @@ def _run(run_id="run-1", profile="quick", **overrides):
 
 def test_tc_p6_aud_001_token_p95_caps(synthetic_price_table):
     """TC-P6-AUD-001: p95 token usage stays under each profile cap."""
-    limits = {"quick": 25_000, "standard": 60_000, "deep": 150_000}
+    limits = {"quick": 80_000, "standard": 150_000, "deep": 300_000}
     for profile, limit in limits.items():
         runs = [_run(f"{profile}-{i}", profile, total_tokens=1000) for i in range(30)]
         report = build_token_report(profile, runs, synthetic_price_table)
@@ -50,7 +50,7 @@ def test_tc_p6_aud_002_report_coverage(synthetic_price_table):
 
     assert report.report_coverage == pytest.approx(29 / 30)
     with pytest.raises(AssertionError):
-        assert_token_acceptance(report, hard_limit=25_000)
+        assert_token_acceptance(report, hard_limit=80_000)
 
 
 def test_tc_p6_aud_003_no_silent_over_budget(synthetic_price_table):
@@ -60,7 +60,7 @@ def test_tc_p6_aud_003_no_silent_over_budget(synthetic_price_table):
 
     assert report.silent_over_budget_runs == 1
     with pytest.raises(AssertionError):
-        assert_token_acceptance(report, hard_limit=25_000)
+        assert_token_acceptance(report, hard_limit=80_000)
 
 
 def test_tc_p6_aud_004_cost_error(synthetic_price_table):
@@ -79,7 +79,7 @@ def test_tc_p6_aud_004_cost_error(synthetic_price_table):
     assert good.cost_relative_error == pytest.approx(0.0)
     assert bad.cost_relative_error == pytest.approx(0.06)
     with pytest.raises(AssertionError):
-        assert_token_acceptance(bad, hard_limit=25_000)
+        assert_token_acceptance(bad, hard_limit=80_000)
 
 
 def test_quality_floor_pass_rate_covers_direct_runs(synthetic_price_table):
@@ -89,7 +89,7 @@ def test_quality_floor_pass_rate_covers_direct_runs(synthetic_price_table):
 
     assert report.quality_floor_pass_rate == 0.5
     with pytest.raises(AssertionError, match="quality floor pass rate"):
-        assert_token_acceptance(report, hard_limit=25_000)
+        assert_token_acceptance(report, hard_limit=80_000)
 
 
 def test_unavailable_cost_ground_truth_fails_acceptance(synthetic_price_table):
@@ -99,7 +99,7 @@ def test_unavailable_cost_ground_truth_fails_acceptance(synthetic_price_table):
 
     assert report.cost_ground_truth_unavailable_runs == 1
     with pytest.raises(AssertionError, match="ground truth unavailable"):
-        assert_token_acceptance(report, hard_limit=25_000)
+        assert_token_acceptance(report, hard_limit=80_000)
 
 
 def test_tc_p6_aud_005_routed_quality_floor(synthetic_price_table):
@@ -113,7 +113,7 @@ def test_tc_p6_aud_005_routed_quality_floor(synthetic_price_table):
     assert good.routed_quality_floor_pass_rate == 1.0
     assert bad.routed_quality_floor_pass_rate == 0.5
     with pytest.raises(AssertionError):
-        assert_token_acceptance(bad, hard_limit=25_000)
+        assert_token_acceptance(bad, hard_limit=80_000)
 
 
 def test_tc_p6_aud_006_price_table_provenance(synthetic_price_table):
@@ -157,4 +157,4 @@ def test_tc_p6_aud_008_cost_error_uses_worst_run(synthetic_price_table):
 
     assert report.cost_relative_error == pytest.approx(0.06)
     with pytest.raises(AssertionError):
-        assert_token_acceptance(report, hard_limit=25_000)
+        assert_token_acceptance(report, hard_limit=80_000)

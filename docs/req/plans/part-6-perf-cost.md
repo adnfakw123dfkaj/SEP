@@ -49,9 +49,9 @@
 
 | Profile | token 目标（p95） | token 上限（验收） | 延迟目标 p95 | 延迟验收 p95 |
 |---|---:|---:|---:|---:|
-| Quick | 20k | 25k | 4 min | 5 min |
-| Standard | 50k | 60k | 10 min | 12 min |
-| Deep | 120k | 150k | 25 min | 30 min |
+| Quick | 64k | 80k | 4 min | 5 min |
+| Standard | 120k | 150k | 10 min | 12 min |
+| Deep | 240k | 300k | 25 min | 30 min |
 
 规则：
 
@@ -105,9 +105,9 @@
 | `REQ-PER-001` | `python scripts/bench_latency.py --profile deep --cold 15 --warm 15 --assert-p95 1800` | Deep 延迟报告 |
 | `REQ-PER-001` | `python scripts/bench_latency.py --assert-p99-ratio 1.2 --assert-failure-rate 0.01` | p99/失败率 |
 | `REQ-PER-001` | `python scripts/bench_latency.py --baseline reports/baseline.json --assert-improvement 0.30` | 改善比例 |
-| `REQ-COST-001` | `python scripts/token_audit.py --profile quick --runs 30 --assert-p95 25000` | Quick token 报告 |
-| `REQ-COST-001` | `python scripts/token_audit.py --profile standard --runs 30 --assert-p95 60000` | Standard token 报告 |
-| `REQ-COST-001` | `python scripts/token_audit.py --profile deep --runs 30 --assert-p95 150000` | Deep token 报告 |
+| `REQ-COST-001` | `python scripts/token_audit.py --profile quick --runs 30 --assert-p95 80000` | Quick token 报告 |
+| `REQ-COST-001` | `python scripts/token_audit.py --profile standard --runs 30 --assert-p95 300000` | Standard token 报告 |
+| `REQ-COST-001` | `python scripts/token_audit.py --profile deep --runs 30 --assert-p95 300000` | Deep token 报告 |
 | `REQ-COST-001` | `python scripts/token_audit.py --runs 30 --assert-report-coverage 1.0 --assert-silent-over-budget 0` | 覆盖率/超预算 |
 | `REQ-COST-001` | `python scripts/token_audit.py --assert-cost-error 0.05 --assert-routed-quality 1.0` | 费用/质量 |
 

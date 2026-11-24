@@ -47,8 +47,8 @@ input trimming (tool-output and report-injection character caps) and `max_tokens
 
 ### Token-budget cap and compaction threshold
 
-Per-profile hard caps: Quick 25k, Standard 60k, Deep 150k; soft targets 20k/50k/
-120k. The runtime enforces the **hard cap before each call** (`GuardedLLM`), and
+Per-profile hard caps: Quick 80k, Standard 150k, Deep 300k; soft targets 64k/120k/
+240k. The runtime enforces the **hard cap before each call** (`GuardedLLM`), and
 trims injected input by character budget. Compaction (summarise / cheaper-model)
 is implemented in `cost/` and used by the audit facade but **not wired into the
 runtime path** (the runtime stops hard, to `REVIEW`, rather than degrade).

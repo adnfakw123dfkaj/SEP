@@ -107,6 +107,27 @@
 
 统计：Must 10，Should 4，Could 0，Won't 见第 5 节。
 
+### 2.1 实现状态（按当前代码对齐）
+
+下表按仓库当前代码的实际状态标注（模块是否存在、是否接入运行路径、离线验收测试是否通过）。离线验收：`pytest tests/req tests/security -m "not integration"` 全部通过（139 passed）。
+
+| 需求 | 实现状态 | 说明 |
+|---|---|---|
+| `REQ-FR-001` | implemented | `profiles.py`、`preflight.py`；档位与预检已接入组合根/CLI |
+| `REQ-FR-002` | implemented | 预检在构图前执行，失败快速退出 |
+| `REQ-FR-003` | implemented | `agents/debate/`，结构化辩论已接入研究者适配层 |
+| `REQ-QUAL-001` | implemented | `agents/debate/quality.py`，质量指标参与质量门禁 |
+| `REQ-FR-004` | implemented | `evidence/` + `contracts/{evidence,manifest}.py`；manifest 与 claim 级证据写入报告树 |
+| `REQ-QUAL-002` | implemented | `evidence/fidelity.py`，经 `cost/quality_floor` 在运行中评估 |
+| `REQ-INV-001` | implemented | `records/`，`IdempotentStore` 接入 `record_decision`，原子写 |
+| `REQ-FR-005` | implemented | `cache/` 已接入 `dataflows/router`，checkpoint/resume 与 fallback 事件接入图 |
+| `REQ-INV-002` | implemented | `dataflows/date_window.py` 覆盖各带日期 vendor 与记忆 as-of |
+| `REQ-INV-003` | implemented | `rating_authority.commit_rating` 接入组合根提交门 |
+| `REQ-SEC-001` | implemented | `security/`（sanitize、validate、tool_guard），工具按角色白名单 |
+| `REQ-INV-004` | implemented | `security/redaction` + `net.get_scrubbed`，密钥脱敏 |
+| `REQ-PER-001` | implemented | 延迟基准工具 `scripts/bench_latency.py`（测量工具，不改运行路径） |
+| `REQ-COST-001` | partial | 已在运行路径接线：调用前硬预算拦截、按档位裁剪输入、按 agent 记账与成本报告；未接线：`cost/router.py` 的摘要/便宜模型/审批渐进路由与质量门禁回滚（已实现且有单测，仅 `cost/runner.py` 与 `token_audit.py` 使用）。运行时超预算为**硬停为 REVIEW**，非渐进降级 |
+
 ---
 
 ## 3. 六人分工与解耦设计
@@ -471,24 +492,24 @@
 - **类型**：Cost
 - **优先级**：Must
 - **负责 Part**：6
-- **陈述**：单次运行 p95 token 用量（输入 + 输出，含重试）应满足：Quick <=25,000、Standard <=60,000、Deep <=150,000。系统应在每次 provider 调用前估算 token，超出该档 hard 上限时**阻断调用并结束为 `budget_exceeded` / `REVIEW`（不得静默继续）**；按档位裁剪注入的输入（工具输出与报告注入到 prompt 的字符上限）以控制用量；实际用量按 agent/model 拆分记录；每次运行产出 token/费用报告。
+- **陈述**：单次运行 p95 token 用量（输入 + 输出，含重试）应满足：Quick <=80,000、Standard <=150,000、Deep <=300,000。系统应在每次 provider 调用前估算 token，超出该档 hard 上限时**阻断调用并结束为 `budget_exceeded` / `REVIEW`（不得静默继续）**；按档位裁剪注入的输入（工具输出与报告注入到 prompt 的字符上限）以控制用量；实际用量按 agent/model 拆分记录；每次运行产出 token/费用报告。
 - **为什么需要**：应用被描述为 token-burning，当前产物不汇总 token/费用。没有预算和成本报告，无法控制成本，也无法验证优化效果。
 - **实现方案（按实际代码）**：
   - `cost/estimator.py`：确定性、离线的 `estimate_tokens()`（近似，用于调用前预警，非 provider tokenizer）。
-  - `cost/budget.py`：分档 soft/hard 上限（Quick 20k/25k、Standard 50k/60k、Deep 120k/150k），可被 `ProfileConfig` 覆盖。
+  - `cost/budget.py`：分档 soft/hard 上限（Quick 64k/80k、Standard 120k/150k、Deep 240k/300k），可被 `ProfileConfig` 覆盖。
   - `graph/trading_graph.py`：把 quick/deep LLM 包成 `GuardedLLM`，每次调用前 `_check_budget_before_call` 估算“已用 + 本次 + 输出上限”，超 hard 上限抛 `BudgetExceededError`；运行结束据 `finish_cost_run` 附成本报告，硬停时状态为 `budget_exceeded`、评级 `REVIEW`。
   - `profiles.py` + `GuardedToolNode`/`agents/context.py`：按档位截断工具输出与报告注入（`max_tool_output_chars`、`report_prompt_chars`、`max_output_tokens`），这是实际生效的“省 token”手段。
   - `cost/callback.py` + `cost/monitor.py` + `cost/agent_context.py`：从 provider 回调收集 `LLMCallEvent`，按 agent 汇总 token、估算费用，产出 `CostReport`。
   - `scripts/token_audit.py` / `scripts/bench_latency.py`：对录制 JSONL 或真实运行做 p95/覆盖率/费用/质量门的断言。
   - **说明（实现现状）**：`cost/router.py` 的“直接/摘要/便宜模型/审批”路由、`summarize_context` 摘要压缩、`select_cheaper_model` 换便宜模型、`apply_quality_floor` 质量门禁回滚，均已在 `cost/` 实现并有单测，但**尚未接入 `graph`/`cli` 运行路径**；当前运行时超预算的行为是**直接硬停为 REVIEW**，而非渐进降级。这些渐进路径目前仅由 `cost/runner.py`（验收用 facade）与 `token_audit.py` 使用。
 - **验收标准（离线单测；脚本/真实基准为 integration）**：
-  - `quick_p95_tokens <= 25000`；`pytest tests/req/test_token_cost.py::test_quick_p95_tokens`
-  - `standard_p95_tokens <= 60000`；`pytest tests/req/test_token_cost.py::test_standard_p95_tokens`
-  - `deep_p95_tokens <= 150000`；`pytest tests/req/test_token_cost.py::test_deep_p95_tokens`
+  - `quick_p95_tokens <= 80000`；`pytest tests/req/test_token_cost.py::test_quick_p95_tokens`
+  - `standard_p95_tokens <= 150000`；`pytest tests/req/test_token_cost.py::test_standard_p95_tokens`
+  - `deep_p95_tokens <= 300000`；`pytest tests/req/test_token_cost.py::test_deep_p95_tokens`
   - `token_report_coverage == 1.0`；`pytest tests/req/test_token_cost.py::test_report_coverage`
   - `silent_over_budget_runs == 0`、硬停为 REVIEW；`pytest tests/req/test_token_cost.py::test_no_silent_over_budget`、`::test_hard_stop_blocks_call_over_budget`、`::test_budget_exceeded_record_is_review`
   - `routed_run_quality_floor_pass_rate == 1.0`；`pytest tests/req/test_token_cost.py::test_routed_quality_floor`
-  - 真实基准（需配额）：`python scripts/token_audit.py --profile quick --runs 30 --assert-p95 25000`
+  - 真实基准（需配额）：`python scripts/token_audit.py --profile quick --runs 30 --assert-p95 80000`
 - **取舍**：token 上限通过裁剪输入与硬停实现；硬停会让该次运行作废（REVIEW），而不是继续降级（摘要/便宜模型/审批的渐进路由已实现但未接入）。Quick 的成本优势以覆盖面为代价。
 - **依赖与风险**：依赖 Part 1 profile、Part 3 manifest、provider adapter 的 usage。风险是不同 provider 的 token 计数差异；以 provider usage 为准，估算仅用于调用前预警。
 

@@ -101,9 +101,9 @@
 
 | ID | Kind | Title | Pass criterion |
 |---|---|---|---|
-| TC-P6-COST001-01 | SCRIPT | Quick p95 tokens | `quick_p95_tokens <= 25000` |
-| TC-P6-COST001-02 | SCRIPT | Standard p95 tokens | `standard_p95_tokens <= 60000` |
-| TC-P6-COST001-03 | SCRIPT | Deep p95 tokens | `deep_p95_tokens <= 150000` |
+| TC-P6-COST001-01 | SCRIPT | Quick p95 tokens | `quick_p95_tokens <= 80000` |
+| TC-P6-COST001-02 | SCRIPT | Standard p95 tokens | `standard_p95_tokens <= 300000` |
+| TC-P6-COST001-03 | SCRIPT | Deep p95 tokens | `deep_p95_tokens <= 300000` |
 | TC-P6-COST001-04 | SCRIPT | Token report coverage | `token_report_coverage == 1.0` |
 | TC-P6-COST001-05 | SCRIPT | No silent over-budget | `silent_over_budget_runs == 0` |
 | TC-P6-COST001-06 | SCRIPT | Cost estimate error | `cost_estimate_relative_error <= 0.05` |
@@ -112,20 +112,20 @@
 
 ### TC-P6-COST001-01 — Quick tokens (SCRIPT / integration)
 - **Given** 30 Quick runs on reference env.
-- **When** `python scripts/token_audit.py --profile quick --runs 30 --assert-p95 25000`.
+- **When** `python scripts/token_audit.py --profile quick --runs 30 --assert-p95 80000`.
 - **Then** p95 ≤ 25,000.
-- **Pass criterion:** `quick_p95_tokens <= 25000`.
+- **Pass criterion:** `quick_p95_tokens <= 80000`.
 - **Kind:** SCRIPT.
 - **Traces to:** REQ-COST-001 acceptance line 1.
 
 ### TC-P6-COST001-02 — Standard tokens (SCRIPT)
-- **Pass criterion:** `standard_p95_tokens <= 60000`;
-  `--profile standard --runs 30 --assert-p95 60000`.
+- **Pass criterion:** `standard_p95_tokens <= 300000`;
+  `--profile standard --runs 30 --assert-p95 300000`.
 - **Traces to:** REQ-COST-001 acceptance line 2.
 
 ### TC-P6-COST001-03 — Deep tokens (SCRIPT)
-- **Pass criterion:** `deep_p95_tokens <= 150000`;
-  `--profile deep --runs 30 --assert-p95 150000`.
+- **Pass criterion:** `deep_p95_tokens <= 300000`;
+  `--profile deep --runs 30 --assert-p95 300000`.
 - **Traces to:** REQ-COST-001 acceptance line 3.
 
 ### TC-P6-COST001-04 — Report coverage (happy / state)

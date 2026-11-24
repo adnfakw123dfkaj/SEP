@@ -91,5 +91,5 @@ def profile_config():
     return SimpleNamespace(
         name="quick",
         soft_token_limit=1234,
-        hard_token_limit=25000,
+        hard_token_limit=80000,
     )

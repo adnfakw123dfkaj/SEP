@@ -214,7 +214,7 @@ def test_live_token_mode_uses_formal_flags(monkeypatch, tmp_path):
 
     out = tmp_path / "live-tokens.json"
     code = token_audit_main([
-        "--profile", "quick", "--runs", "30", "--assert-p95", "25000",
+        "--profile", "quick", "--runs", "30", "--assert-p95", "80000",
         "--assert-report-coverage", "1.0", "--assert-silent-over-budget", "0",
         "--assert-cost-error", "0.05", "--assert-routed-quality", "1.0",
         "--workdir", str(workdir), "--keep-artifacts", "--out", str(out),

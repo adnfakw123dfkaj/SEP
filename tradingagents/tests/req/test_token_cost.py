@@ -42,21 +42,21 @@ def _run(run_id="r", profile="quick", **overrides):
 
 
 def test_quick_p95_tokens():
-    """TC-P6-COST001-01: quick p95 tokens <= 25000."""
-    assert budget_for_profile("quick").hard_limit == 25_000
+    """TC-P6-COST001-01: quick p95 tokens <= 80000."""
+    assert budget_for_profile("quick").hard_limit == 80_000
     runs = [_run(f"q{i}", "quick", total_tokens=1000) for i in range(30)]
     report = build_token_report("quick", runs, default_price_table())
-    assert_token_acceptance(report, hard_limit=25_000)
+    assert_token_acceptance(report, hard_limit=80_000)
 
 
 def test_standard_p95_tokens():
-    """TC-P6-COST001-02: standard p95 tokens <= 60000."""
-    assert budget_for_profile("standard").hard_limit == 60_000
+    """TC-P6-COST001-02: standard p95 tokens <= 150000."""
+    assert budget_for_profile("standard").hard_limit == 150_000
 
 
 def test_deep_p95_tokens():
-    """TC-P6-COST001-03: deep p95 tokens <= 150000."""
-    assert budget_for_profile("deep").hard_limit == 150_000
+    """TC-P6-COST001-03: deep p95 tokens <= 300000."""
+    assert budget_for_profile("deep").hard_limit == 300_000
 
 
 # --- TC-P6-COST001-04: every run emits a report ---------------------------
@@ -68,7 +68,7 @@ def test_report_coverage():
     report = build_token_report("quick", runs, default_price_table())
     assert report.report_coverage == pytest.approx(29 / 30)
     with pytest.raises(AssertionError):
-        assert_token_acceptance(report, hard_limit=25_000)
+        assert_token_acceptance(report, hard_limit=80_000)
 
 
 # --- TC-P6-COST001-05: no silent over-budget ------------------------------
@@ -80,12 +80,12 @@ def test_no_silent_over_budget():
     report = build_token_report("quick", runs, default_price_table())
     assert report.silent_over_budget_runs == 1
     with pytest.raises(AssertionError):
-        assert_token_acceptance(report, hard_limit=25_000)
+        assert_token_acceptance(report, hard_limit=80_000)
 
 
 def test_hard_stop_blocks_call_over_budget():
     """The wired enforcement raises before the provider call would exceed hard."""
-    budget = Budget(profile="quick", soft_limit=20_000, hard_limit=25_000, currency="CNY")
+    budget = Budget(profile="quick", soft_limit=64_000, hard_limit=80_000, currency="CNY")
     calls = []
     with pytest.raises(BudgetExceededError):
         guarded_call(budget.hard_limit + 1, budget, lambda: calls.append(1))
@@ -94,7 +94,7 @@ def test_hard_stop_blocks_call_over_budget():
 
 def test_budget_exceeded_record_is_review():
     """A hard breach is recorded as budget_exceeded / REVIEW, never a trade."""
-    budget = Budget(profile="quick", soft_limit=20_000, hard_limit=25_000, currency="CNY")
+    budget = Budget(profile="quick", soft_limit=64_000, hard_limit=80_000, currency="CNY")
     monitor = CostMonitor(default_price_table())
     record = handle_budget_exceeded("run-1", budget.hard_limit + 1, budget, monitor)
     assert record.status == "budget_exceeded"
@@ -113,4 +113,4 @@ def test_routed_quality_floor():
     assert good_report.routed_quality_floor_pass_rate == 1.0
     assert bad_report.routed_quality_floor_pass_rate == 0.5
     with pytest.raises(AssertionError):
-        assert_token_acceptance(bad_report, hard_limit=25_000)
+        assert_token_acceptance(bad_report, hard_limit=80_000)
