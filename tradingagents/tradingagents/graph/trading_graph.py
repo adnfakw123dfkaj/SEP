@@ -763,7 +763,7 @@ class TradingAgentsGraph:
         analysts' reports only when the slowest has finished, so their messages
         and reports come from their own finished steps ("tasks") as they happen.
         """
-        args = {**args, "stream_mode": ["values", "tasks"]}
+        args = {**args, "stream_mode": ["values", "messages", "tasks"]}
         # Bind evidence and the graph's own config before the stream starts.
         # LangGraph carries this context into tool calls; creating it first
         # leaves the tools without the run's evidence registry.
@@ -775,9 +775,23 @@ class TradingAgentsGraph:
                 self._capture_verified_snapshot(ticker, str(trade_date))
             context = run_config_context(self.config)
             stream = context.run(self.graph.stream, graph_input, subgraphs=True, **args)
+            # Messages from the analysts' own subgraphs never appear in the parent
+            # state (each subgraph has a report-only output schema), so they are
+            # surfaced through the "messages" stream mode instead. Track ids so a
+            # message is not shown twice (once here, once via "values").
+            seen_message_ids: set = set()
             try:
                 while (step := context.run(next, stream, None)) is not None:
                     namespace, mode, chunk = step
+                    if mode == "messages":
+                        message = chunk[0] if isinstance(chunk, tuple) else chunk
+                        msg_id = getattr(message, "id", None)
+                        if msg_id is not None:
+                            if msg_id in seen_message_ids:
+                                continue
+                            seen_message_ids.add(msg_id)
+                        yield [message], None
+                        continue
                     if namespace:
                         result = chunk.get("result") if mode == "tasks" else None
                         if isinstance(result, dict):
@@ -785,6 +799,10 @@ class TradingAgentsGraph:
                             if result.get("messages") or report:
                                 yield result.get("messages", []), report or None
                     elif mode == "values":
+                        for message in chunk.get("messages", []):
+                            msg_id = getattr(message, "id", None)
+                            if msg_id is not None:
+                                seen_message_ids.add(msg_id)
                         yield chunk.get("messages", []), chunk
             finally:
                 context.run(stream.close)
