@@ -180,8 +180,8 @@ CI 建议分两层：
 ## 13. 最终提交清单
 
 - [ ] `docs/req/requirements-final.md`（需求基线）
-- [ ] `docs/req/plans/part-1..6.md`（实现计划）
-- [ ] `docs/req/plans/integration.md`（本文件）
+- [ ] `docs/intermediate-artifacts/plans/part-1..6.md`（实现计划）
+- [ ] `docs/intermediate-artifacts/plans/integration.md`（本文件）
 - [ ] `docs/agent-log.md`（人类干预记录）
 - [ ] `tests/contracts/`、`tests/req/`、`tests/security/`
 - [ ] `scripts/bench_latency.py`、`scripts/token_audit.py`、`scripts/security_regression.py`

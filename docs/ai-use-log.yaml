@@ -148,7 +148,7 @@ entries:
   - change_id: "part5-security-rating"
     date: "2026-11-18"
     agent_session: "opencode-part5-security-rating"
-    summary: "Part 5 implementation: deterministic rating authority (contracts/rating.py, rating_authority.py), security package (sanitize, validate_output, tool_guard, security_log, redaction), offline security regression script and fixtures. Replaced placeholder (require-import) Part 5 tests with real behavioural assertions. Human (陈妍妍) approved the plan and test list and reviewed the changes; approval record committed before implementation. No composition-root wiring in this change; handoff documented in docs/part5-integration.md."
+    summary: "Part 5 implementation: deterministic rating authority (contracts/rating.py, rating_authority.py), security package (sanitize, validate_output, tool_guard, security_log, redaction), offline security regression script and fixtures. Replaced placeholder (require-import) Part 5 tests with real behavioural assertions. Human (陈妍妍) approved the plan and test list and reviewed the changes; approval record committed before implementation. No composition-root wiring in this change; handoff documented in docs/intermediate-artifacts/part5-integration.md."
     files_changed:
       - tradingagents/tradingagents/contracts/__init__.py
       - tradingagents/tradingagents/contracts/rating.py

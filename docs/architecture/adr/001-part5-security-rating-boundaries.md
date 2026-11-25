@@ -65,7 +65,7 @@ contract without Part 5 reaching into their code.
   trust — it does not itself re-verify the market data.
 - **Concurrency:** only *serial* idempotency is promised here. Atomicity under
   concurrent writers is the store's responsibility (Part 3); see the store
-  contract in `contracts/rating.py` and `docs/part5-integration.md`.
+  contract in `contracts/rating.py` and `docs/intermediate-artifacts/part5-integration.md`.
 
 ### 2. Untrusted input/output (REQ-SEC-001)
 
@@ -138,5 +138,5 @@ contract without Part 5 reaching into their code.
 
 - Part 1 must set `snapshot_verified` truthfully and install the log filter on
   its handlers; Part 3 must implement the `Store` contract and use
-  `scrub_manifest`/`drain_events`. Documented in `docs/part5-integration.md`.
+  `scrub_manifest`/`drain_events`. Documented in `docs/intermediate-artifacts/part5-integration.md`.
 - REVIEW becomes a normal, auditable outcome; callers must handle it.

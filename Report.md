@@ -179,9 +179,12 @@ The process itself was iterated, not just the code:
 
 - Some Parts are integrated to different depths; Part 3's claim-level evidence and
   Part 6's progressive cost routing remain partially wired.
-- Blocking-gate branch protection cannot be physically enforced on a private
-  personal GitHub account (a platform limit); gates run and report, but do not
-  block the merge button in that setup.
+- The repository is public and `master` is protected by an active GitHub
+  ruleset: pull requests are required, and the required status checks include
+  `gate self-tests` plus G1–G7; deletion and non-fast-forward updates are
+  blocked. The ruleset does not currently require a separate approving review
+  for safety-critical paths; that remains a documented human-review and ADR
+  obligation rather than a GitHub-enforced rule.
 - Real Quick/Standard/Deep benchmarks and optimisation are measured but not fully
   brought under the original token targets; debate/risk history compression is the
   main remaining cost lever.
@@ -363,3 +366,351 @@ branch-based review and traceable decisions, and I corrected it with retrospecti
 review records and a separate PR path, though the original history cannot be
 recreated honestly. In future work I will create the review structure before
 implementation and keep evidence collection part of each change.
+
+---
+
+## 9. Extended engineering evidence
+
+This section supplements Sections 1-7 with the evidence that is too detailed for
+the main narrative. It does not replace the original account, and it does not
+change the self-reflections in Section 8.
+
+### 9.1 Scope and integration map across the six Parts
+
+The project was divided into six Parts so that work could proceed in parallel
+without changing the shared contracts. The map below records what each Part owns
+and how far it is integrated. The integration depth is deliberately stated rather
+than implied: a module that passes its own tests is not the same as a module that
+is wired into the running CLI.
+
+| Part | Primary owner | Main requirements | Implemented evidence | Integration depth |
+|---|---|---|---|---|
+| Part 1 | ZHU Xiaotong | REQ-FR-001, REQ-FR-002 | `profiles.py`, `preflight.py`, profile and preflight tests | Integrated into CLI and graph setup |
+| Part 2 | WANG Shangke | REQ-FR-003, REQ-QUAL-001 | Typed debate contract, validator, convergence, quality proxies, transcript export | Integrated into research debate |
+| Part 3 | LUO Chen (alignment) | REQ-FR-004, REQ-QUAL-002, REQ-INV-001 | Evidence registry, manifest writer, report index, atomic/idempotent records | Integrated through the composition root |
+| Part 4 | ShiYuxin | REQ-FR-005, REQ-INV-002 | TTL cache, checkpoint/resume, fallback events, point-in-time filters | Integrated below the agent layer |
+| Part 5 | CHEN Yanyan | REQ-INV-003, REQ-SEC-001, REQ-INV-004 | Rating authority, input sanitisation, output validation, tool guard, redaction | Integrated at the commit and dispatch boundaries |
+| Part 6 | CHEN Yiyang | REQ-COST-001, REQ-PER-001 | Token accounting, profile budgets, pre-call hard stop, quality floor, benchmark tooling | Partially integrated; progressive routing remains open |
+
+The six Parts share contracts rather than implementation details. The composition
+root is the only writer of authoritative run state and the final rating. Analysts,
+researchers, the trader and the risk analysts remain advisory: they produce
+reports and recommendations, but they do not commit the rating.
+
+### 9.2 Requirements volatility and the two discarded external requirements
+
+The registry contains **14 top-level requirements**. If the discarded
+source-requirement identifiers are counted as well, the full YAML contains 16
+`REQ-*` identifiers. The difference is intentional: the two `-other` entries are
+not accepted product requirements. They are kept in the `discarded:` section to
+preserve the decision trail.
+
+| Identifier | Source | Original idea | Disposition | Implemented? |
+|---|---|---|---|---|
+| `REQ-FR-01-other` | other-doc | Full intent classification, including off-topic or ambiguous requests | Replaced by `REQ-FR-002` | Not separately implemented; the ticker/data preflight covers the critical validity check |
+| `REQ-FR-03-other` | other-doc | Ambiguous-request clarification and a human handling path | Discarded | No; it would require UI, queue and human SLA work outside the course cycle |
+
+`REQ-FR-01-other` was not "lost". Its useful core was narrowed into the
+preflight requirement: before any LLM call, the system validates that the ticker
+is a real instrument and that recent price data is available. This prevents the
+most expensive failure without paying for a separate classifier. `REQ-FR-03-other`
+was a deliberate non-goal: the product is a CLI research tool, not a support desk,
+so a clarification workflow and human queue were not built.
+
+The main volatility event was a reduction from 15 to 14 accepted requirements.
+The changes were driven by evidence, not by convenience:
+
+| Change | Reason | Evidence / consequence |
+|---|---|---|
+| Merge duplicated invariant wording | Two entries described the same zero-tolerance rule | One invariant and one negative test remain |
+| Drop an unmeasurable quality claim | The proposed metric could not be checked deterministically | Replaced by the claim-level and numeric checks in `REQ-QUAL-002` |
+| Narrow "every sentence" citation | The original wording would have imposed an unbounded token cost | Claim groups now carry evidence refs without requiring a citation on every line |
+| Keep `REQ-COST-001` as `partial` | Cost routing exists but is not fully wired into the runtime graph | The report states the gap instead of claiming acceptance |
+
+This is the distinction the project treats as important: a requirement is not
+done because code exists, and a requirement is not met because a test says
+"pass". The fit criterion has to be exercised on the real path.
+
+### 9.3 Architecture alternatives and authority decisions
+
+The main architecture decision was to keep LangGraph as the orchestration
+substrate while separating advisory AI from authoritative code. The alternatives
+were evaluated against auditability, cost, latency and synthesis quality.
+
+| Alternative | Why it was considered | Why it was not chosen |
+|---|---|---|
+| Single monolithic agent | Simplest implementation | No independent perspectives, no bounded per-role cost, hard to audit |
+| Multiple processes per agent | Strong isolation | Shared graph state and LLM latency dominate; process overhead adds no useful isolation |
+| Deterministic rule engine only | Fully reproducible | Cannot perform news/fundamental synthesis; the project requires a genuine AI component |
+| LangGraph with a composition root | Typed state, parallel analysts, bounded debates, one authority boundary | Chosen; the cost is non-determinism, mitigated by the rating gate and `REVIEW` |
+
+ADR-001 fixed the Part 5 boundary first: Part 5 owns the rating and security
+modules but may not reach into the graph or the records. ADR-002 records the
+multi-agent pipeline, the layered context, the budget cap and the re-injection of
+protected constraints. The result is a single write path for the rating and a
+separate, testable commit gate.
+
+The runtime policy is fail-closed, not "best effort":
+
+- If provenance is missing or invalid, the rating is `REVIEW` and nothing is
+  written.
+- If a budget projection would exceed the profile hard cap, the run stops before
+  the provider call and is recorded as `budget_exceeded`.
+- If a tool is not allowed for a role, the guard rejects it before execution and
+  records a security event.
+- If a data source is unavailable, the report must say so; it must not invent a
+  numeric value.
+
+### 9.4 Context assembly, tool budgets, and the compaction boundary
+
+Every model turn receives a layered context: identity, standing constraints,
+retrieved knowledge, conversation or debate history, resumable state, and the
+current task. The context is assembled per node, and the identity and standing
+constraints are never removed by the trimming that applies to tool and report
+bodies.
+
+The profile budgets are intentionally explicit:
+
+| Profile | Analysts | Research / risk rounds | Hard token cap | Tool-output cap | Report-context cap | Output cap |
+|---|---|---:|---:|---:|---:|---:|
+| Quick | market | 1 / 1 | 80,000 | 2,000 chars | 1,000 chars | 1,024 |
+| Standard | market, news, fundamentals | 1 / 1 | 150,000 | 3,500 chars | 2,000 chars | 2,048 |
+| Deep | market, social, news, fundamentals | 2 / 2 | 300,000 | 5,000 chars | 3,000 chars | 3,072 |
+
+There are two different things in this table. The token cap is a budget guard
+measured from provider usage. The character caps are context-compression controls
+that limit how much tool output and how much prior report text are injected into a
+prompt. The latter is visible in the final report when the Market Analyst says the
+stock-data CSV was truncated.
+
+Compaction is implemented in the cost layer and is used by audit tooling, but it
+is **not wired into the runtime path**. The runtime currently stops hard rather
+than degrading silently. This is a deliberate choice: a hard stop to `REVIEW` is
+easier to audit than a partially summarised analysis that looks complete. The
+next engineering step is to connect summarisation and cheaper-model routing to
+the runtime, with protected evidence keys kept verbatim.
+
+### 9.5 Blocking gates and failure prevention
+
+The gate framework uses one set of rules owned by `master`. A branch push is
+warn-only; a pull request to `master` is blocking. The repository is public, and
+`master` is protected by an active GitHub ruleset. The required status checks are
+the gate self-tests and G1-G7. Deletion and non-fast-forward updates are blocked.
+
+| Gate | What it checks | Failure it prevents |
+|---|---|---|
+| G1 | Tests for the change were approved before implementation | Code written before the test plan is agreed |
+| G2 | Lint, type checking, dependencies; contract, security, API and permission checks on safety paths | Unsafe or unauditable code entering a safety boundary |
+| G3 | Requirements registry validates against its schema | A registry that no tool can parse or enforce |
+| G4 | Prompt/model changes replay a fixed evaluation set against thresholds | A prompt change that degrades quality without evidence |
+| G5 | Every prior passing test still passes; deletion requires approval | Silent regressions and disappearing tests |
+| G6 | Code or prompt changes include a new AI-use-log entry | Agent-generated changes without a recorded human review trail |
+| G7 | A claimed Part's tests pass and do not skip | A Part being marked complete while its tests are skipped or failing |
+
+The ruleset does not currently require a separate approving review for
+safety-critical paths. That part of D7 remains a documented human-review and ADR
+obligation rather than a GitHub-enforced rule. The report records this limitation
+rather than claiming that the platform enforces more than it does.
+
+The gate design also changed the process. A failure is not fixed with a private
+patch and a note; it becomes a check, a regression test or an invariant. The gate
+self-tests are themselves tested, so a gate that fails for the wrong reason is
+treated as a defect.
+
+### 9.6 Recorded Deep run evidence
+
+A recorded Deep-profile acceptance run provides a concrete cross-check of the
+system. It is not used as a substitute for the offline test suite; it is used to
+show that the integrated path produces the audit fields the design claims.
+
+| Observation | Recorded value | What it demonstrates |
+|---|---:|---|
+| Profile | Deep | Four analysts, two research rounds, two risk rounds |
+| Agent stages | 12 | All downstream roles executed |
+| Tokens | 263,940 | Under the 300,000 hard cap |
+| Cost estimate | 1.336923 | Per-run cost is measured, not guessed |
+| Evidence records | 25 | Tool results are captured with hashes |
+| Claim groups | 147 | 95 numeric and 52 qualitative groups |
+| Fallback events | 16 | Missing sources are recorded, not hidden |
+| Quality floor | passed | Evidence coverage and contradiction checks pass |
+| Final rating | Underweight | Committed by the composition root, not copied from an analyst |
+| Review required | false | Rating authority accepted the committed value |
+
+The same run also shows the limits of the evidence. Sentiment sources were
+unavailable, FRED was not configured, and the report explicitly calls Neutral a
+data gap rather than a signal. The market data CSV was truncated by the tool-output
+cap. Those are not contradictions in the report; they are the visible trade-offs
+of a bounded, point-in-time system.
+
+### 9.7 Defect trend and root-cause analysis
+
+The most serious defects were at boundaries, not inside isolated functions. The
+bug diary records five gate-related defects and the project review records show
+integration defects around the same themes. The pattern is consistent: a module
+can pass its unit tests while the composed system still fails.
+
+| Defect | Symptom | Root cause | Mechanism added |
+|---|---|---|---|
+| BUG-001 | G2 dependency check failed only in CI | Import path and `sys.modules` shadowing | Check the file on disk, independent of cwd |
+| BUG-002 | G1 blocked gate-infrastructure tests | Gate tooling was treated as application tests | Exclude gate infrastructure from approval coverage |
+| BUG-003 | G6 parsed YAML as JSON | Wrong parser for the file type | Parse YAML with a safe loader and a fallback |
+| BUG-004 | G4 crashed on non-eval changes | Missing default for the metrics argument | Stable payload shape with `metrics=None` |
+| BUG-005 | G5 reported a present test as deleted | Brittle node-id comparison across pytest versions | Normalise ids and give fragile parametrisations explicit ids |
+
+The integration defects followed the same lesson. A budget exception was swallowed
+by a callback; the fix moved enforcement before the provider call. Evidence was
+missing on the streaming path; the fix bound context before graph start. Numeric
+claims produced false positives; the fix narrowed the checks to labelled market
+values. In each case the response was a mechanism, not a reminder to be more
+careful.
+
+### 9.8 Human oversight and transcript evidence
+
+The project used supervised AI sessions. The agent could propose, implement, test
+and explain, but it could not approve its own plan, merge its own work, or run
+unattended live tests. The transcripts preserve the human interventions that
+changed the work:
+
+- A plan was required before code, including requirements, interfaces, scope,
+  tests and steps.
+- A Part 5 acceptance was rejected when the evidence did not match the claim; the
+  follow-up required handler-level redaction, fail-closed provenance and
+  independent injection labels.
+- A real low-budget run exposed a swallowed callback exception; the human review
+  turned that incident into a pre-call enforcement mechanism.
+- When a fix crossed a shared component, the agent documented a handoff instead
+  of editing another Part without approval.
+- Real-model and integration runs were reserved for the human owner; a skipped
+  live test was not treated as a pass.
+
+This is why the report distinguishes "the agent wrote code" from "the team
+accepted the code". The transcript is evidence of supervision, not a claim that
+the agent was autonomous.
+
+### 9.9 Traceability examples
+
+The trace matrix is useful only if it can be followed in both directions. These
+examples are representative:
+
+| Requirement | Enforcing component | Test / evidence | Runtime field |
+|---|---|---|---|
+| REQ-FR-004 | Evidence registry and manifest writer | Evidence/manifest tests | Evidence Index, manifest evidence refs |
+| REQ-QUAL-002 | Report fidelity and claim grouping | Report faithfulness tests | Claim Index, unsupported/contradiction metrics |
+| REQ-INV-002 | Date windows and vendor withholding | Point-in-time tests | `pit_coverage` |
+| REQ-INV-003 | Rating authority and composition root | Rating-invariant tests | Committed rating, `rating_authority` |
+| REQ-SEC-001 | Sanitisation, output validation, tool guard | Security regression tests | `security_events` |
+| REQ-COST-001 | Guarded LLM and profile budgets | Token/cost tests | `cost_estimate`, `budget_exceeded` |
+
+The chain is not just a diagram. A runtime field can be traced back to the code
+and test that produced it, and a requirement can be traced forward to the
+artifact that demonstrates it.
+
+### 9.10 Limitations, exit criteria, and next steps
+
+The remaining limitations are specific:
+
+1. **Cost routing:** summarisation and cheaper-model routing are implemented in
+   the cost layer but not fully wired into the runtime. `REQ-COST-001` remains
+   `partial`, and aggregate p95 is not closed.
+2. **Safety-path review:** the public repository ruleset requires PRs and the
+   G1-G7 checks, but it does not enforce a separate approval specifically for
+   safety-critical paths. That remains a human process and ADR obligation.
+3. **D8 layout:** the repository uses a compatibility `src/` and `test/` entry
+   point; the application source remains in the package layout. The compatibility
+   mapping is documented, and a physical migration is a deliberate future change.
+4. **Live evidence:** live provider runs are owner-run and not part of the
+   deterministic offline suite. They are acceptance evidence, not a substitute for
+   regression tests.
+5. **Report length:** this document is a process report, not a full code manual.
+   The appended evidence is intentionally selective; the repository remains the
+   source of record for code, tests and artifacts.
+
+The exit criteria for the project are therefore: the offline suite is green; the
+blocking gates are configured and run from `master`; a real run produces the
+expected report, evidence, manifest and rating fields; and every remaining gap is
+named with an owner and a next step rather than hidden behind a success claim.
+
+## Appendix A. Artifact index
+
+| Deliverable | Primary location | Purpose |
+|---|---|---|
+| D1 requirements | `docs/req/requirements.yaml`, `docs/req/req-schema.json`, `docs/req/PRD.md` | Machine-readable requirements, schema and product summary |
+| D2 architecture | `architecture-blueprint.md`, `docs/architecture/` | Blueprint, ADRs, invariants, trace matrix, memory, permissions, policies, evaluations |
+| D3 governance | `AGENTS.md`, `docs/code-governance/`, `.opencode/`, `.agent/` | Agent rules, module constraints, tool manifest, permissions |
+| D4 verification | `docs/code-governance/verification-constraints.md`, `docs/review-memo.md`, `docs/debt-register.md`, `docs/bug-diary.md` | Verification policy, reviews, debt and defects |
+| D5 transcripts | `transcripts/` | Annotated supervised sessions |
+| D6 report | `Report.md` | This process report and reflections |
+| D7 repository | GitHub `adnfakw123dfkaj/SEP` | Source, tests, CI and blocking gates |
+| D8 source and tests | `src/`, `test/`, `tradingagents/` | Compatibility entry points and application source |
+| D9 prompt | `Prompt.md` | Static supervised startup prompt |
+
+## Appendix B. Verification command index
+
+The offline path is the CI path; live tests are owner-run:
+
+```bash
+cd tradingagents
+python -m pytest tests -q -m "not integration"
+python -m pytest tests -q
+ruff check .
+pyright
+```
+
+The gate logic is exercised from the repository root:
+
+```bash
+python -m pytest tests/gates -q
+```
+
+The GitHub workflow that runs the blocking gates is
+`.github/workflows/ci.yml`, which calls `.github/workflows/gates.yml`. The gate
+rules are owned by `master`; a branch cannot weaken the rules it is checked
+against.
+
+## Appendix C. Requirement-level acceptance evidence
+
+The following matrix records the primary verification path for each accepted
+top-level requirement. It is a summary, not a replacement for the tests or the
+requirement registry.
+
+| Requirement | Primary acceptance evidence | Status | Remaining caveat |
+|---|---|---|---|
+| REQ-FR-001 | Profile matrix and manifest-profile tests | Implemented | Profile limits are enforced per run |
+| REQ-FR-002 | Invalid-input zero-call test and preflight benchmark | Implemented | Live ticker coverage depends on the data vendor |
+| REQ-FR-003 | Debate schema, max-round and transcript export tests | Implemented | A malformed model output can still require degradation |
+| REQ-QUAL-001 | Evidence, rebuttal, unsupported and duplicate proxy tests | Implemented | Proxies are deterministic checks, not human judgement |
+| REQ-FR-004 | Numeric/qualitative evidence and manifest schema tests | Implemented | Claim groups are evidence attribution, not semantic proof |
+| REQ-QUAL-002 | Numeric contradiction, citation and schema tests | Implemented | Contradiction checks cover labelled market values only |
+| REQ-INV-001 | Fault-injection, idempotency and hash-validation tests | Implemented | Single-process idempotency is the supported contract |
+| REQ-FR-005 | Resume, duplicate-call, cache and stale-cache tests | Implemented | Cache hit rate depends on the workload and TTLs |
+| REQ-INV-002 | Point-in-time tests across prices, news, fundamentals and social data | Implemented | Some historical sources are withheld rather than fetched |
+| REQ-INV-003 | Fuzz, provenance, adversarial-text and persisted-revalidation tests | Implemented | The parser is shared with the advisory path |
+| REQ-SEC-001 | Injection, tool-guard, validation and event-log tests | Implemented | Fixture-based security rates are not a proof against all attacks |
+| REQ-INV-004 | Log, prompt, manifest, report and exception redaction tests | Implemented | External secret scanners remain a CI responsibility |
+| REQ-PER-001 | Profile latency benchmark and recorded run timings | Implemented | Live latency varies with provider load |
+| REQ-COST-001 | Budget, cost-report and hard-stop tests; recorded Deep run | Partial | Aggregate p95 and progressive routing remain open |
+
+The matrix also makes the dependency direction visible. Feature requirements
+depend on the evidence, security and cost requirements; the invariants cut across
+all of them. A change that weakens an invariant is therefore not a local change,
+even when it touches only one module.
+
+## Appendix D. Residual risks and release checklist
+
+| Risk | Early warning | Mitigation / owner action |
+|---|---|---|
+| Vendor data disappears or is partial | Fallback count rises; report contains unavailable placeholders | Keep the fallback path; do not replace a gap with a guessed value |
+| Model output drifts after a prompt change | G4 semantic metrics change; quality floor fails | Replay the fixed evaluation set; require human review |
+| Budget guard is bypassed on a new path | Manifest cost exceeds the profile cap | Exercise the CLI stream path, not only unit tests |
+| A claim is supported only by a group-level ref | Claim evidence audit shows weak mapping | Treat this as evidence attribution; add semantic checks only when they can be verified |
+| Safety-path review is only procedural | A safety path changes without an ADR or approval | Require human review; consider a path-specific ruleset |
+| Report becomes longer but not more evidential | Page count rises while decisions are unchanged | Tie each added page to a requirement, defect, run or gate |
+
+Release checklist:
+
+- [ ] Offline suite green for the changed scope.
+- [ ] G1-G7 configuration present for a PR to `master`.
+- [ ] Report, manifest, evidence index and claim index present.
+- [ ] Quality floor and rating authority pass.
+- [ ] Known gaps are marked `partial` or recorded as future work.
+- [ ] No secret, token or private key appears in a tracked artifact.

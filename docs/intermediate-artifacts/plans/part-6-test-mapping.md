@@ -1,7 +1,7 @@
 # Part 6 测试代码与需求映射
 
 - 测试代码目录：`tradingagents/tests/part6/`
-- 对应测试规格：`docs/req/plans/part-6-test-cases.md`
+- 对应测试规格：`docs/intermediate-artifacts/plans/part-6-test-cases.md`
 - 对应需求：`REQ-PER-001`、`REQ-COST-001`
 - 当前状态：**TDD 红阶段**。测试已写好，但被测模块尚未实现，因此 collection 报 `ModuleNotFoundError`，这是预期结果。
 

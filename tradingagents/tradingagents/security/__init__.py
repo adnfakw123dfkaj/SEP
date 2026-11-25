@@ -15,7 +15,7 @@ secret-redaction sink shared by the rest of the pipeline:
 
 The modules are independent of the composition root: Part 1 wires them into the
 graph; Part 3 wires the redaction into manifest/report writes. See
-``docs/part5-integration.md``.
+``docs/intermediate-artifacts/part5-integration.md``.
 """
 
 from __future__ import annotations

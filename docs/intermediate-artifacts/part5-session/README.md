@@ -2,7 +2,7 @@
 
 ## Raw session (original wording retained)
 
-- **Exported file:** `docs/part5-session/session-export.json`
+- **Exported file:** `docs/intermediate-artifacts/part5-session/session-export.json`
   (OpenCode `opencode export <sessionID>`, session
   `ses_e12a35d3effeg4ZwlWw1sb9ANP`, **330 messages**, full message text, message
   order, ids and all **347 tool-call parts** retained).

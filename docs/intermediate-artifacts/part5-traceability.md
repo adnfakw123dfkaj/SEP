@@ -82,7 +82,7 @@ python scripts/generate_security_fixtures.py   # regenerate fixtures (determinis
   modules are not type-checked by CI. Run explicitly in isolation, pyright on the
   new modules reported 0 errors (supplementary, not CI-enforced).
 - Wiring into `graph/trading_graph.py`, analysts, and Part 3 records/manifest is
-  documented in `docs/part5-integration.md` but **not** performed (out of scope
+  documented in `docs/intermediate-artifacts/part5-integration.md` but **not** performed (out of scope
   for this Part / requires owner review).
 - **Concurrency:** only serial idempotency is implemented/tested. Atomic
   concurrent commit is delegated to the Part 3 store contract (documented), not
@@ -93,7 +93,7 @@ python scripts/generate_security_fixtures.py   # regenerate fixtures (determinis
 ## Part 1 / Part 3 integration handoff (not yet performed)
 
 Detailed call sites and verification scenarios are in
-`docs/part5-integration.md`.
+`docs/intermediate-artifacts/part5-integration.md`.
 
 - **Part 1** (`graph/trading_graph.py::record_decision` and boundaries): build
   verified `Provenance` (set `snapshot_verified=True` only after real
@@ -107,7 +107,7 @@ Detailed call sites and verification scenarios are in
   rating/reason_codes/provenance.
 
 Verification scenarios expected from those integrations are listed per item in
-`docs/part5-integration.md` (unverified snapshot -> REVIEW; injected field does
+`docs/intermediate-artifacts/part5-integration.md` (unverified snapshot -> REVIEW; injected field does
 not change rating; unbound tool 0 executions; key never in output; tampered
 record reads as REVIEW; manifest replays to same rating).
 

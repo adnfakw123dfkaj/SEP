@@ -1,6 +1,6 @@
 # Part 2 需求与计划追踪
 
-复核日期：2026-11-20。依据仅为本仓库 `docs/req/plans/part-2-debate.md`（最高优先级）、`test-cases/part2-debate.md`、`docs/gate-intro.md`，并核对现有实现、审批与证据。本文不扩大 Part 2 的修改范围。
+复核日期：2026-11-20。依据仅为本仓库 `docs/intermediate-artifacts/plans/part-2-debate.md`（最高优先级）、`test-cases/part2-debate.md`、`docs/gate-intro.md`，并核对现有实现、审批与证据。本文不扩大 Part 2 的修改范围。
 
 下表路径缩写：`P=tradingagents/tradingagents/`，`T=tradingagents/tests/`，`E=part2-live-acceptance-2026-11-20/`；均相对仓库根目录。证据口径见[验收摘要](part2-acceptance.md)，集成责任见[交接摘要](part2-integration.md)。
 

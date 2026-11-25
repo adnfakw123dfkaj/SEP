@@ -12,7 +12,7 @@ Guarantees:
 - Authorised calls still run, so one rejection does not block the run.
 
 The guard owns the "reject before execute" decision; Part 1 wires it into the
-graph's tool dispatch (see ``docs/part5-integration.md``). An
+graph's tool dispatch (see ``docs/intermediate-artifacts/part5-integration.md``). An
 :class:`UnauthorizedToolCall` raised here is caught by the caller (the graph
 dispatch), which continues the run without the tool.
 """

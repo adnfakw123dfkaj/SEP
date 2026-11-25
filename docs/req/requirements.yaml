@@ -16,7 +16,7 @@ document:
     subproject: "tradingagents"
     baseline: "TradingAgents v0.7.1"
     human_readable: "docs/req/requirements-final.md"
-    implementation_plans: "docs/req/plans/"
+    implementation_plans: "docs/intermediate-artifacts/plans/"
   acceptance_rule: |
     每条需求必须同时具备可机器校验的 fit criterion 与可行实现方案；否则不进入
     requirements，列入 discarded。fit criterion 必须给出 metric、threshold 和 verification。

@@ -1,6 +1,6 @@
 # Part 2 补充验收摘要
 
-复核日期：2026-11-20。依据：`docs/req/plans/part-2-debate.md`、`test-cases/part2-debate.md`、`docs/gate-intro.md`。
+复核日期：2026-11-20。依据：`docs/intermediate-artifacts/plans/part-2-debate.md`、`test-cases/part2-debate.md`、`docs/gate-intro.md`。
 
 ## 版本与证据范围
 

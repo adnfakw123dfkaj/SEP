@@ -36,7 +36,7 @@ round they belong to); neither is back-dated.
 | Round 2 (review fixes) | `07:36:35Z` | 3 test files + 4 fixtures (incl. `.expected.jsonl`) |
 
 The reviewer approved each round's scenarios in-session before that round's code,
-as recorded in the exported session (`docs/part5-session/README.md`, human-index
+as recorded in the exported session (`docs/intermediate-artifacts/part5-session/README.md`, human-index
 rows 2 and 5).
 
 ## Why the current G1 check FAILS (and why it cannot express multi-round approval)
