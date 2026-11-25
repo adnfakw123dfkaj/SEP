@@ -11,14 +11,14 @@ accordingly, bounded for extremes.
 
 | Member | Student ID | Primary responsibility | Effort | Relative contribution |
 |---|---|---:|---:|---:|
-| CHEN Yanyan | 60261455 | Part 5 — Security & rating authority | 58 | 1.10 |
-| LUO Chen | 60480455 | Requirements analysis, blocking-gate framework, architecture & governance artifacts, Part 3 alignment | 55 | 1.05 |
-| ShiYuxin | 61020264 | Part 4 — Data resilience & point-in-time integrity | 52 | 0.99 |
-| WANG Shangke | 60050652 | Part 2 — Structured debate & debate quality | 55 | 1.05 |
-| ZHU Xiaotong | 60811120 | Part 1 — Config profiles & preflight | 50 | 0.95 |
-| CHEN Yiyang | 60915756 | Part 6 — Performance & cost, six-part integration & verification | 55 | 1.05 |
+| CHEN Yanyan | 60261455 | Part 5 — Security & rating authority | 95 | 0.95 |
+| LUO Chen | 60480455 | Requirements analysis, blocking-gate framework, architecture & governance artifacts, Part 3 alignment | 110 | 1.10 |
+| ShiYuxin | 61020264 | Part 4 — Data resilience & point-in-time integrity | 95 | 0.95 |
+| WANG Shangke | 60050652 | Part 2 — Structured debate & debate quality | 95 | 0.95 |
+| ZHU Xiaotong | 60811120 | Part 1 — Config profiles & preflight | 95 | 0.95 |
+| CHEN Yiyang | 60915756 | Part 6 — Performance & cost, six-part integration & verification | 110 | 1.10 |
 
-Total effort 325, mean 54.2. Relative contribution = effort ÷ mean. Sum of
+Total effort 600, mean 100. Relative contribution = effort ÷ mean. Sum of
 weights equals the number of members (6.0).
 
 ---
